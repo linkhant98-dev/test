@@ -2,7 +2,7 @@
 "use client"
 
 import { useState } from "react"
-import { Send, Plus, Search, Factory, ClipboardCheck, AlertCircle } from "lucide-react"
+import { Send, Plus, Search, Factory, ClipboardCheck, AlertCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,20 +17,26 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-
-const pendingOrders = [
-  { id: "PO-24-055", product: "Cheddar Bites", progress: "Not Started", items: [{ name: "Milk", qty: 500, unit: "L" }, { name: "Salt", qty: 5, unit: "kg" }] },
-  { id: "PO-24-056", product: "Mozza Strings", progress: "Partial Issue", items: [{ name: "Milk", qty: 300, unit: "L" }, { name: "Culture", qty: 2, unit: "kg" }] },
-  { id: "PO-24-057", product: "Brie Pops", progress: "Not Started", items: [{ name: "Brie Base", qty: 100, unit: "kg" }, { name: "Packaging", qty: 50, unit: "sqm" }] },
-]
+import { useFirestore, useCollection, useMemoFirebase, useUser, updateDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 
 export default function ProductionIssuePage() {
-  const [orders, setOrders] = useState(pendingOrders)
-  const [selectedOrder, setSelectedOrder] = useState<typeof pendingOrders[0] | null>(null)
+  const db = useFirestore()
+  const { user } = useUser()
+
+  const ordersRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "production_orders");
+  }, [db, user]);
+
+  const { data: orders, isLoading: ordersLoading } = useCollection(ordersRef)
+
+  const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [isIssueOpen, setIsIssueOpen] = useState(false)
 
   const handleIssue = (orderId: string) => {
-    setOrders(orders.map(o => o.id === orderId ? { ...o, progress: "Completed" } : o))
+    const docRef = doc(db, "production_orders", orderId)
+    updateDocumentNonBlocking(docRef, { status: "In Progress" })
     setIsIssueOpen(false)
   }
 
@@ -41,58 +47,53 @@ export default function ProductionIssuePage() {
           <h1 className="text-3xl font-bold font-headline text-foreground">Production Issues</h1>
           <p className="text-muted-foreground">Allocate materials to active production orders.</p>
         </div>
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => {
-          setSelectedOrder(orders[0])
-          setIsIssueOpen(true)
-        }}>
-          <Plus className="h-4 w-4 mr-2" /> Issue Materials
-        </Button>
       </div>
 
       <Card className="border-none shadow-sm">
         <CardHeader className="bg-secondary/5 border-b flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-bold text-secondary flex items-center gap-2">
-            <Factory className="h-4 w-4" /> Open Orders Requiring Materials
+            <Factory className="h-4 w-4" /> Orders Requiring Material Allocation
           </CardTitle>
-          <Badge className="bg-secondary">{orders.filter(o => o.progress !== 'Completed').length} Pending</Badge>
+          <Badge className="bg-secondary">{orders?.filter(o => o.status === 'Planning').length || 0} Pending</Badge>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y">
-            {orders.map((order) => (
-              <div key={order.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm font-headline">{order.id}</span>
-                    <span className="text-sm">{order.product}</span>
+          {ordersLoading ? (
+            <div className="p-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          ) : (
+            <div className="divide-y">
+              {orders?.filter(o => o.status !== 'Complete').map((order) => (
+                <div key={order.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm font-headline">{order.id.slice(-8).toUpperCase()}</span>
+                      <span className="text-sm">{order.product}</span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">Target: {order.quantity} Units</div>
                   </div>
-                  <div className="flex gap-2">
-                    {order.items.map(item => (
-                      <span key={item.name} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                        {item.name}: {item.qty}{item.unit}
-                      </span>
-                    ))}
+                  <div className="flex items-center gap-4">
+                    <Badge variant={order.status === 'Planning' ? 'outline' : 'default'} className={order.status === 'In Progress' ? 'bg-primary' : ''}>
+                      {order.status}
+                    </Badge>
+                    {order.status === 'Planning' && (
+                      <Button 
+                        size="sm" 
+                        className="bg-secondary/10 text-secondary hover:bg-secondary/20 border-none"
+                        onClick={() => {
+                          setSelectedOrder(order)
+                          setIsIssueOpen(true)
+                        }}
+                      >
+                        <Send className="h-3 w-3 mr-2" /> Issue Materials
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <Badge variant={order.progress === 'Completed' ? 'default' : 'outline'} className={order.progress === 'Completed' ? 'bg-secondary' : 'text-[10px]'}>
-                    {order.progress}
-                  </Badge>
-                  {order.progress !== 'Completed' && (
-                    <Button 
-                      size="sm" 
-                      className="bg-secondary/10 text-secondary hover:bg-secondary/20 border-none"
-                      onClick={() => {
-                        setSelectedOrder(order)
-                        setIsIssueOpen(true)
-                      }}
-                    >
-                      <Send className="h-3 w-3 mr-2" /> Issue Now
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+              {orders?.length === 0 && (
+                 <div className="p-12 text-center text-muted-foreground italic">No open orders. Seed demo data from Dashboard.</div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -101,33 +102,25 @@ export default function ProductionIssuePage() {
           <DialogHeader>
             <DialogTitle className="font-headline text-xl">Confirm Material Issue</DialogTitle>
             <DialogDescription>
-              Confirm quantities to be issued from warehouse to Production Order <strong>{selectedOrder?.id}</strong>.
+              Confirm quantities to be issued for Production Order <strong>{selectedOrder?.id?.slice(-8).toUpperCase()}</strong>.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-             {selectedOrder?.items.map((item, idx) => (
-               <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
-                 <div>
-                   <span className="text-xs font-bold text-muted-foreground block uppercase">Material</span>
-                   <span className="text-sm font-bold">{item.name}</span>
-                 </div>
-                 <div className="text-right">
-                   <span className="text-xs font-bold text-muted-foreground block uppercase">Qty</span>
-                   <span className="text-sm font-bold text-secondary">{item.qty} {item.unit}</span>
-                 </div>
-               </div>
-             ))}
+             <div className="p-3 rounded-lg bg-muted/30 border">
+                <span className="text-xs font-bold text-muted-foreground block uppercase">Production Run</span>
+                <span className="text-sm font-bold">{selectedOrder?.product}</span>
+             </div>
              <div className="p-3 rounded-lg bg-orange-50 border border-orange-200 flex items-start gap-3">
                <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5" />
                <p className="text-[10px] text-orange-700 leading-relaxed">
-                 By clicking confirm, stock levels in the warehouse will be immediately reduced and assigned to this work order.
+                 By clicking confirm, the order status will move to 'In Progress' and warehouse stock levels will be reserved.
                </p>
              </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsIssueOpen(false)}>Cancel</Button>
             <Button onClick={() => handleIssue(selectedOrder?.id!)} className="bg-secondary text-secondary-foreground">
-              <ClipboardCheck className="h-4 w-4 mr-2" /> Confirm Issue
+              <ClipboardCheck className="h-4 w-4 mr-2" /> Confirm & Start
             </Button>
           </DialogFooter>
         </DialogContent>

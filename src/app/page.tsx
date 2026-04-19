@@ -13,7 +13,8 @@ import {
   ClipboardList,
   Loader2,
   Database,
-  Sparkles
+  Sparkles,
+  RefreshCcw
 } from "lucide-react"
 import { 
   XAxis, 
@@ -30,7 +31,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/context/language-context"
 import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase"
-import { collection } from "firebase/firestore"
+import { collection, doc, serverTimestamp } from "firebase/firestore"
 
 const varianceData = [
   { name: 'Mon', variance: 12 },
@@ -63,55 +64,100 @@ export default function Dashboard() {
   }, [user, isUserLoading, router]);
 
   const seedDemoData = async () => {
-    if (!db) return;
+    if (!db || !user) return;
     setIsSeeding(true);
     
-    const materials = [
-      { name: "Mozzarella Cheese", unit: "kg", category: "Raw Material", stock: 150 },
-      { name: "Potato Starch", unit: "kg", category: "Raw Material", stock: 200 },
-      { name: "Chicken Breast (Minced)", unit: "kg", category: "Raw Material", stock: 80 },
-      { name: "Premium Sausage", unit: "units", category: "Raw Material", stock: 500 },
-      { name: "Batter Mix", unit: "kg", category: "Ingredient", stock: 100 },
-      { name: "Breadcrumbs", unit: "kg", category: "Ingredient", stock: 120 },
-      { name: "Frying Oil", unit: "L", category: "Ingredient", stock: 300 },
-      { name: "Seasoning Powder", unit: "kg", category: "Ingredient", stock: 50 },
-      { name: "Sea Salt", unit: "kg", category: "Ingredient", stock: 25 },
-    ];
-
-    const products = [
-      { name: "Original Cheese Stick", category: "Finished Good", price: 12.50, stock: 45 },
-      { name: "Long Potato", category: "Finished Good", price: 8.00, stock: 120 },
-      { name: "Chicken PopCorn", category: "Finished Good", price: 15.00, stock: 30 },
-      { name: "Sausage Cheese Stick", category: "Finished Good", price: 14.50, stock: 25 },
-    ];
-
-    const warehouses = [
-      { name: "Main Cold Storage", location: "Building A, West Wing", status: "Active", capacity: "85%" },
-      { name: "Raw Material Depot", location: "Building B, South Gate", status: "Active", capacity: "40%" },
-    ];
-
-    const reasons = [
-      { code: "SPOIL", description: "Natural spoilage or expiry", category: "Inventory", severity: "High" },
-      { code: "DAMG", description: "Physical damage during handling", category: "Operations", severity: "Medium" },
-      { code: "REJECT", description: "Quality control rejection", category: "Production", severity: "High" },
-    ];
-
     try {
+      // 1. Materials
+      const materials = [
+        { name: "Mozzarella Cheese", unit: "kg", category: "Raw Material", stock: 150 },
+        { name: "Potato Starch", unit: "kg", category: "Raw Material", stock: 200 },
+        { name: "Chicken Breast (Minced)", unit: "kg", category: "Raw Material", stock: 80 },
+        { name: "Premium Sausage", unit: "units", category: "Raw Material", stock: 500 },
+        { name: "Batter Mix", unit: "kg", category: "Ingredient", stock: 100 },
+        { name: "Breadcrumbs", unit: "kg", category: "Ingredient", stock: 120 },
+        { name: "Frying Oil", unit: "L", category: "Ingredient", stock: 300 },
+      ];
+
       for (const m of materials) {
-        addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() });
+        await addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() });
       }
+
+      // 2. Finished Goods & BOMs
+      const products = [
+        { name: "Original Cheese Stick", category: "Finished Good", price: 12.50, stock: 45 },
+        { name: "Long Potato", category: "Finished Good", price: 8.00, stock: 120 },
+        { name: "Chicken PopCorn", category: "Finished Good", price: 15.00, stock: 30 },
+        { name: "Sausage Cheese Stick", category: "Finished Good", price: 14.50, stock: 25 },
+      ];
+
       for (const p of products) {
-        addDocumentNonBlocking(collection(db, "finished_goods"), { ...p, createdAt: new Date().toISOString() });
+        const productRef = await addDocumentNonBlocking(collection(db, "finished_goods"), { ...p, createdAt: new Date().toISOString() });
+        if (productRef) {
+          // Add a BOM version for each product
+          await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "bom_versions"), {
+            version: "v1.0",
+            status: "Active",
+            effDate: "2024-01-01",
+            finishedGoodId: productRef.id,
+            components: [
+              { name: 'Mozzarella Cheese', qty: 0.05, unit: 'kg', loss: 2.0 },
+              { name: 'Batter Mix', qty: 0.02, unit: 'kg', loss: 5.0 },
+            ]
+          });
+        }
       }
+
+      // 3. Warehouses
+      const warehouses = [
+        { name: "Main Cold Storage", location: "Building A, West Wing", status: "Active", capacity: "85%" },
+        { name: "Raw Material Depot", location: "Building B, South Gate", status: "Active", capacity: "40%" },
+      ];
+
       for (const w of warehouses) {
-        addDocumentNonBlocking(collection(db, "warehouses"), { ...w, createdAt: new Date().toISOString() });
+        const warehouseRef = await addDocumentNonBlocking(collection(db, "warehouses"), { ...w, createdAt: new Date().toISOString() });
+        if (warehouseRef) {
+          // Add initial stock transactions
+          await addDocumentNonBlocking(collection(db, "warehouses", warehouseRef.id, "stock_transactions"), {
+            type: "RECEIPT",
+            materialName: "Mozzarella Cheese",
+            quantity: 500,
+            vendor: "Dairy Global",
+            status: "Verified",
+            timestamp: new Date().toISOString()
+          });
+        }
       }
+
+      // 4. Production Orders
+      const orders = [
+        { product: "Original Cheese Stick", quantity: 1200, date: "2024-05-15", status: "Complete", yield: 94.2, variance: -0.8 },
+        { product: "Long Potato", quantity: 800, date: "2024-05-18", status: "In Progress", yield: 0, variance: 0 },
+        { product: "Chicken PopCorn", quantity: 500, date: "2024-05-20", status: "Planning", yield: 0, variance: 0 },
+      ];
+
+      for (const o of orders) {
+        await addDocumentNonBlocking(collection(db, "production_orders"), {
+          ...o,
+          createdByUserId: user.uid,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      // 5. Waste Reasons
+      const reasons = [
+        { code: "SPOIL", description: "Natural spoilage or expiry", category: "Inventory", severity: "High" },
+        { code: "REJECT", description: "Quality control rejection", category: "Production", severity: "High" },
+      ];
+
       for (const r of reasons) {
-        addDocumentNonBlocking(collection(db, "waste_reasons"), { ...r, createdAt: new Date().toISOString() });
+        await addDocumentNonBlocking(collection(db, "waste_reasons"), { ...r, createdAt: new Date().toISOString() });
       }
-      alert("Demo data seeded successfully!");
+
+      alert("Demo ecosystem seeded successfully! All screens now contain mock data.");
     } catch (e) {
       console.error(e);
+      alert("Error seeding data. Check console.");
     } finally {
       setIsSeeding(false);
     }
@@ -169,12 +215,12 @@ export default function Dashboard() {
         </div>
         <Button 
           variant="outline" 
-          className="border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-bold h-12"
+          className="border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-bold h-12 gap-2"
           onClick={seedDemoData}
           disabled={isSeeding}
         >
-          {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-          Seed Demo Data
+          {isSeeding ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          Reset & Seed Mock Data
         </Button>
       </div>
 
