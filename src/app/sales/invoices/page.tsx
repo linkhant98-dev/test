@@ -24,8 +24,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
+import { useFirebase, useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
+import { collection, doc, getDocs, query, where } from "firebase/firestore"
 import {
   Dialog,
   DialogContent,
@@ -50,7 +50,7 @@ import Link from "next/link"
 const PAYMENT_METHODS = ["Cash", "Bank", "KPay", "WavePay"];
 
 export default function InvoicesPage() {
-  const db = useFirestore()
+  const { firestore: db } = useFirebase()
   const { user } = useUser()
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -113,14 +113,54 @@ export default function InvoicesPage() {
     }
   }
 
-  const handleProductSelect = (val: string, index: number, isEdit: boolean = false) => {
-    const product = products?.find(p => p.name === val)
+  // Enhanced Price Lookup Logic
+  const fetchBestPrice = async (productId: string, customerType: string) => {
+    const product = products?.find(p => p.id === productId);
+    let bestPrice = product?.price || 0;
+
+    // Check for specific price rules for this customer type and current date
+    const rulesRef = collection(db, "finished_goods", productId, "price_rules");
+    const today = new Date().toISOString().split('T')[0];
+    
+    try {
+      const q = query(
+        rulesRef, 
+        where("customerType", "==", customerType),
+        where("validFrom", "<=", today)
+      );
+      
+      const snapshot = await getDocs(q);
+      const activeRules = snapshot.docs
+        .map(d => d.data())
+        .filter(r => r.validTo >= today);
+
+      if (activeRules.length > 0) {
+        // Use the rule price (if multiple, pick the most recent or lowest, but for MVP just pick first)
+        bestPrice = activeRules[0].price;
+      }
+    } catch (e) {
+      console.error("Price lookup error:", e);
+    }
+
+    return bestPrice;
+  };
+
+  const handleProductSelect = async (val: string, index: number, isEdit: boolean = false) => {
+    const product = products?.find(p => p.name === val);
+    const customerId = isEdit ? editingInvoice.customerId : formData.customerId;
+    const customer = customers?.find(c => c.id === customerId);
+    
+    if (!product) return;
+
+    // Async lookup for tiered pricing
+    const resolvedPrice = await fetchBestPrice(product.id, customer?.customerType || "Retailer");
+
     if (isEdit) {
       const newItems = [...editingInvoice.items]
       newItems[index] = { 
         ...newItems[index], 
         productName: val, 
-        price: product?.price || 0,
+        price: resolvedPrice,
         unit: product?.unit || "Units" 
       }
       setEditingInvoice({ ...editingInvoice, items: newItems })
@@ -129,7 +169,7 @@ export default function InvoicesPage() {
       newItems[index] = { 
         ...newItems[index], 
         productName: val, 
-        price: product?.price || 0,
+        price: resolvedPrice,
         unit: product?.unit || "Units" 
       }
       setFormData({ ...formData, items: newItems })
@@ -215,7 +255,7 @@ export default function InvoicesPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold font-headline">Sales Invoices</h1>
-          <p className="text-muted-foreground">Manage multi-item billing and receivables tracking (MMK).</p>
+          <p className="text-muted-foreground">Manage multi-item billing and tiered price lookups (MMK).</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>

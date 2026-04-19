@@ -83,7 +83,7 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() });
       }
 
-      // 2. Finished Goods & BOMs
+      // 2. Finished Goods & BOMs & Tiered Prices
       const products = [
         { name: "Original Cheese Stick", category: "Finished Good", price: 3500, stock: 45 },
         { name: "Long Potato", category: "Finished Good", price: 2500, stock: 120 },
@@ -94,6 +94,7 @@ export default function Dashboard() {
       for (const p of products) {
         const productRef = await addDocumentNonBlocking(collection(db, "finished_goods"), { ...p, createdAt: new Date().toISOString() });
         if (productRef) {
+          // Add default BOM
           await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "bom_versions"), {
             version: "v1.0",
             status: "Active",
@@ -103,6 +104,22 @@ export default function Dashboard() {
               { name: 'Mozzarella Cheese', qty: 0.05, unit: 'kg', loss: 2.0 },
               { name: 'Batter Mix', qty: 0.02, unit: 'kg', loss: 5.0 },
             ]
+          });
+
+          // Add tiered price rules
+          await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "price_rules"), {
+            customerType: "Distributor",
+            price: p.price * 0.8,
+            validFrom: "2024-01-01",
+            validTo: "2025-12-31",
+            createdAt: new Date().toISOString()
+          });
+          await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "price_rules"), {
+            customerType: "Corporate",
+            price: p.price * 0.9,
+            validFrom: "2024-01-01",
+            validTo: "2025-12-31",
+            createdAt: new Date().toISOString()
           });
         }
       }
@@ -148,22 +165,11 @@ export default function Dashboard() {
           customerName: "City Mart Supermarket", 
           customerId: "dummy", 
           paymentMethod: "Bank",
-          totalAmount: 350000, 
+          totalAmount: 315000, // Corporate gets 10% off Original Cheese Stick (3500 * 0.9 * 100)
           status: "Sent", 
           dueDate: "2024-06-01", 
           createdAt: new Date().toISOString(), 
-          items: [{ productName: "Original Cheese Stick", quantity: 100, price: 3500, total: 350000 }] 
-        },
-        { 
-          invoiceNumber: "INV-1002", 
-          customerName: "Snack Shack Distribution", 
-          customerId: "dummy", 
-          paymentMethod: "KPay",
-          totalAmount: 250000, 
-          status: "Paid", 
-          dueDate: "2024-05-20", 
-          createdAt: new Date().toISOString(), 
-          items: [{ productName: "Long Potato", quantity: 100, price: 2500, total: 250000 }] 
+          items: [{ productName: "Original Cheese Stick", quantity: 100, price: 3150, total: 315000 }] 
         },
       ];
       for (const i of invoices) {
@@ -194,7 +200,7 @@ export default function Dashboard() {
         });
       }
 
-      alert("Demo ecosystem seeded successfully!");
+      alert("Demo ecosystem seeded with Tiered Pricing successfully!");
     } catch (e) {
       console.error(e);
     } finally {
@@ -262,7 +268,7 @@ export default function Dashboard() {
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                   <Line type="monotone" dataKey="variance" stroke="#FFD700" strokeWidth={3} dot={{ fill: '#FFD700', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} />
                 </LineChart>
-              </ResponsiveContainer>
+              </仪式Container>
           </CardContent>
         </Card>
 
