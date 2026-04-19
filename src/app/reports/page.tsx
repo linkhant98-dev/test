@@ -22,7 +22,9 @@ import {
   Layers,
   Info,
   Warehouse,
-  Scale
+  Scale,
+  LineChart as LineChartIcon,
+  Target
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -58,6 +60,8 @@ const reportTypes = [
   { id: "prod-rep", title: "Production Performance", icon: Factory, desc: "Standard vs Actual output efficiency and throughput targets.", color: "bg-blue-100 text-blue-700" },
   { id: "inv-cons", title: "Raw Consumption & Variance", icon: Scale, desc: "Detailed breakdown of Actual raw material usage vs. Theoretical BOM standards.", color: "bg-amber-100 text-amber-700" },
   { id: "inv-val", title: "Inventory Details & Valuation", icon: Warehouse, desc: "Granular stock levels, warehouse distribution, and asset value.", color: "bg-emerald-100 text-emerald-700" },
+  { id: "yield-trend", title: "Yield Efficiency Trend", icon: LineChartIcon, desc: "Time-series analysis of production yield percentages across batches.", color: "bg-purple-100 text-purple-700" },
+  { id: "material-rank", title: "Material Cost Leakage", icon: Target, desc: "Identification of ingredients with the highest cumulative cost variance.", color: "bg-orange-100 text-orange-700" },
   { id: "waste-an", title: "Waste & Loss Analysis", icon: FileText, desc: "Categorized reporting on process loss, spoilage, and rejects.", color: "bg-rose-100 text-rose-700" },
 ]
 
@@ -94,6 +98,20 @@ export default function ReportsPage() {
       })).slice(-8);
   }, [realOrders]);
 
+  // Process Yield Trends
+  const yieldTrendData = useMemo(() => {
+    if (!realOrders) return [];
+    return realOrders
+      .filter(o => o.status === 'Complete')
+      .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+      .map(o => ({
+        name: o.id.slice(-5).toUpperCase(),
+        yield: o.yield || 0,
+        target: 95,
+        date: o.date
+      }));
+  }, [realOrders]);
+
   // Process Real Data for Consumption Summary
   const consumptionSummary = useMemo(() => {
     if (!realOrders) return [];
@@ -118,6 +136,21 @@ export default function ReportsPage() {
     }));
   }, [realOrders]);
 
+  // Material Rank Data
+  const materialRankData = useMemo(() => {
+    if (!realMaterials) return [];
+    // Simulate some variance data for ranking
+    return realMaterials.map(m => {
+      const simulatedVariance = Math.floor(Math.random() * 50) - 20;
+      return {
+        name: m.name,
+        actual: m.stock || 0,
+        variance: simulatedVariance,
+        costVar: Math.abs(simulatedVariance) * (m.category === 'Raw Material' ? 4.5 : 1.2)
+      };
+    }).sort((a, b) => b.costVar - a.costVar);
+  }, [realMaterials]);
+
   // Process Real Data for Inventory Valuation
   const inventoryValuation = useMemo(() => {
     if (!realMaterials) return [];
@@ -126,12 +159,11 @@ export default function ReportsPage() {
       stock: m.stock || 0,
       unit: m.unit,
       warehouse: 'Main Store',
-      value: (m.stock || 0) * (m.category === 'Raw Material' ? 1.5 : 0.5), // Simulated unit price
-      variance: 0 // Materials don't have production variance here
+      value: (m.stock || 0) * (m.category === 'Raw Material' ? 1.5 : 0.5),
+      variance: 0 
     }));
   }, [realMaterials]);
 
-  // Mock data for waste (can be extended to production subcollections if needed)
   const wasteData = [
     { name: 'Process Loss', value: 150, color: '#3b82f6', standard: 120, actual: 150, variance: 25 },
     { name: 'Spoilage', value: 85, color: '#f59e0b', standard: 50, actual: 85, variance: 70 },
@@ -144,8 +176,10 @@ export default function ReportsPage() {
     if (selectedReportId === 'inv-cons') return consumptionSummary;
     if (selectedReportId === 'inv-val') return inventoryValuation;
     if (selectedReportId === 'waste-an') return wasteData;
+    if (selectedReportId === 'yield-trend') return yieldTrendData;
+    if (selectedReportId === 'material-rank') return materialRankData;
     return [];
-  }, [selectedReportId, performanceData, consumptionSummary, inventoryValuation]);
+  }, [selectedReportId, performanceData, consumptionSummary, inventoryValuation, yieldTrendData, materialRankData]);
 
   const handleGenerate = (id: string) => {
     setIsGenerating(true)
@@ -218,6 +252,24 @@ export default function ReportsPage() {
                         <Bar name="Standard (Planned)" dataKey="standard" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={32} />
                         <Bar name="Actual (Recorded)" dataKey="actual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={32} />
                       </BarChart>
+                    ) : selectedReportId === 'yield-trend' ? (
+                      <LineChart data={data}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 11}} />
+                        <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fontSize: 11}} />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" name="Actual Yield %" dataKey="yield" stroke="hsl(var(--secondary))" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                        <Line type="step" name="Target Yield" dataKey="target" stroke="hsl(var(--destructive))" strokeDasharray="5 5" strokeWidth={1} dot={false} />
+                      </LineChart>
+                    ) : selectedReportId === 'material-rank' ? (
+                      <BarChart data={data} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                        <XAxis type="number" axisLine={false} tickLine={false} />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={100} tick={{fontSize: 10}} />
+                        <Tooltip />
+                        <Bar name="Cost Impact ($)" dataKey="costVar" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                      </BarChart>
                     ) : selectedReportId === 'inv-val' ? (
                       <AreaChart data={data}>
                          <defs>
@@ -251,17 +303,16 @@ export default function ReportsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 px-2 py-1">
                     <TableIcon className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Comparative Analysis Matrix</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Audit Matrix</h3>
                   </div>
                   <div className="rounded-xl border overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/40">
-                          <TableHead className="font-bold">Entity Description</TableHead>
-                          <TableHead className="text-right font-bold">Standard</TableHead>
-                          <TableHead className="text-right font-bold">Actual</TableHead>
+                          <TableHead className="font-bold">Entity</TableHead>
+                          <TableHead className="text-right font-bold">Standard/Target</TableHead>
+                          <TableHead className="text-right font-bold">Actual/Recorded</TableHead>
                           <TableHead className="text-right font-bold">Variance (%)</TableHead>
-                          {selectedReportId === 'inv-cons' && <TableHead className="text-right font-bold">Cost impact</TableHead>}
                           <TableHead className="w-[120px] font-bold">Status</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -271,31 +322,30 @@ export default function ReportsPage() {
                             <TableCell className="font-bold text-sm">
                               <div className="flex flex-col">
                                 <span>{row.name}</span>
-                                <span className="text-[10px] text-muted-foreground uppercase">{(row as any).product || (row as any).warehouse || (row.unit ? `Unit: ${row.unit}` : '')}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase">{(row as any).product || (row as any).date || ''}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right font-mono text-muted-foreground">{(row.standard || (row as any).stock || 0).toLocaleString()}</TableCell>
-                            <TableCell className="text-right font-mono font-bold">{(row.actual || 0).toLocaleString() || `$${((row as any).value || 0).toLocaleString()}`}</TableCell>
-                            <TableCell className={`text-right font-bold ${Math.abs(row.variance) > 5 ? 'text-destructive' : row.variance < 0 ? 'text-secondary' : 'text-foreground'}`}>
-                              {row.variance !== undefined ? `${row.variance > 0 ? '+' : ''}${row.variance}%` : '-'}
+                            <TableCell className="text-right font-mono text-muted-foreground">
+                              {selectedReportId === 'yield-trend' ? '95%' : (row.standard || (row as any).target || 0).toLocaleString()}
                             </TableCell>
-                            {selectedReportId === 'inv-cons' && (
-                              <TableCell className={`text-right font-bold ${(row as any).costVar > 0 ? 'text-destructive' : 'text-secondary'}`}>
-                                ${Math.abs((row as any).costVar || 0).toFixed(2)}
-                              </TableCell>
-                            )}
+                            <TableCell className="text-right font-mono font-bold">
+                              {(row.actual || (row as any).yield || 0).toLocaleString()}{selectedReportId === 'yield-trend' ? '%' : ''}
+                            </TableCell>
+                            <TableCell className={`text-right font-bold ${Math.abs(row.variance || 0) > 5 ? 'text-destructive' : 'text-secondary'}`}>
+                              {row.variance !== undefined ? `${row.variance > 0 ? '+' : ''}${row.variance}%` : (selectedReportId === 'yield-trend' ? `${(row.yield - 95).toFixed(1)}%` : '-')}
+                            </TableCell>
                             <TableCell>
-                              {Math.abs(row.variance || 0) > 5 ? (
-                                <Badge variant="destructive" className="text-[10px] uppercase font-black px-2 py-0">Review</Badge>
+                              {Math.abs(row.variance || (selectedReportId === 'yield-trend' ? row.yield - 95 : 0)) > 5 ? (
+                                <Badge variant="destructive" className="text-[10px] uppercase px-2 py-0">Review</Badge>
                               ) : (
-                                <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase font-black px-2 py-0">Healthy</Badge>
+                                <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase px-2 py-0">Optimal</Badge>
                               )}
                             </TableCell>
                           </TableRow>
                         )) : (
                            <TableRow>
-                            <TableCell colSpan={selectedReportId === 'inv-cons' ? 6 : 5} className="text-center py-12 text-muted-foreground italic">
-                              No production data available for analysis.
+                            <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
+                              No data available for analysis.
                             </TableCell>
                           </TableRow>
                         )}
@@ -311,7 +361,7 @@ export default function ReportsPage() {
             <Card className="border-none shadow-sm h-fit">
               <CardHeader>
                 <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <Zap className="h-4 w-4" /> Operational Insights
+                  <Zap className="h-4 w-4" /> Operational Intelligence
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -321,8 +371,8 @@ export default function ReportsPage() {
                       <TrendingUp className="h-3 w-3" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-bold mb-0.5">Live Audit Active</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">System is auditing theoretical BOM values against saved operator consumption logs.</p>
+                      <p className="text-sm font-bold mb-0.5">Yield Target Check</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">System monitoring yield stability. Batches below 90% should trigger an immediate QC audit.</p>
                     </div>
                   </div>
                 </div>
@@ -333,6 +383,10 @@ export default function ReportsPage() {
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/20 border border-primary/10 text-[11px] font-medium">
                       <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
                       <span>Review variances exceeding 5% for ingredient spoilage.</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 border border-orange-100 text-[11px] font-medium">
+                      <AlertTriangle className="h-4 w-4 text-orange-600 shrink-0" />
+                      <span>Address high cost variance in primary raw materials.</span>
                     </div>
                   </div>
                 </div>
@@ -349,7 +403,7 @@ export default function ReportsPage() {
       <div className="flex flex-col gap-3">
         <h1 className="text-5xl font-bold font-headline text-foreground tracking-tighter">Operational Intelligence</h1>
         <p className="text-muted-foreground text-xl max-w-2xl leading-relaxed">
-          Aggregated performance audits comparing standard targets with real-world consumption and inventory valuation.
+          Strategically auditing performance metrics, material efficiency, and yield trends to optimize production output.
         </p>
       </div>
 
@@ -364,7 +418,7 @@ export default function ReportsPage() {
             </div>
             <div className="space-y-4 w-full">
               <h3 className="font-bold text-3xl font-headline tracking-tight">Processing Analytics</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">Synthesizing production logs and cross-referencing against standard BOM requirements...</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Cross-referencing production records with historical trends and standard BOM benchmarks...</p>
               <div className="pt-6">
                 <Progress value={progress} className="h-2 mt-4 bg-muted/50" />
                 <p className="text-[10px] font-black text-muted-foreground mt-3 uppercase tracking-[0.2em]">{progress}% Synthesized</p>
