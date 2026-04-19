@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "customer": {
@@ -46,6 +47,7 @@
             "properties": {
               "productName": { "type": "string" },
               "quantity": { "type": "number" },
+              "unit": { "type": "string" },
               "price": { "type": "number" },
               "total": { "type": "number" }
             }

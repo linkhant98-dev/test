@@ -7,7 +7,6 @@ import {
   Search, 
   FileText, 
   Printer, 
-  DollarSign, 
   CheckCircle2, 
   Clock, 
   AlertTriangle,
@@ -16,7 +15,8 @@ import {
   ArrowUpRight,
   Edit2,
   Save,
-  Trash2
+  Trash2,
+  Minus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,6 +45,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+
+interface InvoiceItem {
+  productName: string;
+  quantity: number;
+  price: number;
+  unit: string;
+  total: number;
+}
 
 export default function InvoicesPage() {
   const db = useFirestore()
@@ -75,8 +83,74 @@ export default function InvoicesPage() {
 
   const [formData, setFormData] = useState({
     customerId: "",
-    items: [{ productName: "", quantity: 1, price: 0 }]
+    items: [{ productName: "", quantity: 1, price: 0, unit: "Units" }]
   })
+
+  const calculateTotal = (items: any[]) => {
+    return items.reduce((acc, curr) => acc + (curr.quantity * curr.price), 0)
+  }
+
+  const handleAddLine = (isEdit: boolean = false) => {
+    const newItem = { productName: "", quantity: 1, price: 0, unit: "Units" }
+    if (isEdit) {
+      setEditingInvoice({
+        ...editingInvoice,
+        items: [...editingInvoice.items, newItem]
+      })
+    } else {
+      setFormData({
+        ...formData,
+        items: [...formData.items, newItem]
+      })
+    }
+  }
+
+  const handleRemoveLine = (index: number, isEdit: boolean = false) => {
+    if (isEdit) {
+      if (editingInvoice.items.length <= 1) return
+      const newItems = editingInvoice.items.filter((_: any, i: number) => i !== index)
+      setEditingInvoice({ ...editingInvoice, items: newItems })
+    } else {
+      if (formData.items.length <= 1) return
+      const newItems = formData.items.filter((_, i) => i !== index)
+      setFormData({ ...formData, items: newItems })
+    }
+  }
+
+  const handleProductSelect = (val: string, index: number, isEdit: boolean = false) => {
+    const product = products?.find(p => p.name === val)
+    if (isEdit) {
+      const newItems = [...editingInvoice.items]
+      newItems[index] = { 
+        ...newItems[index], 
+        productName: val, 
+        price: product?.price || 0,
+        unit: product?.unit || "Units" 
+      }
+      setEditingInvoice({ ...editingInvoice, items: newItems })
+    } else {
+      const newItems = [...formData.items]
+      newItems[index] = { 
+        ...newItems[index], 
+        productName: val, 
+        price: product?.price || 0,
+        unit: product?.unit || "Units" 
+      }
+      setFormData({ ...formData, items: newItems })
+    }
+  }
+
+  const handleItemChange = (field: string, val: any, index: number, isEdit: boolean = false) => {
+    if (isEdit) {
+      const newItems = [...editingInvoice.items]
+      newItems[index] = { ...newItems[index], [field]: val }
+      setEditingInvoice({ ...editingInvoice, items: newItems })
+    } else {
+      const newItems = [...formData.items]
+      newItems[index] = { ...newItems[index], [field]: val }
+      setFormData({ ...formData, items: newItems })
+    }
+  }
 
   const handleAddInvoice = () => {
     if (!formData.customerId || !invoicesRef) return
@@ -87,7 +161,7 @@ export default function InvoicesPage() {
       total: item.quantity * item.price
     }))
     
-    const totalAmount = invoiceItems.reduce((acc, curr) => acc + curr.total, 0)
+    const totalAmount = calculateTotal(invoiceItems)
     
     addDocumentNonBlocking(invoicesRef, {
       invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
@@ -100,7 +174,7 @@ export default function InvoicesPage() {
       createdAt: new Date().toISOString()
     })
     setIsAddOpen(false)
-    setFormData({ customerId: "", items: [{ productName: "", quantity: 1, price: 0 }] })
+    setFormData({ customerId: "", items: [{ productName: "", quantity: 1, price: 0, unit: "Units" }] })
   }
 
   const handleUpdateInvoice = () => {
@@ -109,7 +183,7 @@ export default function InvoicesPage() {
       ...item,
       total: item.quantity * item.price
     }))
-    const totalAmount = updatedItems.reduce((acc: number, curr: any) => acc + curr.total, 0)
+    const totalAmount = calculateTotal(updatedItems)
     
     const docRef = doc(db, "invoices", editingInvoice.id)
     updateDocumentNonBlocking(docRef, {
@@ -142,8 +216,8 @@ export default function InvoicesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold font-headline">Invoices</h1>
-          <p className="text-muted-foreground">Manage sales billing and payment tracking.</p>
+          <h1 className="text-3xl font-bold font-headline">Sales Invoices</h1>
+          <p className="text-muted-foreground">Manage multi-item billing and receivables tracking.</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -152,7 +226,7 @@ export default function InvoicesPage() {
               <Plus className="h-4 w-4 mr-2" /> Create Invoice
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl">Create New Invoice</DialogTitle>
             </DialogHeader>
@@ -170,38 +244,74 @@ export default function InvoicesPage() {
               </div>
               
               <div className="space-y-4">
-                <Label className="font-bold">Line Items</Label>
-                {formData.items.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-7">
-                      <Select onValueChange={(v) => {
-                        const product = products?.find(p => p.name === v)
-                        const newItems = [...formData.items]
-                        newItems[idx] = { ...newItems[idx], productName: v, price: product?.price || 0 }
-                        setFormData({...formData, items: newItems})
-                      }}>
-                        <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
-                        <SelectContent>
-                          {products?.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                <div className="flex justify-between items-center">
+                  <Label className="font-bold">Line Items</Label>
+                  <Button variant="outline" size="sm" onClick={() => handleAddLine(false)}>
+                    <Plus className="h-3 w-3 mr-1" /> Add Line
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {formData.items.map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-muted/20 p-2 rounded-lg relative group">
+                      <div className="col-span-4">
+                        <Select onValueChange={(v) => handleProductSelect(v, idx, false)}>
+                          <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
+                          <SelectContent>
+                            {products?.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2">
+                        <Input 
+                          type="number" 
+                          placeholder="Qty"
+                          value={item.quantity} 
+                          onChange={(e) => handleItemChange("quantity", Number(e.target.value), idx, false)} 
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Input 
+                          placeholder="Unit"
+                          value={item.unit} 
+                          onChange={(e) => handleItemChange("unit", e.target.value, idx, false)} 
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Input 
+                          type="number" 
+                          placeholder="Price"
+                          value={item.price} 
+                          onChange={(e) => handleItemChange("price", Number(e.target.value), idx, false)} 
+                        />
+                      </div>
+                      <div className="col-span-1 text-right font-mono text-sm font-bold">
+                        ${(item.quantity * item.price).toFixed(2)}
+                      </div>
+                      <div className="col-span-1 flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveLine(idx, false)}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="col-span-2">
-                      <Input type="number" value={item.quantity} onChange={(e) => {
-                        const newItems = [...formData.items]
-                        newItems[idx].quantity = Number(e.target.value)
-                        setFormData({...formData, items: newItems})
-                      }} />
-                    </div>
-                    <div className="col-span-3 text-right font-mono text-xs">
-                      ${(item.quantity * item.price).toFixed(2)}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t">
+                <div className="text-right">
+                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest block">Total Invoice Amount</span>
+                  <span className="text-2xl font-black text-primary">${calculateTotal(formData.items).toFixed(2)}</span>
+                </div>
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleAddInvoice} className="w-full bg-secondary text-secondary-foreground font-bold">Post Invoice</Button>
+              <Button onClick={handleAddInvoice} className="w-full bg-secondary text-secondary-foreground font-bold h-12">Post & Save Invoice</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -217,6 +327,7 @@ export default function InvoicesPage() {
                 <TableRow className="bg-muted/30">
                   <TableHead>Invoice #</TableHead>
                   <TableHead>Customer</TableHead>
+                  <TableHead>Items</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
@@ -227,6 +338,9 @@ export default function InvoicesPage() {
                   <TableRow key={inv.id}>
                     <TableCell className="font-mono font-bold">{inv.invoiceNumber}</TableCell>
                     <TableCell className="font-medium">{inv.customerName}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px]">{inv.items?.length || 0} Lines</Badge>
+                    </TableCell>
                     <TableCell className="font-bold">${inv.totalAmount.toLocaleString()}</TableCell>
                     <TableCell>{getStatusBadge(inv.status)}</TableCell>
                     <TableCell>
@@ -251,6 +365,7 @@ export default function InvoicesPage() {
                               <Printer className="h-4 w-4 mr-2" /> Print Invoice
                             </Link>
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(inv.id)}>
                             <Trash2 className="h-4 w-4 mr-2" /> Delete
                           </DropdownMenuItem>
@@ -266,45 +381,90 @@ export default function InvoicesPage() {
       </Card>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-headline text-xl">Edit Invoice</DialogTitle>
-            <DialogDescription>Modify items and due dates for {editingInvoice?.invoiceNumber}.</DialogDescription>
+            <DialogTitle className="font-headline text-xl">Edit Invoice {editingInvoice?.invoiceNumber}</DialogTitle>
           </DialogHeader>
           {editingInvoice && (
             <div className="grid gap-6 py-4">
-              <div className="grid gap-2">
-                <Label>Bill To</Label>
-                <Input value={editingInvoice.customerName} disabled />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Bill To</Label>
+                  <Input value={editingInvoice.customerName} disabled />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Due Date</Label>
+                  <Input type="date" value={editingInvoice.dueDate} onChange={(e) => setEditingInvoice({...editingInvoice, dueDate: e.target.value})} />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label>Due Date</Label>
-                <Input type="date" value={editingInvoice.dueDate} onChange={(e) => setEditingInvoice({...editingInvoice, dueDate: e.target.value})} />
-              </div>
+              
               <div className="space-y-4">
-                <Label className="font-bold">Line Items</Label>
-                {editingInvoice.items.map((item: any, idx: number) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-7">
-                      <Input value={item.productName} disabled />
+                <div className="flex justify-between items-center">
+                  <Label className="font-bold">Line Items</Label>
+                  <Button variant="outline" size="sm" onClick={() => handleAddLine(true)}>
+                    <Plus className="h-3 w-3 mr-1" /> Add Line
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {editingInvoice.items.map((item: any, idx: number) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-muted/20 p-2 rounded-lg relative group">
+                      <div className="col-span-4">
+                        <Select value={item.productName} onValueChange={(v) => handleProductSelect(v, idx, true)}>
+                          <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
+                          <SelectContent>
+                            {products?.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2">
+                        <Input 
+                          type="number" 
+                          value={item.quantity} 
+                          onChange={(e) => handleItemChange("quantity", Number(e.target.value), idx, true)} 
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Input 
+                          value={item.unit} 
+                          onChange={(e) => handleItemChange("unit", e.target.value, idx, true)} 
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Input 
+                          type="number" 
+                          value={item.price} 
+                          onChange={(e) => handleItemChange("price", Number(e.target.value), idx, true)} 
+                        />
+                      </div>
+                      <div className="col-span-1 text-right font-mono text-sm font-bold">
+                        ${(item.quantity * item.price).toFixed(2)}
+                      </div>
+                      <div className="col-span-1 flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveLine(idx, true)}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="col-span-2">
-                      <Input type="number" value={item.quantity} onChange={(e) => {
-                        const newItems = [...editingInvoice.items]
-                        newItems[idx].quantity = Number(e.target.value)
-                        setEditingInvoice({...editingInvoice, items: newItems})
-                      }} />
-                    </div>
-                    <div className="col-span-3 text-right font-mono text-xs font-bold">
-                      ${(item.quantity * item.price).toFixed(2)}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t">
+                <div className="text-right">
+                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest block">Updated Total</span>
+                  <span className="text-2xl font-black text-primary">${calculateTotal(editingInvoice.items).toFixed(2)}</span>
+                </div>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleUpdateInvoice} className="w-full bg-secondary text-secondary-foreground font-bold">
+            <Button onClick={handleUpdateInvoice} className="w-full bg-secondary text-secondary-foreground font-bold h-12">
               <Save className="h-4 w-4 mr-2" /> Update & Save Invoice
             </Button>
           </DialogFooter>
