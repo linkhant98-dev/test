@@ -50,6 +50,13 @@ import { useTranslation } from "@/context/language-context"
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 
+const CONSISTENT_PRODUCTS = [
+  "Original Cheese Stick",
+  "Long Potato",
+  "Chicken PopCorn",
+  "Sausage Cheese Stick"
+];
+
 export default function ProductionOrdersPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -69,7 +76,7 @@ export default function ProductionOrdersPage() {
   const [activeDialog, setActiveDialog] = useState<'details' | 'logs' | 'print' | null>(null)
   
   const [newOrder, setNewOrder] = useState({
-    product: "Original Cheese Stick",
+    product: CONSISTENT_PRODUCTS[0],
     quantity: 100,
     date: new Date().toISOString().split('T')[0],
     status: "Planning"
@@ -308,10 +315,9 @@ export default function ProductionOrdersPage() {
                   <SelectValue placeholder="Select product" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Original Cheese Stick">Original Cheese Stick</SelectItem>
-                  <SelectItem value="Long Potato">Long Potato</SelectItem>
-                  <SelectItem value="Chicken PopCorn">Chicken PopCorn</SelectItem>
-                  <SelectItem value="Sausage Cheese Stick">Sausage Cheese Stick</SelectItem>
+                  {CONSISTENT_PRODUCTS.map(prod => (
+                    <SelectItem key={prod} value={prod}>{prod}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

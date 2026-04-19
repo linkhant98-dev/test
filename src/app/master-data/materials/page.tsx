@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Database, Plus, Search, Trash2, Edit2, MoreVertical, Archive, Loader2 } from "lucide-react"
+import { Plus, Search, Trash2, Edit2, MoreVertical, Archive, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +29,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
+
+const CONSISTENT_MATERIALS = [
+  "Mozzarella Cheese",
+  "Potato Starch",
+  "Chicken Breast (Minced)",
+  "Premium Sausage",
+  "Batter Mix",
+  "Breadcrumbs",
+  "Frying Oil",
+  "Seasoning Powder",
+  "Sea Salt"
+];
 
 export default function MaterialsPage() {
   const router = useRouter();
@@ -115,18 +127,12 @@ export default function MaterialsPage() {
                   defaultValue={newMaterial.name}
                 >
                   <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select or type material" />
+                    <SelectValue placeholder="Select material" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Mozzarella Cheese">Mozzarella Cheese</SelectItem>
-                    <SelectItem value="Potato Starch">Potato Starch</SelectItem>
-                    <SelectItem value="Chicken Breast (Minced)">Chicken Breast (Minced)</SelectItem>
-                    <SelectItem value="Premium Sausage">Premium Sausage</SelectItem>
-                    <SelectItem value="Batter Mix">Batter Mix</SelectItem>
-                    <SelectItem value="Breadcrumbs">Breadcrumbs</SelectItem>
-                    <SelectItem value="Frying Oil">Frying Oil</SelectItem>
-                    <SelectItem value="Seasoning Powder">Seasoning Powder</SelectItem>
-                    <SelectItem value="Sea Salt">Sea Salt</SelectItem>
+                    {CONSISTENT_MATERIALS.map(mat => (
+                      <SelectItem key={mat} value={mat}>{mat}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -219,7 +225,7 @@ export default function MaterialsPage() {
                         {m.category}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-bold">{m.stock.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-bold">{(m.stock || 0).toLocaleString()}</TableCell>
                     <TableCell className="text-muted-foreground">{m.unit}</TableCell>
                     <TableCell>
                       <DropdownMenu>

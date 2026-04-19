@@ -29,6 +29,25 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+const CONSISTENT_PRODUCTS = [
+  "Original Cheese Stick",
+  "Long Potato",
+  "Chicken PopCorn",
+  "Sausage Cheese Stick"
+];
+
+const CONSISTENT_MATERIALS = [
+  "Mozzarella Cheese",
+  "Potato Starch",
+  "Chicken Breast (Minced)",
+  "Premium Sausage",
+  "Batter Mix",
+  "Breadcrumbs",
+  "Frying Oil",
+  "Seasoning Powder",
+  "Sea Salt"
+];
+
 const initialBoms = [
   { 
     id: "BOM-OCS-01", 
@@ -101,7 +120,7 @@ export default function BOMManagementPage() {
   })
 
   const [newBOMData, setNewBOMData] = useState({
-    product: "Original Cheese Stick",
+    product: CONSISTENT_PRODUCTS[0],
     version: "v1.0",
     effDate: new Date().toISOString().split('T')[0]
   })
@@ -180,10 +199,9 @@ export default function BOMManagementPage() {
                       <SelectValue placeholder="Select product" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Original Cheese Stick">Original Cheese Stick</SelectItem>
-                      <SelectItem value="Long Potato">Long Potato</SelectItem>
-                      <SelectItem value="Chicken PopCorn">Chicken PopCorn</SelectItem>
-                      <SelectItem value="Sausage Cheese Stick">Sausage Cheese Stick</SelectItem>
+                      {CONSISTENT_PRODUCTS.map(prod => (
+                        <SelectItem key={prod} value={prod}>{prod}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -323,15 +341,9 @@ export default function BOMManagementPage() {
                                 <SelectValue placeholder="Select material" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Mozzarella Cheese">Mozzarella Cheese</SelectItem>
-                                <SelectItem value="Potato Starch">Potato Starch</SelectItem>
-                                <SelectItem value="Chicken Breast (Minced)">Chicken Breast (Minced)</SelectItem>
-                                <SelectItem value="Premium Sausage">Premium Sausage</SelectItem>
-                                <SelectItem value="Batter Mix">Batter Mix</SelectItem>
-                                <SelectItem value="Breadcrumbs">Breadcrumbs</SelectItem>
-                                <SelectItem value="Frying Oil">Frying Oil</SelectItem>
-                                <SelectItem value="Seasoning Powder">Seasoning Powder</SelectItem>
-                                <SelectItem value="Sea Salt">Sea Salt</SelectItem>
+                                {CONSISTENT_MATERIALS.map(mat => (
+                                  <SelectItem key={mat} value={mat}>{mat}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>

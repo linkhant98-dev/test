@@ -37,7 +37,7 @@ const BOM_MAP: Record<string, { material: string, stdQtyPerUnit: number, unit: s
     { material: "Frying Oil", stdQtyPerUnit: 0.015, unit: "L" },
   ],
   "Chicken PopCorn": [
-    { material: "Chicken Breast", stdQtyPerUnit: 0.1, unit: "kg" },
+    { material: "Chicken Breast (Minced)", stdQtyPerUnit: 0.1, unit: "kg" },
     { material: "Seasoning Powder", stdQtyPerUnit: 0.01, unit: "kg" },
     { material: "Breadcrumbs", stdQtyPerUnit: 0.03, unit: "kg" },
     { material: "Frying Oil", stdQtyPerUnit: 0.02, unit: "L" },

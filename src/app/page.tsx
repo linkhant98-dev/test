@@ -30,7 +30,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/context/language-context"
 import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase"
-import { collection, getDocs } from "firebase/firestore"
+import { collection } from "firebase/firestore"
 
 const varianceData = [
   { name: 'Mon', variance: 12 },
@@ -43,10 +43,10 @@ const varianceData = [
 ]
 
 const topProducts = [
-  { name: 'Cheddar Bites', share: 45, color: '#FFD700' },
-  { name: 'Mozza Strings', share: 25, color: '#4F7736' },
-  { name: 'Brie Pops', share: 20, color: '#FFB800' },
-  { name: 'Other', share: 10, color: '#E5E7EB' },
+  { name: 'Original Cheese Stick', share: 45, color: '#FFD700' },
+  { name: 'Long Potato', share: 25, color: '#4F7736' },
+  { name: 'Chicken PopCorn', share: 20, color: '#FFB800' },
+  { name: 'Sausage Cheese Stick', share: 10, color: '#E5E7EB' },
 ]
 
 export default function Dashboard() {
@@ -74,6 +74,8 @@ export default function Dashboard() {
       { name: "Batter Mix", unit: "kg", category: "Ingredient", stock: 100 },
       { name: "Breadcrumbs", unit: "kg", category: "Ingredient", stock: 120 },
       { name: "Frying Oil", unit: "L", category: "Ingredient", stock: 300 },
+      { name: "Seasoning Powder", unit: "kg", category: "Ingredient", stock: 50 },
+      { name: "Sea Salt", unit: "kg", category: "Ingredient", stock: 25 },
     ];
 
     const products = [
@@ -91,6 +93,7 @@ export default function Dashboard() {
     const reasons = [
       { code: "SPOIL", description: "Natural spoilage or expiry", category: "Inventory", severity: "High" },
       { code: "DAMG", description: "Physical damage during handling", category: "Operations", severity: "Medium" },
+      { code: "REJECT", description: "Quality control rejection", category: "Production", severity: "High" },
     ];
 
     try {

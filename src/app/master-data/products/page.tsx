@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Package, Plus, Search, MoreVertical, Edit2, Trash2, Loader2 } from "lucide-react"
+import { Plus, Search, MoreVertical, Edit2, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +29,13 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+const CONSISTENT_PRODUCTS = [
+  "Original Cheese Stick",
+  "Long Potato",
+  "Chicken PopCorn",
+  "Sausage Cheese Stick"
+];
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -115,10 +122,9 @@ export default function ProductsPage() {
                     <SelectValue placeholder="Select product" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Original Cheese Stick">Original Cheese Stick</SelectItem>
-                    <SelectItem value="Long Potato">Long Potato</SelectItem>
-                    <SelectItem value="Chicken PopCorn">Chicken PopCorn</SelectItem>
-                    <SelectItem value="Sausage Cheese Stick">Sausage Cheese Stick</SelectItem>
+                    {CONSISTENT_PRODUCTS.map(prod => (
+                      <SelectItem key={prod} value={prod}>{prod}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -185,8 +191,8 @@ export default function ProductsPage() {
                     <TableCell className="font-mono text-xs text-muted-foreground font-bold">{p.id.slice(-5)}</TableCell>
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell>{p.category}</TableCell>
-                    <TableCell className="text-right">${p.price.toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-bold">{p.stock}</TableCell>
+                    <TableCell className="text-right">${(p.price || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-bold">{(p.stock || 0).toLocaleString()}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
