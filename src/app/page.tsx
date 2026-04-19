@@ -165,7 +165,7 @@ export default function Dashboard() {
           customerName: "City Mart Supermarket", 
           customerId: "dummy", 
           paymentMethod: "Bank",
-          totalAmount: 315000, // Corporate gets 10% off Original Cheese Stick (3500 * 0.9 * 100)
+          totalAmount: 315000, 
           status: "Sent", 
           dueDate: "2024-06-01", 
           createdAt: new Date().toISOString(), 
@@ -200,7 +200,7 @@ export default function Dashboard() {
         });
       }
 
-      alert("Demo ecosystem seeded with Tiered Pricing successfully!");
+      alert("Demo ecosystem seeded successfully!");
     } catch (e) {
       console.error(e);
     } finally {
@@ -268,7 +268,7 @@ export default function Dashboard() {
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                   <Line type="monotone" dataKey="variance" stroke="#FFD700" strokeWidth={3} dot={{ fill: '#FFD700', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} />
                 </LineChart>
-              </仪式Container>
+              </ResponsiveContainer>
           </CardContent>
         </Card>
 
