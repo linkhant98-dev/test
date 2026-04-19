@@ -15,13 +15,9 @@ import {
   ChevronRight,
   Globe,
   LogOut,
-  Plus,
-  ClipboardList,
-  CheckCircle2,
-  Eye,
-  History,
-  Printer,
-  Trash2
+  Users,
+  CreditCard,
+  ShoppingCart
 } from "lucide-react"
 
 import {
@@ -80,6 +76,14 @@ export function AppSidebar() {
         { title: t("bomManagement"), url: "/master-data/bom" },
         { title: t("warehouses"), url: "/master-data/warehouses" },
         { title: t("wasteReasons"), url: "/master-data/waste-reasons" },
+        { title: t("customers"), url: "/master-data/customers" },
+      ]
+    },
+    {
+      title: t("sales"),
+      icon: ShoppingCart,
+      items: [
+        { title: t("invoices"), url: "/sales/invoices" },
       ]
     },
     {

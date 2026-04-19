@@ -94,7 +94,6 @@ export default function Dashboard() {
       for (const p of products) {
         const productRef = await addDocumentNonBlocking(collection(db, "finished_goods"), { ...p, createdAt: new Date().toISOString() });
         if (productRef) {
-          // Add a BOM version for each product
           await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "bom_versions"), {
             version: "v1.0",
             status: "Active",
@@ -108,32 +107,39 @@ export default function Dashboard() {
         }
       }
 
-      // 3. Warehouses
+      // 3. Customers
+      const customers = [
+        { name: "City Mart Supermarket", email: "procurement@citymart.com", phone: "+95 912345678", address: "Pyay Road, Yangon", createdAt: new Date().toISOString() },
+        { name: "Snack Shack Distribution", email: "info@snackshack.com", phone: "+95 987654321", address: "Mandalay Plaza", createdAt: new Date().toISOString() },
+      ];
+
+      for (const c of customers) {
+        await addDocumentNonBlocking(collection(db, "customers"), c);
+      }
+
+      // 4. Invoices
+      const invoices = [
+        { invoiceNumber: "INV-1001", customerName: "City Mart Supermarket", customerId: "dummy", totalAmount: 1500, status: "Sent", dueDate: "2024-06-01", createdAt: new Date().toISOString(), items: [{ productName: "Original Cheese Stick", quantity: 100, price: 15, total: 1500 }] },
+        { invoiceNumber: "INV-1002", customerName: "Snack Shack Distribution", customerId: "dummy", totalAmount: 850, status: "Paid", dueDate: "2024-05-20", createdAt: new Date().toISOString(), items: [{ productName: "Long Potato", quantity: 100, price: 8.5, total: 850 }] },
+      ];
+      for (const i of invoices) {
+        await addDocumentNonBlocking(collection(db, "invoices"), i);
+      }
+
+      // 5. Warehouses
       const warehouses = [
         { name: "Main Cold Storage", location: "Building A, West Wing", status: "Active", capacity: "85%" },
         { name: "Raw Material Depot", location: "Building B, South Gate", status: "Active", capacity: "40%" },
       ];
 
       for (const w of warehouses) {
-        const warehouseRef = await addDocumentNonBlocking(collection(db, "warehouses"), { ...w, createdAt: new Date().toISOString() });
-        if (warehouseRef) {
-          // Add initial stock transactions
-          await addDocumentNonBlocking(collection(db, "warehouses", warehouseRef.id, "stock_transactions"), {
-            type: "RECEIPT",
-            materialName: "Mozzarella Cheese",
-            quantity: 500,
-            vendor: "Dairy Global",
-            status: "Verified",
-            timestamp: new Date().toISOString()
-          });
-        }
+        await addDocumentNonBlocking(collection(db, "warehouses"), { ...w, createdAt: new Date().toISOString() });
       }
 
-      // 4. Production Orders
+      // 6. Production Orders
       const orders = [
         { product: "Original Cheese Stick", quantity: 1200, date: "2024-05-15", status: "Complete", yield: 94.2, variance: -0.8 },
         { product: "Long Potato", quantity: 800, date: "2024-05-18", status: "In Progress", yield: 0, variance: 0 },
-        { product: "Chicken PopCorn", quantity: 500, date: "2024-05-20", status: "Planning", yield: 0, variance: 0 },
       ];
 
       for (const o of orders) {
@@ -144,66 +150,23 @@ export default function Dashboard() {
         });
       }
 
-      // 5. Waste Reasons
-      const reasons = [
-        { code: "SPOIL", description: "Natural spoilage or expiry", category: "Inventory", severity: "High" },
-        { code: "REJECT", description: "Quality control rejection", category: "Production", severity: "High" },
-      ];
-
-      for (const r of reasons) {
-        await addDocumentNonBlocking(collection(db, "waste_reasons"), { ...r, createdAt: new Date().toISOString() });
-      }
-
-      alert("Demo ecosystem seeded successfully! All screens now contain mock data.");
+      alert("Demo ecosystem seeded successfully!");
     } catch (e) {
       console.error(e);
-      alert("Error seeding data. Check console.");
     } finally {
       setIsSeeding(false);
     }
   };
 
   if (isUserLoading || !user) {
-    return (
-      <div className="h-full w-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="h-full w-full flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   const stats = [
-    {
-      title: t("activeProductionOrders"),
-      value: "12",
-      description: "4 scheduled for today",
-      icon: ShoppingCart,
-      trend: "+2 from yesterday",
-      trendType: "up"
-    },
-    {
-      title: t("inventoryValue"),
-      value: "$45,231.89",
-      description: "Across 3 warehouses",
-      icon: Package,
-      trend: "+4.5%",
-      trendType: "up"
-    },
-    {
-      title: t("avgYield"),
-      value: "94.2%",
-      description: "Target: 95.0%",
-      icon: CheckCircle2,
-      trend: "-0.8%",
-      trendType: "down"
-    },
-    {
-      title: t("efficiencyAlerts"),
-      value: "3",
-      description: "Requires urgent review",
-      icon: ClipboardList,
-      trend: "Operational",
-      trendType: "up"
-    }
+    { title: t("activeProductionOrders"), value: "12", description: "4 scheduled for today", icon: ShoppingCart, trend: "+2 from yesterday", trendType: "up" },
+    { title: t("inventoryValue"), value: "$45,231.89", description: "Across 3 warehouses", icon: Package, trend: "+4.5%", trendType: "up" },
+    { title: t("avgYield"), value: "94.2%", description: "Target: 95.0%", icon: CheckCircle2, trend: "-0.8%", trendType: "down" },
+    { title: t("efficiencyAlerts"), value: "3", description: "Requires urgent review", icon: ClipboardList, trend: "Operational", trendType: "up" }
   ]
 
   return (
@@ -235,14 +198,8 @@ export default function Dashboard() {
               <div className="text-2xl font-bold text-foreground">{stat.value}</div>
               <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
               <div className="mt-3 flex items-center gap-1">
-                {stat.trendType === 'up' ? (
-                  <ArrowUpRight className="h-3 w-3 text-secondary" />
-                ) : (
-                  <ArrowDownRight className="h-3 w-3 text-destructive" />
-                )}
-                <span className={`text-[10px] font-bold ${stat.trendType === 'up' ? 'text-secondary' : 'text-destructive'}`}>
-                  {stat.trend}
-                </span>
+                {stat.trendType === 'up' ? <ArrowUpRight className="h-3 w-3 text-secondary" /> : <ArrowDownRight className="h-3 w-3 text-destructive" />}
+                <span className={`text-[10px] font-bold ${stat.trendType === 'up' ? 'text-secondary' : 'text-destructive'}`}>{stat.trend}</span>
               </div>
             </CardContent>
           </Card>
@@ -251,89 +208,31 @@ export default function Dashboard() {
 
       <div className="grid gap-6 md:grid-cols-7">
         <Card className="md:col-span-4 border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-headline">{t("productionVarianceTrend")}</CardTitle>
-            <CardDescription>Daily cost variance percentage for current month.</CardDescription>
-          </CardHeader>
+          <CardHeader><CardTitle className="font-headline">{t("productionVarianceTrend")}</CardTitle></CardHeader>
           <CardContent className="pl-2 h-[300px]">
              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={varianceData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} />
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="variance" 
-                    stroke="#FFD700" 
-                    strokeWidth={3} 
-                    dot={{ fill: '#FFD700', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, strokeWidth: 0 }}
-                  />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                  <Line type="monotone" dataKey="variance" stroke="#FFD700" strokeWidth={3} dot={{ fill: '#FFD700', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} />
                 </LineChart>
               </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card className="md:col-span-3 border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-headline">{t("productionMix")}</CardTitle>
-            <CardDescription>Top finished goods by volume.</CardDescription>
-          </CardHeader>
+          <CardHeader><CardTitle className="font-headline">{t("productionMix")}</CardTitle></CardHeader>
           <CardContent className="h-[300px] flex flex-col items-center justify-center">
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie
-                  data={topProducts}
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="share"
-                >
-                  {topProducts.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                <Pie data={topProducts} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="share">
+                  {topProducts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-            <div className="grid grid-cols-2 gap-4 mt-4 w-full px-4">
-              {topProducts.map((product) => (
-                <div key={product.name} className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full" style={{ backgroundColor: product.color }} />
-                  <span className="text-xs font-medium">{product.name} ({product.share}%)</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-headline">{t("pendingTransactions")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { label: 'Stock Transfer #ST-112', status: 'Pending Approval', date: '2h ago' },
-                { label: 'Goods Receipt #GR-903', status: 'Draft', date: '5h ago' },
-                { label: 'Issue to Production #IP-776', status: 'Processing', date: '1d ago' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold">{item.label}</span>
-                    <span className="text-xs text-muted-foreground">{item.date}</span>
-                  </div>
-                  <span className="text-xs font-semibold px-2 py-1 bg-accent text-accent-foreground rounded-full">
-                    {item.status}
-                  </span>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
       </div>

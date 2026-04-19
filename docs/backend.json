@@ -1,5 +1,47 @@
+
 {
-  "entities": {},
+  "entities": {
+    "customer": {
+      "title": "Customer",
+      "description": "Represents a business customer or client.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "invoice": {
+      "title": "Invoice",
+      "description": "A sales invoice for a customer.",
+      "type": "object",
+      "properties": {
+        "invoiceNumber": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productName": { "type": "string" },
+              "quantity": { "type": "number" },
+              "price": { "type": "number" },
+              "total": { "type": "number" }
+            }
+          }
+        },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Draft", "Sent", "Paid", "Overdue"] },
+        "dueDate": { "type": "string", "format": "date" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["invoiceNumber", "customerId", "totalAmount", "status"]
+    }
+  },
   "auth": {
     "providers": [
       "password",
@@ -9,176 +51,21 @@
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
+        "path": "/customers/{customerId}",
         "definition": {
-          "entityName": "user",
-          "schema": {
-            "$ref": "#/backend/entities/user"
-          },
-          "description": "Stores user profiles. Ownership is path-based, meaning a user can only read/write their own profile data. Includes metadata like display name, email, etc."
+          "entityName": "customer",
+          "schema": { "$ref": "#/backend/entities/customer" },
+          "description": "Stores customer master data."
         }
       },
       {
-        "path": "/admin_users/{userId}",
+        "path": "/invoices/{invoiceId}",
         "definition": {
-          "entityName": "admin_user",
-          "schema": {
-            "$ref": "#/backend/entities/admin_user"
-          },
-          "description": "A dedicated collection for 'admin' role management. The presence of a document with `userId` as its ID signifies that the user has the administrative role. Used for robust DBAC via `exists()` checks in security rules."
-        }
-      },
-      {
-        "path": "/master_data_manager_users/{userId}",
-        "definition": {
-          "entityName": "master_data_manager_user",
-          "schema": {
-            "$ref": "#/backend/entities/master_data_manager_user"
-          },
-          "description": "A dedicated collection for 'master data manager' role management. The presence of a document with `userId` as its ID signifies this role, enabling CRUD access to master data entities."
-        }
-      },
-      {
-        "path": "/inventory_manager_users/{userId}",
-        "definition": {
-          "entityName": "inventory_manager_user",
-          "schema": {
-            "$ref": "#/backend/entities/inventory_manager_user"
-          },
-          "description": "A dedicated collection for 'inventory manager' role management. The presence of a document with `userId` as its ID signifies this role, enabling management of inventory and stock transactions."
-        }
-      },
-      {
-        "path": "/production_manager_users/{userId}",
-        "definition": {
-          "entityName": "production_manager_user",
-          "schema": {
-            "$ref": "#/backend/entities/production_manager_user"
-          },
-          "description": "A dedicated collection for 'production manager' role management. The presence of a document with `userId` as its ID signifies this role, enabling oversight and management of production orders."
-        }
-      },
-      {
-        "path": "/production_operator_users/{userId}",
-        "definition": {
-          "entityName": "production_operator_user",
-          "schema": {
-            "$ref": "#/backend/entities/production_operator_user"
-          },
-          "description": "A dedicated collection for 'production operator' role management. The presence of a document with `userId` as its ID signifies this role, enabling recording of consumption and output for production orders."
-        }
-      },
-      {
-        "path": "/raw_materials/{materialId}",
-        "definition": {
-          "entityName": "raw_material",
-          "schema": {
-            "$ref": "#/backend/entities/raw_material"
-          },
-          "description": "Stores master data for all raw materials. Access is role-based (e.g., Master Data Manager for CRUD, others for read). All documents in this collection share the same security posture."
-        }
-      },
-      {
-        "path": "/finished_goods/{finishedGoodId}",
-        "definition": {
-          "entityName": "finished_good",
-          "schema": {
-            "$ref": "#/backend/entities/finished_good"
-          },
-          "description": "Stores master data for all finished goods. Access is role-based (e.g., Master Data Manager for CRUD, others for read). All documents in this collection share the same security posture."
-        }
-      },
-      {
-        "path": "/warehouses/{warehouseId}",
-        "definition": {
-          "entityName": "warehouse",
-          "schema": {
-            "$ref": "#/backend/entities/warehouse"
-          },
-          "description": "Stores master data for all warehouses. Access is role-based (e.g., Master Data Manager for CRUD, others for read). All documents in this collection share the same security posture."
-        }
-      },
-      {
-        "path": "/waste_reasons/{reasonId}",
-        "definition": {
-          "entityName": "waste_reason",
-          "schema": {
-            "$ref": "#/backend/entities/waste_reason"
-          },
-          "description": "Stores master data for predefined waste reasons. Access is role-based (e.g., Master Data Manager for CRUD, others for read). All documents in this collection share the same security posture."
-        }
-      },
-      {
-        "path": "/finished_goods/{finishedGoodId}/bom_versions/{bomVersionId}",
-        "definition": {
-          "entityName": "bom_version",
-          "schema": {
-            "$ref": "#/backend/entities/bom_version"
-          },
-          "description": "Stores different versions of Bill of Materials (BOMs) for a specific finished good. Includes denormalized 'finishedGoodId' and 'status' (e.g., 'ACTIVE', 'DRAFT') for authorization independence, enabling atomic checks and list queries without fetching parent data. Access is role-based (e.g., Master Data Manager)."
-        }
-      },
-      {
-        "path": "/warehouses/{warehouseId}/stock_transactions/{transactionId}",
-        "definition": {
-          "entityName": "stock_transaction",
-          "schema": {
-            "$ref": "#/backend/entities/stock_transaction"
-          },
-          "description": "Records all stock movements within a specific warehouse. Includes denormalized 'warehouseId', 'materialId', 'transactionType', 'userId', and 'timestamp' for authorization independence and efficient querying. Access is role-based (e.g., Inventory Manager, Production Operator)."
-        }
-      },
-      {
-        "path": "/production_orders/{productionOrderId}",
-        "definition": {
-          "entityName": "production_order",
-          "schema": {
-            "$ref": "#/backend/entities/production_order"
-          },
-          "description": "Manages the lifecycle of production orders. Includes denormalized 'bomVersionId', 'finishedGoodId', 'warehouseId', 'status' (e.g., 'PLANNED', 'IN_PROGRESS'), and 'createdByUserId' for authorization independence, supporting atomic operations and clear security rules. Access is role-based (e.g., Production Manager for CRUD, Production Operator for specific updates)."
-        }
-      },
-      {
-        "path": "/production_orders/{productionOrderId}/consumption_records/{recordId}",
-        "definition": {
-          "entityName": "consumption_record",
-          "schema": {
-            "$ref": "#/backend/entities/consumption_record"
-          },
-          "description": "Records the actual raw materials consumed for a specific production order. Includes denormalized 'productionOrderId', 'materialId', 'quantity', 'timestamp', and 'userId' for authorization independence and query efficiency. Access is role-based (e.g., Production Operator to create, Production Manager to view)."
-        }
-      },
-      {
-        "path": "/production_orders/{productionOrderId}/output_records/{recordId}",
-        "definition": {
-          "entityName": "output_record",
-          "schema": {
-            "$ref": "#/backend/entities/output_record"
-          },
-          "description": "Records the actual finished goods produced from a specific production order. Includes denormalized 'productionOrderId', 'finishedGoodId', 'quantity', 'timestamp', and 'userId' for authorization independence and query efficiency. Access is role-based (e.g., Production Operator to create, Production Manager to view)."
-        }
-      },
-      {
-        "path": "/production_orders/{productionOrderId}/variances/{varianceId}",
-        "definition": {
-          "entityName": "variance",
-          "schema": {
-            "$ref": "#/backend/entities/variance"
-          },
-          "description": "Stores calculated variances for a specific production order. Created by backend logic. Includes denormalized 'productionOrderId', 'finishedGoodId', 'bomVersionId', 'varianceType', and 'timestamp' for authorization independence. Primarily read-only for Production Managers and Admins."
-        }
-      },
-      {
-        "path": "/production_orders/{productionOrderId}/insights/{insightId}",
-        "definition": {
-          "entityName": "ai_insight",
-          "schema": {
-            "$ref": "#/backend/entities/ai_insight"
-          },
-          "description": "Stores AI-generated insights related to a specific production order's variances. Created by backend logic. Includes denormalized 'productionOrderId' and 'generatedTimestamp' for authorization independence. Primarily read-only for Production Managers and Admins."
+          "entityName": "invoice",
+          "schema": { "$ref": "#/backend/entities/invoice" },
+          "description": "Stores sales invoices and payment status."
         }
       }
-    ],
-    "reasoning": "The Firestore structure for the 'Cheesy Bites Inventory Control & BOM Variance System' is designed to be highly secure, scalable, and debuggable, adhering strictly to the core design principles. \n\n**Authorization Independence (CRITICAL) and Denormalization Strategy:**\nTo ensure authorization independence and eliminate the need for costly and complex `get()` calls in security rules, crucial authorization context is denormalized directly into the relevant documents. For example:\n*   **Transactional Data:** Documents such as `production_orders`, `stock_transactions`, `consumption_records`, `output_records`, `variances`, and `ai_insights` will contain explicit foreign keys and status fields (e.g., `finishedGoodId`, `warehouseId`, `bomVersionId`, `productionOrderId`, `status`, `createdByUserId`). This means a security rule evaluating access to a `production_order` can check the `status` or `warehouseId` within that document directly, without needing to fetch the parent `finished_good` or `warehouse` document. This also enables atomic writes (e.g., creating a production order and its initial consumption records in a batch) without rule failures due to missing parent data. Similarly, `bom_versions` documents, though subcollections of `finished_goods`, will contain `finishedGoodId` and `status` to provide self-contained authorization context if needed beyond role-based access.\n*   **Role-Based Access:** All access control is managed via dedicated role-based collections (e.g., `/admin_users/{userId}`, `/inventory_manager_users/{userId}`). The presence of a user's UID as a document ID in one of these collections grants the corresponding role. This enables simple, explicit, and atomic role checks in security rules via `exists()` (e.g., `exists(/databases/$(database)/documents/admin_users/$(request.auth.uid))`), completely avoiding `get()` on user profiles for roles.\n\n**QAPs (Rules are not Filters) Support:**\nThis structure robustly supports query-as-proofs (QAPs), ensuring secure `list` operations:\n*   **Structural Segregation for Master Data:** Collections like `/raw_materials`, `/finished_goods`, `/warehouses`, and `/waste_reasons` have a homogeneous security posture. Access to these collections for listing is purely role-based (e.g., `master_data_manager` can `list` all `raw_materials`). The security rule simply verifies the user's role, allowing the client to retrieve the entire collection without needing to filter on document-specific fields.\n*   **Role-Based Access for Transactional Data:** For collections like `/production_orders` or `/warehouses/{warehouseId}/stock_transactions`, `list` operations are secured by checking if the user belongs to the appropriate role (e.g., `production_manager`, `inventory_manager`). If finer-grained list access is later required (e.g., a production operator can only list their own orders), the denormalized `createdByUserId` field in the `production_order` document would facilitate this. The rule could then enforce that any `list` query must include a `.where('createdByUserId', '==', request.auth.uid)` clause, satisfying the QAP. Given the requirements, broad role-based access is assumed for listing, with the structure ready for granular filtering if needed. This design ensures that security rules are clear, maintainable, and prevent unauthorized data leakage during `list` operations."
+    ]
   }
 }

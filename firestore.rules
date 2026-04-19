@@ -1,159 +1,32 @@
-/**
- * Core Philosophy:
- * This ruleset implements a robust Role-Based Access Control (RBAC) and Attribute-Based Access Control (ABAC) 
- * system for the Cheesy Bites Inventory Control & BOM Variance System. It prioritizes "Authorization 
- * Independence" by utilizing denormalized fields and dedicated role-check collections to minimize 
- * expensive cross-document lookups.
- *
- * Data Structure:
- * - /users/{userId}: Private user profiles accessible only by the owner.
- * - /{role}_users/{userId}: Marker collections (Admin, Master Data Manager, etc.) where the presence 
- *   of a UID-keyed document grants specific system-wide permissions.
- * - /raw_materials, /finished_goods, /warehouses, /waste_reasons: Master data collections managed 
- *   by Master Data Managers.
- * - /production_orders, /stock_transactions: Transactional data trees secured by operational roles.
- *
- * Key Security Decisions:
- * - DBAC (Document-Based Access Control): Roles are verified using `exists()` checks against 
- *   specialized collections, providing a scalable alternative to custom claims.
- * - Path-to-Data Consistency: For user-owned data, rules enforce that internal ID fields match 
- *    the path parameters during creation and remain immutable during updates.
- * - Prototyping Flexibility: While authorization is strictly enforced based on roles and ownership, 
- *   specific data field types and non-relational schemas are not validated to allow for rapid iteration.
- * - Backend-Only Entities: Insights and Variances are marked as read-only for users, as they are 
- *   intended to be populated by automated backend processes.
- */
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --- HELPER FUNCTIONS ---
-
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    // Role-Based Access Helpers
-    function isAdmin() {
-      return isSignedIn() && (exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)));
-    }
-
-    function isMasterDataManager() {
-      return isSignedIn() && (exists(/databases/$(database)/documents/master_data_manager_users/$(request.auth.uid)) || isAdmin());
-    }
-
-    function isInventoryManager() {
-      return isSignedIn() && (exists(/databases/$(database)/documents/inventory_manager_users/$(request.auth.uid)) || isAdmin());
-    }
-
-    function isProductionManager() {
-      return isSignedIn() && (exists(/databases/$(database)/documents/production_manager_users/$(request.auth.uid)) || isAdmin());
-    }
-
-    function isProductionOperator() {
-      return isSignedIn() && (exists(/databases/$(database)/documents/production_operator_users/$(request.auth.uid)) || isAdmin());
-    }
-
-    // --- COLLECTION RULES ---
-
-    /**
-     * @description Rules for user profiles. Users can only manage their own data.
-     */
     match /users/{userId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update, delete: if isExistingOwner(userId);
+      allow get, list, create, update, delete: if request.auth.uid == userId;
     }
 
-    /**
-     * @description Role assignment collections. Only Admins can view or modify role assignments.
-     */
-    match /admin_users/{userId} {
-      allow get, list, create, update, delete: if isAdmin();
+    match /raw_materials/{id} { allow read, write: if isSignedIn(); }
+    match /finished_goods/{id} { 
+      allow read, write: if isSignedIn(); 
+      match /bom_versions/{bomId} { allow read, write: if isSignedIn(); }
     }
-    match /master_data_manager_users/{userId} {
-      allow get, list, create, update, delete: if isAdmin();
+    match /warehouses/{id} { 
+      allow read, write: if isSignedIn(); 
+      match /stock_transactions/{tid} { allow read, write: if isSignedIn(); }
     }
-    match /inventory_manager_users/{userId} {
-      allow get, list, create, update, delete: if isAdmin();
+    match /waste_reasons/{id} { allow read, write: if isSignedIn(); }
+    match /production_orders/{id} { 
+      allow read, write: if isSignedIn(); 
+      match /consumption_records/{cid} { allow read, write: if isSignedIn(); }
+      match /output_records/{oid} { allow read, write: if isSignedIn(); }
     }
-    match /production_manager_users/{userId} {
-      allow get, list, create, update, delete: if isAdmin();
-    }
-    match /production_operator_users/{userId} {
-      allow get, list, create, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description Master data (Materials, Goods, Warehouses, Reasons). 
-     * Relaxed for prototyping: allow all signed-in users.
-     */
-    match /raw_materials/{materialId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-    }
-
-    match /finished_goods/{finishedGoodId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-
-      match /bom_versions/{bomVersionId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
-      }
-    }
-
-    match /warehouses/{warehouseId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-
-      match /stock_transactions/{transactionId} {
-        allow get, list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update, delete: if isSignedIn();
-      }
-    }
-
-    match /waste_reasons/{reasonId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-    }
-
-    /**
-     * @description Production Order lifecycle management.
-     */
-    match /production_orders/{productionOrderId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-
-      match /consumption_records/{recordId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
-      }
-
-      match /output_records/{recordId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
-      }
-
-      match /variances/{varianceId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
-      }
-
-      match /insights/{insightId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
-      }
-    }
+    
+    match /customers/{id} { allow read, write: if isSignedIn(); }
+    match /invoices/{id} { allow read, write: if isSignedIn(); }
   }
 }
