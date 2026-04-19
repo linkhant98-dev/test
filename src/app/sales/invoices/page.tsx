@@ -13,14 +13,17 @@ import {
   AlertTriangle,
   Loader2,
   MoreVertical,
-  ArrowUpRight
+  ArrowUpRight,
+  Edit2,
+  Save,
+  Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import {
   Dialog,
@@ -47,6 +50,8 @@ export default function InvoicesPage() {
   const db = useFirestore()
   const { user } = useUser()
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingInvoice, setEditingInvoice] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState("")
 
   const invoicesRef = useMemoFirebase(() => {
@@ -95,10 +100,33 @@ export default function InvoicesPage() {
       createdAt: new Date().toISOString()
     })
     setIsAddOpen(false)
+    setFormData({ customerId: "", items: [{ productName: "", quantity: 1, price: 0 }] })
+  }
+
+  const handleUpdateInvoice = () => {
+    if (!editingInvoice || !db) return
+    const updatedItems = editingInvoice.items.map((item: any) => ({
+      ...item,
+      total: item.quantity * item.price
+    }))
+    const totalAmount = updatedItems.reduce((acc: number, curr: any) => acc + curr.total, 0)
+    
+    const docRef = doc(db, "invoices", editingInvoice.id)
+    updateDocumentNonBlocking(docRef, {
+      items: updatedItems,
+      totalAmount,
+      dueDate: editingInvoice.dueDate
+    })
+    setIsEditOpen(false)
+    setEditingInvoice(null)
   }
 
   const updateStatus = (id: string, newStatus: string) => {
     updateDocumentNonBlocking(doc(db, "invoices", id), { status: newStatus })
+  }
+
+  const handleDelete = (id: string) => {
+    deleteDocumentNonBlocking(doc(db, "invoices", id))
   }
 
   const getStatusBadge = (status: string) => {
@@ -145,7 +173,7 @@ export default function InvoicesPage() {
                 <Label className="font-bold">Line Items</Label>
                 {formData.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-6">
+                    <div className="col-span-7">
                       <Select onValueChange={(v) => {
                         const product = products?.find(p => p.name === v)
                         const newItems = [...formData.items]
@@ -159,17 +187,14 @@ export default function InvoicesPage() {
                       </Select>
                     </div>
                     <div className="col-span-2">
-                      <Input type="number" placeholder="Qty" value={item.quantity} onChange={(e) => {
+                      <Input type="number" value={item.quantity} onChange={(e) => {
                         const newItems = [...formData.items]
                         newItems[idx].quantity = Number(e.target.value)
                         setFormData({...formData, items: newItems})
                       }} />
                     </div>
-                    <div className="col-span-3">
-                      <div className="relative">
-                        <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                        <Input type="number" className="pl-6" value={item.price} disabled />
-                      </div>
+                    <div className="col-span-3 text-right font-mono text-xs">
+                      ${(item.quantity * item.price).toFixed(2)}
                     </div>
                   </div>
                 ))}
@@ -180,25 +205,6 @@ export default function InvoicesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-none shadow-sm">
-           <CardHeader className="pb-2">
-             <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Total Receivables</CardTitle>
-           </CardHeader>
-           <CardContent>
-             <div className="text-2xl font-bold">${invoices?.filter(i => i.status !== 'Paid').reduce((acc, curr) => acc + curr.totalAmount, 0).toLocaleString()}</div>
-           </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-secondary/10">
-           <CardHeader className="pb-2">
-             <CardTitle className="text-xs font-bold text-secondary uppercase">Paid Invoices</CardTitle>
-           </CardHeader>
-           <CardContent>
-             <div className="text-2xl font-bold text-secondary">{invoices?.filter(i => i.status === 'Paid').length || 0}</div>
-           </CardContent>
-        </Card>
       </div>
 
       <Card className="border-none shadow-sm overflow-hidden">
@@ -212,7 +218,6 @@ export default function InvoicesPage() {
                   <TableHead>Invoice #</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Due Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
@@ -220,10 +225,9 @@ export default function InvoicesPage() {
               <TableBody>
                 {invoices?.map((inv) => (
                   <TableRow key={inv.id}>
-                    <TableCell className="font-mono font-bold text-sm">{inv.invoiceNumber}</TableCell>
+                    <TableCell className="font-mono font-bold">{inv.invoiceNumber}</TableCell>
                     <TableCell className="font-medium">{inv.customerName}</TableCell>
                     <TableCell className="font-bold">${inv.totalAmount.toLocaleString()}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{inv.dueDate}</TableCell>
                     <TableCell>{getStatusBadge(inv.status)}</TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -231,18 +235,24 @@ export default function InvoicesPage() {
                           <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => { setEditingInvoice({...inv}); setIsEditOpen(true); }}>
+                            <Edit2 className="h-4 w-4 mr-2" /> Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => updateStatus(inv.id, 'Sent')} disabled={inv.status === 'Sent'}>
-                            Mark as Sent
+                            <ArrowUpRight className="h-4 w-4 mr-2" /> Mark as Sent
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => updateStatus(inv.id, 'Paid')} disabled={inv.status === 'Paid'}>
-                            Mark as Paid
+                            <CheckCircle2 className="h-4 w-4 mr-2" /> Mark as Paid
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
                             <Link href={`/sales/invoices/${inv.id}/print`} className="flex items-center">
                               <Printer className="h-4 w-4 mr-2" /> Print Invoice
                             </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(inv.id)}>
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -254,6 +264,52 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-xl">Edit Invoice</DialogTitle>
+            <DialogDescription>Modify items and due dates for {editingInvoice?.invoiceNumber}.</DialogDescription>
+          </DialogHeader>
+          {editingInvoice && (
+            <div className="grid gap-6 py-4">
+              <div className="grid gap-2">
+                <Label>Bill To</Label>
+                <Input value={editingInvoice.customerName} disabled />
+              </div>
+              <div className="grid gap-2">
+                <Label>Due Date</Label>
+                <Input type="date" value={editingInvoice.dueDate} onChange={(e) => setEditingInvoice({...editingInvoice, dueDate: e.target.value})} />
+              </div>
+              <div className="space-y-4">
+                <Label className="font-bold">Line Items</Label>
+                {editingInvoice.items.map((item: any, idx: number) => (
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-7">
+                      <Input value={item.productName} disabled />
+                    </div>
+                    <div className="col-span-2">
+                      <Input type="number" value={item.quantity} onChange={(e) => {
+                        const newItems = [...editingInvoice.items]
+                        newItems[idx].quantity = Number(e.target.value)
+                        setEditingInvoice({...editingInvoice, items: newItems})
+                      }} />
+                    </div>
+                    <div className="col-span-3 text-right font-mono text-xs font-bold">
+                      ${(item.quantity * item.price).toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleUpdateInvoice} className="w-full bg-secondary text-secondary-foreground font-bold">
+              <Save className="h-4 w-4 mr-2" /> Update & Save Invoice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

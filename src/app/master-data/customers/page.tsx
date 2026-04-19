@@ -2,12 +2,12 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, User, Mail, Phone, MapPin, Loader2, MoreVertical, Edit2, Trash2 } from "lucide-react"
+import { Plus, Search, User, Mail, Phone, MapPin, Loader2, MoreVertical, Edit2, Trash2, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import {
   Dialog,
@@ -32,6 +32,8 @@ export default function CustomersPage() {
   const db = useFirestore()
   const { user } = useUser()
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [newCustomer, setNewCustomer] = useState({
     name: "",
@@ -55,6 +57,19 @@ export default function CustomersPage() {
     })
     setIsAddOpen(false)
     setNewCustomer({ name: "", email: "", phone: "", address: "" })
+  }
+
+  const handleUpdateCustomer = () => {
+    if (!editingCustomer || !db) return
+    const docRef = doc(db, "customers", editingCustomer.id)
+    updateDocumentNonBlocking(docRef, {
+      name: editingCustomer.name,
+      email: editingCustomer.email,
+      phone: editingCustomer.phone,
+      address: editingCustomer.address
+    })
+    setIsEditOpen(false)
+    setEditingCustomer(null)
   }
 
   const handleDelete = (id: string) => {
@@ -116,12 +131,7 @@ export default function CustomersPage() {
         <CardHeader className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by name or email..." 
-              className="pl-9 bg-muted/20" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <Input placeholder="Search by name or email..." className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -149,36 +159,71 @@ export default function CustomersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-1 text-xs">
-                        <div className="flex items-center gap-1.5 text-muted-foreground"><Mail className="h-3 w-3" /> {c.email}</div>
-                        <div className="flex items-center gap-1.5 text-muted-foreground"><Phone className="h-3 w-3" /> {c.phone}</div>
+                      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {c.email}</div>
+                        <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" /> {c.phone}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs max-w-[200px] truncate">{c.address}</TableCell>
+                    <TableCell className="text-xs truncate max-w-[200px]">{c.address}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem><Edit2 className="h-4 w-4 mr-2" /> Edit</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setEditingCustomer(c); setIsEditOpen(true); }}>
+                            <Edit2 className="h-4 w-4 mr-2" /> Edit Info
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 mr-2" /> Delete</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(c.id)}>
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
-                {filtered.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">No customers found.</TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-headline text-xl">Edit Customer</DialogTitle>
+            <DialogDescription>Update contact details for {editingCustomer?.name}.</DialogDescription>
+          </DialogHeader>
+          {editingCustomer && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Customer Name</Label>
+                <Input value={editingCustomer.name} onChange={(e) => setEditingCustomer({...editingCustomer, name: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Email</Label>
+                  <Input value={editingCustomer.email} onChange={(e) => setEditingCustomer({...editingCustomer, email: e.target.value})} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Phone</Label>
+                  <Input value={editingCustomer.phone} onChange={(e) => setEditingCustomer({...editingCustomer, phone: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Address</Label>
+                <Input value={editingCustomer.address} onChange={(e) => setEditingCustomer({...editingCustomer, address: e.target.value})} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleUpdateCustomer} className="w-full bg-secondary text-secondary-foreground">
+              <Save className="h-4 w-4 mr-2" /> Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

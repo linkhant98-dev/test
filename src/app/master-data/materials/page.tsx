@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Search, Trash2, Edit2, MoreVertical, Archive, Loader2 } from "lucide-react"
+import { Plus, Search, Trash2, Edit2, MoreVertical, Archive, Loader2, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 
 const CONSISTENT_MATERIALS = [
@@ -55,6 +55,8 @@ export default function MaterialsPage() {
   const { data: materials, isLoading: isDataLoading } = useCollection(materialsRef)
 
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingMaterial, setEditingMaterial] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [newMaterial, setNewMaterial] = useState({
     name: "",
@@ -78,6 +80,19 @@ export default function MaterialsPage() {
     })
     setIsAddOpen(false)
     setNewMaterial({ name: "", unit: "kg", category: "Raw Material", stock: 0 })
+  }
+
+  const handleUpdateMaterial = () => {
+    if (!editingMaterial || !db) return
+    const docRef = doc(db, "raw_materials", editingMaterial.id)
+    updateDocumentNonBlocking(docRef, {
+      name: editingMaterial.name,
+      unit: editingMaterial.unit,
+      category: editingMaterial.category,
+      stock: Number(editingMaterial.stock)
+    })
+    setIsEditOpen(false)
+    setEditingMaterial(null)
   }
 
   const handleDeleteMaterial = (id: string) => {
@@ -115,72 +130,54 @@ export default function MaterialsPage() {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="font-headline text-xl">Add New Material</DialogTitle>
-              <DialogDescription>
-                Define a new raw material or ingredient for inventory tracking.
-              </DialogDescription>
+              <DialogDescription>Define a new raw material or ingredient.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Name</Label>
-                <Select 
-                  onValueChange={(v) => setNewMaterial({...newMaterial, name: v})}
-                  defaultValue={newMaterial.name}
-                >
-                  <SelectTrigger className="col-span-3">
+              <div className="grid gap-2">
+                <Label>Name</Label>
+                <Select onValueChange={(v) => setNewMaterial({...newMaterial, name: v})}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Select material" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CONSISTENT_MATERIALS.map(mat => (
-                      <SelectItem key={mat} value={mat}>{mat}</SelectItem>
-                    ))}
+                    {CONSISTENT_MATERIALS.map(mat => <SelectItem key={mat} value={mat}>{mat}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">Category</Label>
-                <Select 
-                  onValueChange={(v) => setNewMaterial({...newMaterial, category: v})}
-                  defaultValue={newMaterial.category}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Raw Material">Raw Material</SelectItem>
-                    <SelectItem value="Ingredient">Ingredient</SelectItem>
-                    <SelectItem value="Packaging">Packaging</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Category</Label>
+                  <Select onValueChange={(v) => setNewMaterial({...newMaterial, category: v})} defaultValue={newMaterial.category}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Raw Material">Raw Material</SelectItem>
+                      <SelectItem value="Ingredient">Ingredient</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Unit</Label>
+                  <Select onValueChange={(v) => setNewMaterial({...newMaterial, unit: v})} defaultValue={newMaterial.unit}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="kg">kg</SelectItem>
+                      <SelectItem value="L">Liters</SelectItem>
+                      <SelectItem value="units">units</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="unit" className="text-right">Unit</Label>
-                <Select 
-                  onValueChange={(v) => setNewMaterial({...newMaterial, unit: v})}
-                  defaultValue={newMaterial.unit}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="kg">kg</SelectItem>
-                    <SelectItem value="L">Liters</SelectItem>
-                    <SelectItem value="units">units</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="stock" className="text-right">Stock</Label>
-                <Input 
-                  id="stock" 
-                  type="number"
-                  value={newMaterial.stock} 
-                  onChange={(e) => setNewMaterial({...newMaterial, stock: Number(e.target.value)})}
-                  className="col-span-3" 
-                />
+              <div className="grid gap-2">
+                <Label>Initial Stock</Label>
+                <Input type="number" value={newMaterial.stock} onChange={(e) => setNewMaterial({...newMaterial, stock: Number(e.target.value)})} />
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleAddMaterial} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">Save Material</Button>
+              <Button onClick={handleAddMaterial} className="w-full bg-secondary text-secondary-foreground">Save Material</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -190,19 +187,12 @@ export default function MaterialsPage() {
         <CardHeader className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search materials..." 
-              className="pl-9 bg-muted/20" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <Input placeholder="Search materials..." className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent className="p-0">
           {isDataLoading ? (
-            <div className="p-12 flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <div className="p-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : (
             <Table>
               <TableHeader>
@@ -210,43 +200,30 @@ export default function MaterialsPage() {
                   <TableHead className="w-[100px]">ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Current Stock</TableHead>
+                  <TableHead className="text-right">Stock</TableHead>
                   <TableHead>Unit</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredMaterials.map((m) => (
-                  <TableRow key={m.id} className="group transition-colors">
-                    <TableCell className="font-mono text-xs font-bold text-muted-foreground">{m.id.slice(-5)}</TableCell>
+                  <TableRow key={m.id}>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{m.id.slice(-5)}</TableCell>
                     <TableCell className="font-medium">{m.name}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent text-accent-foreground">
-                        {m.category}
-                      </span>
-                    </TableCell>
+                    <TableCell><Badge variant="outline" className="text-[10px]">{m.category}</Badge></TableCell>
                     <TableCell className="text-right font-bold">{(m.stock || 0).toLocaleString()}</TableCell>
                     <TableCell className="text-muted-foreground">{m.unit}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
+                          <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setEditingMaterial(m); setIsEditOpen(true); }}>
                             <Edit2 className="h-4 w-4 mr-2" /> Edit Info
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Archive className="h-4 w-4 mr-2" /> Archive
-                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleDeleteMaterial(m.id)}
-                          >
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteMaterial(m.id)}>
                             <Trash2 className="h-4 w-4 mr-2" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -254,18 +231,64 @@ export default function MaterialsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!isDataLoading && filteredMaterials.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
-                      No materials found.
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-xl">Edit Material</DialogTitle>
+            <DialogDescription>Modify raw material details and stock levels.</DialogDescription>
+          </DialogHeader>
+          {editingMaterial && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Name</Label>
+                <Input value={editingMaterial.name} disabled />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Category</Label>
+                  <Select value={editingMaterial.category} onValueChange={(v) => setEditingMaterial({...editingMaterial, category: v})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Raw Material">Raw Material</SelectItem>
+                      <SelectItem value="Ingredient">Ingredient</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Unit</Label>
+                  <Select value={editingMaterial.unit} onValueChange={(v) => setEditingMaterial({...editingMaterial, unit: v})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="kg">kg</SelectItem>
+                      <SelectItem value="L">Liters</SelectItem>
+                      <SelectItem value="units">units</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Current Stock</Label>
+                <Input type="number" value={editingMaterial.stock} onChange={(e) => setEditingMaterial({...editingMaterial, stock: Number(e.target.value)})} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleUpdateMaterial} className="w-full bg-secondary text-secondary-foreground">
+              <Save className="h-4 w-4 mr-2" /> Update Material
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
