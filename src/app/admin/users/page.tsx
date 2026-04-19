@@ -1,13 +1,21 @@
 
 "use client"
 
-import { Users, Plus, Search, Shield, MoreVertical } from "lucide-react"
+import { Users, Plus, Search, Shield, MoreVertical, Edit2, Trash2, Key } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const users = [
   { id: "U-001", name: "Admin User", email: "admin@cheesybites.com", role: "Administrator", status: "Active" },
@@ -69,9 +77,26 @@ export default function UserManagementPage() {
                     <Badge className={user.status === 'Active' ? 'bg-secondary' : 'bg-muted'}>{user.status}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>User Actions</DropdownMenuLabel>
+                        <DropdownMenuItem>
+                          <Edit2 className="h-4 w-4 mr-2" /> Edit Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Key className="h-4 w-4 mr-2" /> Reset Password
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive">
+                          <Trash2 className="h-4 w-4 mr-2" /> Delete User
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

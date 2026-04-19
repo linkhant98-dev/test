@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -189,14 +190,14 @@ export default function ProductionOrdersPage() {
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem asChild>
-                        <Link href={`/production/record-consumption/${order.id}`} className="flex items-center text-primary font-bold">
+                        <Link href={`/production/record-consumption/${order.id}`} className="w-full flex items-center text-primary font-bold">
                           <ClipboardList className="h-4 w-4 mr-2" /> {t("recordConsumption")}
                         </Link>
                       </DropdownMenuItem>

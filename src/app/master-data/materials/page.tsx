@@ -2,7 +2,7 @@
 "use client"
 
 import { useState } from "react"
-import { Database, Plus, Search, Trash2, Edit2 } from "lucide-react"
+import { Database, Plus, Search, Trash2, Edit2, MoreVertical, Archive } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,6 +18,14 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const initialMaterials = [
   { id: "MAT-001", name: "Raw Milk (Full Cream)", unit: "Liters", category: "Raw Material", stock: 2500 },
@@ -157,14 +165,26 @@ export default function MaterialsPage() {
                   <TableCell className="text-right font-bold">{m.stock.toLocaleString()}</TableCell>
                   <TableCell className="text-muted-foreground">{m.unit}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem>
+                          <Edit2 className="h-4 w-4 mr-2" /> Edit Info
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Archive className="h-4 w-4 mr-2" /> Archive
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive">
+                          <Trash2 className="h-4 w-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
