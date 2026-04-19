@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, useUser } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 
 export default function MaterialsPage() {
@@ -157,7 +157,7 @@ export default function MaterialsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="kg">kg</SelectItem>
-                    <SelectItem value="Liters">Liters</SelectItem>
+                    <SelectItem value="L">Liters</SelectItem>
                     <SelectItem value="units">units</SelectItem>
                   </SelectContent>
                 </Select>

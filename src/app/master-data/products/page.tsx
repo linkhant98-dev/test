@@ -28,6 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -106,11 +107,20 @@ export default function ProductsPage() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">Product Name</Label>
-                <Input 
-                  id="name" 
-                  value={newProduct.name}
-                  onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                />
+                <Select 
+                  onValueChange={(v) => setNewProduct({...newProduct, name: v})}
+                  defaultValue={newProduct.name}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select product" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Original Cheese Stick">Original Cheese Stick</SelectItem>
+                    <SelectItem value="Long Potato">Long Potato</SelectItem>
+                    <SelectItem value="Chicken PopCorn">Chicken PopCorn</SelectItem>
+                    <SelectItem value="Sausage Cheese Stick">Sausage Cheese Stick</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
