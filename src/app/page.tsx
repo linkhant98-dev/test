@@ -3,19 +3,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
-  TrendingDown, 
-  TrendingUp, 
   Package, 
   ShoppingCart, 
-  AlertTriangle, 
   CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
-  Sparkles
+  ClipboardList
 } from "lucide-react"
 import { 
-  BarChart, 
-  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -27,41 +22,7 @@ import {
   PieChart,
   Pie
 } from "recharts"
-
-const stats = [
-  {
-    title: "Active Production Orders",
-    value: "12",
-    description: "4 scheduled for today",
-    icon: ShoppingCart,
-    trend: "+2 from yesterday",
-    trendType: "up"
-  },
-  {
-    title: "Inventory Value",
-    value: "$45,231.89",
-    description: "Across 3 warehouses",
-    icon: Package,
-    trend: "+4.5%",
-    trendType: "up"
-  },
-  {
-    title: "Avg. Yield %",
-    value: "94.2%",
-    description: "Target: 95.0%",
-    icon: CheckCircle2,
-    trend: "-0.8%",
-    trendType: "down"
-  },
-  {
-    title: "Critical Variances",
-    value: "3",
-    description: "Requires urgent review",
-    icon: AlertTriangle,
-    trend: "High impact",
-    trendType: "down"
-  }
-]
+import { useTranslation } from "@/context/language-context"
 
 const varianceData = [
   { name: 'Mon', variance: 12 },
@@ -81,11 +42,48 @@ const topProducts = [
 ]
 
 export default function Dashboard() {
+  const { t } = useTranslation();
+
+  const stats = [
+    {
+      title: t("activeProductionOrders"),
+      value: "12",
+      description: "4 scheduled for today",
+      icon: ShoppingCart,
+      trend: "+2 from yesterday",
+      trendType: "up"
+    },
+    {
+      title: t("inventoryValue"),
+      value: "$45,231.89",
+      description: "Across 3 warehouses",
+      icon: Package,
+      trend: "+4.5%",
+      trendType: "up"
+    },
+    {
+      title: t("avgYield"),
+      value: "94.2%",
+      description: "Target: 95.0%",
+      icon: CheckCircle2,
+      trend: "-0.8%",
+      trendType: "down"
+    },
+    {
+      title: t("efficiencyAlerts"),
+      value: "3",
+      description: "Requires urgent review",
+      icon: ClipboardList,
+      trend: "Operational",
+      trendType: "up"
+    }
+  ]
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-bold tracking-tight font-headline text-foreground">Operational Overview</h1>
-        <p className="text-muted-foreground">Real-time monitoring of Cheesy Bites production and inventory.</p>
+        <h1 className="text-4xl font-bold tracking-tight font-headline text-foreground">{t("operationalOverview")}</h1>
+        <p className="text-muted-foreground">{t("realTimeMonitoring")}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -116,7 +114,7 @@ export default function Dashboard() {
       <div className="grid gap-6 md:grid-cols-7">
         <Card className="md:col-span-4 border-none shadow-sm">
           <CardHeader>
-            <CardTitle className="font-headline">Production Variance Trend</CardTitle>
+            <CardTitle className="font-headline">{t("productionVarianceTrend")}</CardTitle>
             <CardDescription>Daily cost variance percentage for current month.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2 h-[300px]">
@@ -143,7 +141,7 @@ export default function Dashboard() {
 
         <Card className="md:col-span-3 border-none shadow-sm">
           <CardHeader>
-            <CardTitle className="font-headline">Production Mix</CardTitle>
+            <CardTitle className="font-headline">{t("productionMix")}</CardTitle>
             <CardDescription>Top finished goods by volume.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] flex flex-col items-center justify-center">
@@ -176,32 +174,9 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-none shadow-sm overflow-hidden">
-          <CardHeader className="bg-secondary/5 border-b border-secondary/10">
-            <CardTitle className="font-headline text-secondary flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              Recent AI Insight
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="rounded-xl bg-accent p-4 border border-primary/20">
-                <p className="text-sm font-medium leading-relaxed">
-                  "Production Order <span className="font-bold text-secondary">#PO-2024-045</span> shows a <span className="text-destructive font-bold">12% material variance</span> in 'Artisan Aged Cheddar'. Investigation suggests calibration error in Slicer #4 or higher-than-usual moisture content in raw block Batch #B-99."
-                </p>
-              </div>
-              <div className="flex justify-end">
-                <button className="text-xs font-bold text-secondary hover:underline flex items-center gap-1">
-                  View Full Analysis <ArrowUpRight className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         <Card className="border-none shadow-sm">
           <CardHeader>
-            <CardTitle className="font-headline">Pending Transactions</CardTitle>
+            <CardTitle className="font-headline">{t("pendingTransactions")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

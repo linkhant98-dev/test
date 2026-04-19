@@ -6,10 +6,8 @@ import { useParams, useRouter } from "next/navigation"
 import { 
   ArrowLeft, 
   Save, 
-  Calculator, 
   AlertTriangle, 
   CheckCircle2, 
-  ChevronRight,
   TrendingUp,
   TrendingDown
 } from "lucide-react"
@@ -19,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { useTranslation } from "@/context/language-context"
 
 // Mock BOM data for calculation
 const MOCK_BOM = [
@@ -30,8 +29,8 @@ const MOCK_BOM = [
 export default function RecordConsumptionPage() {
   const { id } = useParams()
   const router = useRouter()
+  const { t } = useTranslation()
   
-  // In a real app, you'd fetch the order details
   const plannedOutput = 1200 // Mock planned output from the order
 
   const [actualValues, setActualValues] = useState<Record<string, number>>(
@@ -62,7 +61,6 @@ export default function RecordConsumptionPage() {
   }, [analysis])
 
   const handleSave = () => {
-    // Save logic here (e.g., Firestore updateDoc)
     router.push('/production')
   }
 
@@ -197,11 +195,6 @@ export default function RecordConsumptionPage() {
               <Button className="w-full bg-primary text-primary-foreground" onClick={handleSave}>
                 <Save className="h-4 w-4 mr-2" /> Save Consumption
               </Button>
-              <Link href={`/production/ai-insights?id=${id}`}>
-                <Button variant="outline" className="w-full mt-2">
-                  <Sparkles className="h-4 w-4 mr-2 text-secondary" /> Run AI Diagnostic
-                </Button>
-              </Link>
             </CardContent>
           </Card>
         </div>

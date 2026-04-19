@@ -9,12 +9,10 @@ import {
   Database, 
   Package, 
   Factory, 
-  History, 
   FileText, 
-  Sparkles,
-  Settings,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  Globe
 } from "lucide-react"
 
 import {
@@ -29,64 +27,65 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarGroup,
-  SidebarGroupLabel,
 } from "@/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-
-const navigation = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Master Data",
-    icon: Database,
-    items: [
-      { title: "Materials", url: "/master-data/materials" },
-      { title: "Finished Goods", url: "/master-data/products" },
-      { title: "BOM Management", url: "/master-data/bom" },
-      { title: "Warehouses", url: "/master-data/warehouses" },
-      { title: "Waste Reasons", url: "/master-data/waste-reasons" },
-    ]
-  },
-  {
-    title: "Inventory",
-    icon: Package,
-    items: [
-      { title: "Stock Overview", url: "/inventory" },
-      { title: "Goods Receipt", url: "/inventory/receipt" },
-      { title: "Production Issues", url: "/inventory/issue" },
-      { title: "Adjustments", url: "/inventory/adjust" },
-    ]
-  },
-  {
-    title: "Production",
-    icon: Factory,
-    items: [
-      { title: "Production Orders", url: "/production" },
-      { title: "Planning", url: "/production/plan" },
-      { title: "AI Variance Insights", url: "/production/ai-insights" },
-    ]
-  },
-  {
-    title: "Reporting",
-    icon: FileText,
-    url: "/reports",
-  },
-  {
-    title: "Administration",
-    icon: ShieldCheck,
-    items: [
-      { title: "User Management", url: "/admin/users" },
-      { title: "Role Permissions", url: "/admin/roles" },
-      { title: "System Logs", url: "/admin/logs" },
-    ]
-  }
-]
+import { useTranslation } from "@/context/language-context"
+import { Button } from "@/components/ui/button"
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { t, setLanguage, language } = useTranslation()
+
+  const navigation = [
+    {
+      title: t("dashboard"),
+      url: "/",
+      icon: LayoutDashboard,
+    },
+    {
+      title: t("masterData"),
+      icon: Database,
+      items: [
+        { title: t("materials"), url: "/master-data/materials" },
+        { title: t("finishedGoods"), url: "/master-data/products" },
+        { title: t("bomManagement"), url: "/master-data/bom" },
+        { title: t("warehouses"), url: "/master-data/warehouses" },
+        { title: t("wasteReasons"), url: "/master-data/waste-reasons" },
+      ]
+    },
+    {
+      title: t("inventory"),
+      icon: Package,
+      items: [
+        { title: t("stockOverview"), url: "/inventory" },
+        { title: t("goodsReceipt"), url: "/inventory/receipt" },
+        { title: t("productionIssues"), url: "/inventory/issue" },
+        { title: t("adjustments"), url: "/inventory/adjust" },
+      ]
+    },
+    {
+      title: t("production"),
+      icon: Factory,
+      items: [
+        { title: t("productionOrders"), url: "/production" },
+        { title: t("planning"), url: "/production/plan" },
+      ]
+    },
+    {
+      title: t("reporting"),
+      icon: FileText,
+      url: "/reports",
+    },
+    {
+      title: t("administration"),
+      icon: ShieldCheck,
+      items: [
+        { title: t("userManagement"), url: "/admin/users" },
+        { title: t("rolePermissions"), url: "/admin/roles" },
+        { title: t("systemLogs"), url: "/admin/logs" },
+      ]
+    }
+  ]
 
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
@@ -143,14 +142,28 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <div className="rounded-lg bg-accent p-4 flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-secondary" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-secondary">AI Assistant</span>
-            <span className="text-[10px] text-muted-foreground leading-tight">Ready for analysis</span>
-          </div>
+        <div className="flex flex-col gap-2">
+           <div className="flex items-center gap-2 px-2 text-xs font-bold text-muted-foreground uppercase mb-1">
+             <Globe className="h-3 w-3" /> {t("language")}
+           </div>
+           <div className="flex gap-1 p-1 bg-muted rounded-md">
+             <Button 
+               variant={language === 'en' ? 'secondary' : 'ghost'} 
+               size="sm" 
+               className="flex-1 h-7 text-[10px]"
+               onClick={() => setLanguage('en')}
+             >
+               {t("english")}
+             </Button>
+             <Button 
+               variant={language === 'my' ? 'secondary' : 'ghost'} 
+               size="sm" 
+               className="flex-1 h-7 text-[10px]"
+               onClick={() => setLanguage('my')}
+             >
+               {t("myanmar")}
+             </Button>
+           </div>
         </div>
       </SidebarFooter>
     </Sidebar>

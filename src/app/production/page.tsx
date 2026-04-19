@@ -7,12 +7,6 @@ import {
   Search, 
   Filter, 
   MoreHorizontal, 
-  FileText, 
-  Play, 
-  CheckCircle, 
-  AlertCircle,
-  Sparkles,
-  ArrowRight,
   ClipboardList
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -47,6 +41,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
+import { useTranslation } from "@/context/language-context"
 
 const initialOrders = [
   { id: "PO-2024-001", product: "Classic Cheese Bites", date: "2024-05-10", quantity: 5000, status: "Completed", yield: 98.2, variance: -1.2 },
@@ -58,6 +53,7 @@ const initialOrders = [
 ]
 
 export default function ProductionOrdersPage() {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState(initialOrders)
   const [searchTerm, setSearchTerm] = useState("")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -91,15 +87,15 @@ export default function ProductionOrdersPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-foreground">Production Orders</h1>
-          <p className="text-muted-foreground">Manage work orders and monitor real-time manufacturing output.</p>
+          <h1 className="text-3xl font-bold font-headline text-foreground">{t("productionOrders")}</h1>
+          <p className="text-muted-foreground">Manage work orders and monitor manufacturing output.</p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />
-              Create Order
+              {t("createOrder")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
@@ -153,7 +149,7 @@ export default function ProductionOrdersPage() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-none shadow-sm bg-accent/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Current Queue</CardTitle>
@@ -168,15 +164,6 @@ export default function ProductionOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12,500 kg</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-destructive/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Yield Anomaly</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center gap-2">
-            <div className="text-2xl font-bold text-destructive">2 Critical</div>
-            <Badge variant="destructive" className="ml-auto">Needs AI Analysis</Badge>
           </CardContent>
         </Card>
       </div>
@@ -254,12 +241,7 @@ export default function ProductionOrdersPage() {
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem asChild>
                         <Link href={`/production/record-consumption/${order.id}`} className="flex items-center text-primary font-bold">
-                          <ClipboardList className="h-4 w-4 mr-2" /> Record Consumption
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/production/ai-insights?id=${order.id}`} className="flex items-center text-secondary font-bold">
-                          <Sparkles className="h-4 w-4 mr-2" /> AI Analysis
+                          <ClipboardList className="h-4 w-4 mr-2" /> {t("recordConsumption")}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
