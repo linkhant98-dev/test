@@ -44,7 +44,7 @@ service cloud.firestore {
 
     // Role-Based Access Helpers
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admin_users/$(request.auth.uid));
+      return isSignedIn() && (exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)));
     }
 
     function isMasterDataManager() {
@@ -67,10 +67,6 @@ service cloud.firestore {
 
     /**
      * @description Rules for user profiles. Users can only manage their own data.
-     * @path /users/{userId}
-     * @allow get, list, create, update, delete if request.auth.uid == userId
-     * @deny create if request.auth.uid != userId
-     * @principle Ownership-based access control.
      */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
@@ -80,10 +76,6 @@ service cloud.firestore {
 
     /**
      * @description Role assignment collections. Only Admins can view or modify role assignments.
-     * @path /{role_collection}/{userId}
-     * @allow read, write if isAdmin()
-     * @deny write if !isAdmin()
-     * @principle Restricted administrative access for role management.
      */
     match /admin_users/{userId} {
       allow get, list, create, update, delete: if isAdmin();
@@ -102,97 +94,65 @@ service cloud.firestore {
     }
 
     /**
-     * @description Master data (Materials, Goods, Warehouses, Reasons). Readable by all signed-in users, writable only by Master Data Managers.
-     * @path /raw_materials/{id}, /finished_goods/{id}, /warehouses/{id}, /waste_reasons/{id}
-     * @allow get, list if isSignedIn()
-     * @allow create, update, delete if isMasterDataManager()
-     * @deny create if !isMasterDataManager()
-     * @principle Role-based CRUD with public read for internal users.
+     * @description Master data (Materials, Goods, Warehouses, Reasons). 
+     * Relaxed for prototyping: allow all signed-in users.
      */
     match /raw_materials/{materialId} {
       allow get, list: if isSignedIn();
-      allow create: if isMasterDataManager();
-      allow update, delete: if resource != null && isMasterDataManager();
+      allow create, update, delete: if isSignedIn();
     }
 
     match /finished_goods/{finishedGoodId} {
       allow get, list: if isSignedIn();
-      allow create: if isMasterDataManager();
-      allow update, delete: if resource != null && isMasterDataManager();
+      allow create, update, delete: if isSignedIn();
 
-      /**
-       * @description Bill of Materials versions. Linked to finished goods.
-       * @path /finished_goods/{finishedGoodId}/bom_versions/{bomVersionId}
-       */
       match /bom_versions/{bomVersionId} {
         allow get, list: if isSignedIn();
-        allow create: if isMasterDataManager();
-        allow update, delete: if resource != null && isMasterDataManager();
+        allow create, update, delete: if isSignedIn();
       }
     }
 
     match /warehouses/{warehouseId} {
       allow get, list: if isSignedIn();
-      allow create: if isMasterDataManager();
-      allow update, delete: if resource != null && isMasterDataManager();
+      allow create, update, delete: if isSignedIn();
 
-      /**
-       * @description Stock transactions within a warehouse. Records movements.
-       * @path /warehouses/{warehouseId}/stock_transactions/{transactionId}
-       */
       match /stock_transactions/{transactionId} {
-        allow get, list: if isInventoryManager() || isProductionOperator() || isSignedIn();
-        allow create: if (isInventoryManager() || isProductionOperator()) && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if resource != null && isInventoryManager();
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update, delete: if isSignedIn();
       }
     }
 
     match /waste_reasons/{reasonId} {
       allow get, list: if isSignedIn();
-      allow create: if isMasterDataManager();
-      allow update, delete: if resource != null && isMasterDataManager();
+      allow create, update, delete: if isSignedIn();
     }
 
     /**
      * @description Production Order lifecycle management.
-     * @path /production_orders/{productionOrderId}
-     * @allow create if isProductionManager()
-     * @allow update if isProductionManager() or isProductionOperator()
-     * @principle Operational role-based access for workflow management.
      */
     match /production_orders/{productionOrderId} {
-      // Relaxed read permissions for prototyping: allow all signed-in users to list/get
       allow get, list: if isSignedIn();
-      allow create: if isProductionManager() || isSignedIn(); // Allow create for demo purposes
-      allow update: if resource != null && (isProductionManager() || isProductionOperator() || isSignedIn());
-      allow delete: if resource != null && (isProductionManager() || isAdmin());
+      allow create, update, delete: if isSignedIn();
 
-      /**
-       * @description Records for consumption and output. Operators log these, Managers view them.
-       */
       match /consumption_records/{recordId} {
         allow get, list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update, delete: if resource != null && (isProductionManager() || isAdmin());
+        allow create, update, delete: if isSignedIn();
       }
 
       match /output_records/{recordId} {
         allow get, list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update, delete: if resource != null && (isProductionManager() || isAdmin());
+        allow create, update, delete: if isSignedIn();
       }
 
-      /**
-       * @description System-generated variances and AI insights. Read-only for production staff.
-       */
       match /variances/{varianceId} {
         allow get, list: if isSignedIn();
-        allow create, update, delete: if isAdmin(); // Only Admin for testing
+        allow create, update, delete: if isSignedIn();
       }
 
       match /insights/{insightId} {
         allow get, list: if isSignedIn();
-        allow create, update, delete: if isAdmin(); // Only Admin for testing
+        allow create, update, delete: if isSignedIn();
       }
     }
   }
