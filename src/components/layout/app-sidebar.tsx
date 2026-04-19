@@ -15,9 +15,7 @@ import {
   ChevronRight,
   Globe,
   LogOut,
-  Users,
-  CreditCard,
-  ShoppingCart
+  Tag
 } from "lucide-react"
 
 import {
@@ -73,6 +71,7 @@ export function AppSidebar() {
       items: [
         { title: t("materials"), url: "/master-data/materials" },
         { title: t("finishedGoods"), url: "/master-data/products" },
+        { title: t("priceMaster"), url: "/master-data/prices" },
         { title: t("bomManagement"), url: "/master-data/bom" },
         { title: t("warehouses"), url: "/master-data/warehouses" },
         { title: t("wasteReasons"), url: "/master-data/waste-reasons" },
@@ -81,7 +80,7 @@ export function AppSidebar() {
     },
     {
       title: t("sales"),
-      icon: ShoppingCart,
+      icon: Tag,
       items: [
         { title: t("invoices"), url: "/sales/invoices" },
       ]
