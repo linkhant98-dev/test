@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "cheese-factory",
+      "description": "A modern cheese production facility",
+      "imageUrl": "https://picsum.photos/seed/cheese1/1200/800",
+      "imageHint": "cheese factory"
+    },
+    {
+      "id": "cheese-inventory",
+      "description": "Shelves of aging cheese in a warehouse",
+      "imageUrl": "https://picsum.photos/seed/cheese2/800/600",
+      "imageHint": "cheese warehouse"
+    }
+  ]
+}
