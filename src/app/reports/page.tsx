@@ -12,7 +12,10 @@ import {
   CheckCircle2,
   TrendingUp,
   TrendingDown,
-  AlertTriangle
+  AlertTriangle,
+  Factory,
+  ShoppingCart,
+  Zap
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -30,24 +33,59 @@ import {
 } from "recharts"
 
 const reportTypes = [
-  { id: "inv-val", title: "Inventory Valuation", icon: BarChart3, desc: "Total asset value across all warehouses.", color: "bg-primary/10 text-primary" },
-  { id: "prod-var", title: "Production Variance", icon: PieChartIcon, desc: "Detailed breakdown of BOM vs Actual costs.", color: "bg-secondary/10 text-secondary" },
-  { id: "waste-an", title: "Waste Analysis", icon: FileText, desc: "Trend report on waste reasons and quantities.", color: "bg-destructive/10 text-destructive" },
-  { id: "supp-perf", title: "Supplier Performance", icon: BarChart3, desc: "Delivery accuracy and quality metrics.", color: "bg-accent text-accent-foreground" },
-  { id: "yield-tr", title: "Yield Trends", icon: PieChartIcon, desc: "Historical production yield percentages.", color: "bg-blue-100 text-blue-700" },
+  { id: "prod-rep", title: "Production Reporting", icon: Factory, desc: "Daily/Weekly production output summary and line efficiency.", color: "bg-orange-100 text-orange-700" },
+  { id: "inv-cons", title: "Inventory Consumption", icon: ShoppingCart, desc: "Detailed analysis of raw material usage against output.", color: "bg-purple-100 text-purple-700" },
+  { id: "inv-val", title: "Inventory Valuation", icon: BarChart3, desc: "Total asset value across all physical warehouses.", color: "bg-primary/10 text-primary" },
+  { id: "prod-var", title: "Production Variance", icon: PieChartIcon, desc: "Detailed breakdown of BOM vs Actual material costs.", color: "bg-secondary/10 text-secondary" },
+  { id: "waste-an", title: "Waste Analysis", icon: FileText, desc: "Trend report on waste reasons and scrap quantities.", color: "bg-destructive/10 text-destructive" },
+  { id: "supp-perf", title: "Supplier Performance", icon: Zap, desc: "Delivery accuracy and raw material quality metrics.", color: "bg-accent text-accent-foreground" },
 ]
 
-const mockData = [
-  { name: 'Jan', value: 4000 },
-  { name: 'Feb', value: 3000 },
-  { name: 'Mar', value: 2000 },
-  { name: 'Apr', value: 2780 },
-  { name: 'May', value: 1890 },
-  { name: 'Jun', value: 2390 },
-]
+const mockDataMap: Record<string, any[]> = {
+  "prod-rep": [
+    { name: 'Line 1', value: 8500 },
+    { name: 'Line 2', value: 6200 },
+    { name: 'Line 3', value: 4100 },
+    { name: 'Packing', value: 9800 },
+  ],
+  "inv-cons": [
+    { name: 'Milk', value: 12500 },
+    { name: 'Salt', value: 450 },
+    { name: 'Rennet', value: 25 },
+    { name: 'Culture', value: 15 },
+  ],
+  "inv-val": [
+    { name: 'Main Whse', value: 45000 },
+    { name: 'Cold Store', value: 32000 },
+    { name: 'Raw Depot', value: 28000 },
+  ],
+  "default": [
+    { name: 'Jan', value: 4000 },
+    { name: 'Feb', value: 3000 },
+    { name: 'Mar', value: 2000 },
+    { name: 'Apr', value: 2780 },
+    { name: 'May', value: 1890 },
+    { name: 'Jun', value: 2390 },
+  ]
+}
+
+const insightsMap: Record<string, { title: string, desc: string, type: 'up' | 'down' | 'alert' }[]> = {
+  "prod-rep": [
+    { title: "Throughput Up", desc: "Line 1 exceeded targets by 8% this week.", type: "up" },
+    { title: "Line 3 Downtime", desc: "Maintenance delayed production for 4 hours on Tuesday.", type: "alert" },
+  ],
+  "inv-cons": [
+    { title: "Efficient Usage", desc: "Milk consumption is 2% below BOM estimates.", type: "up" },
+    { title: "Spike in Salt", desc: "Batch #099 showed unusual salt usage increase.", type: "alert" },
+  ],
+  "default": [
+    { title: "General Growth", desc: "Operational efficiency is trending positive.", type: "up" },
+    { title: "Data Audit", desc: "System logs show 100% data integrity for this period.", type: "up" },
+  ]
+}
 
 export default function ReportsPage() {
-  const [selectedReport, setSelectedReport] = useState<string | null>(null)
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
 
@@ -60,25 +98,28 @@ export default function ReportsPage() {
         if (prev >= 100) {
           clearInterval(interval)
           setIsGenerating(false)
-          setSelectedReport(id)
+          setSelectedReportId(id)
           return 100
         }
         return prev + 10
       })
-    }, 200)
+    }, 150)
   }
 
-  if (selectedReport) {
-    const report = reportTypes.find(r => r.id === selectedReport)
+  if (selectedReportId) {
+    const report = reportTypes.find(r => r.id === selectedReportId)
+    const data = mockDataMap[selectedReportId] || mockDataMap["default"]
+    const insights = insightsMap[selectedReportId] || insightsMap["default"]
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => setSelectedReport(null)} className="gap-2">
-            <ArrowLeft className="h-4 w-4" /> Back to Reports
+          <Button variant="ghost" onClick={() => setSelectedReportId(null)} className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Back to Catalog
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" /> CSV</Button>
-            <Button size="sm"><Download className="h-4 w-4 mr-2" /> PDF Export</Button>
+            <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" /> Export CSV</Button>
+            <Button size="sm" className="bg-secondary text-secondary-foreground"><Download className="h-4 w-4 mr-2" /> PDF Report</Button>
           </div>
         </div>
 
@@ -86,26 +127,30 @@ export default function ReportsPage() {
           <Card className="md:col-span-2 border-none shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${report?.color}`}>
-                  {report && <report.icon className="h-5 w-5" />}
+                <div className={`p-3 rounded-xl ${report?.color}`}>
+                  {report && <report.icon className="h-6 w-6" />}
                 </div>
                 <div>
-                  <CardTitle className="font-headline">{report?.title}</CardTitle>
-                  <CardDescription>Generated for the period: May 1, 2024 - May 31, 2024</CardDescription>
+                  <CardTitle className="font-headline text-2xl">{report?.title}</CardTitle>
+                  <CardDescription>Reporting Period: May 1, 2024 - May 31, 2024</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="h-[400px]">
+            <CardContent className="h-[400px] mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockData}>
+                <BarChart data={data}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
                   <Tooltip 
                     cursor={{fill: '#F9FAFB'}}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} 
                   />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]}>
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(var(--secondary))'} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -114,42 +159,44 @@ export default function ReportsPage() {
           <div className="space-y-6">
             <Card className="border-none shadow-sm">
               <CardHeader>
-                <CardTitle className="text-sm font-bold">Key Insights</CardTitle>
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Key Insights</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/5 border border-secondary/10">
-                  <TrendingUp className="h-4 w-4 text-secondary mt-1" />
-                  <div>
-                    <p className="text-xs font-bold">Efficiency Growth</p>
-                    <p className="text-[10px] text-muted-foreground">Up 12.4% compared to last month.</p>
+                {insights.map((insight, idx) => (
+                  <div key={idx} className={`flex items-start gap-3 p-4 rounded-xl border ${
+                    insight.type === 'up' ? 'bg-secondary/5 border-secondary/10' : 
+                    insight.type === 'alert' ? 'bg-destructive/5 border-destructive/10' : 'bg-muted/30 border-muted'
+                  }`}>
+                    {insight.type === 'up' && <TrendingUp className="h-5 w-5 text-secondary mt-0.5" />}
+                    {insight.type === 'alert' && <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />}
+                    {insight.type === 'down' && <TrendingDown className="h-5 w-5 text-orange-500 mt-0.5" />}
+                    <div>
+                      <p className="text-sm font-bold">{insight.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{insight.desc}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/10">
-                  <AlertTriangle className="h-4 w-4 text-destructive mt-1" />
-                  <div>
-                    <p className="text-xs font-bold">Waste Variance</p>
-                    <p className="text-[10px] text-muted-foreground">Unusual spike detected in Line 3 packaging.</p>
-                  </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
 
             <Card className="border-none shadow-sm">
               <CardHeader>
-                <CardTitle className="text-sm font-bold">Report Metadata</CardTitle>
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Report Verification</CardTitle>
               </CardHeader>
-              <CardContent className="text-xs space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Generated By</span>
-                  <span className="font-medium">System Admin</span>
+              <CardContent className="text-xs space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Data Integrity</span>
+                  <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Verified
+                  </Badge>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Data Points</span>
-                  <span className="font-medium">1,242</span>
+                  <span className="text-muted-foreground">Generated On</span>
+                  <span className="font-medium">{new Date().toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status</span>
-                  <Badge variant="outline" className="text-[10px] h-4 bg-green-50 text-green-700 border-green-200">Verified</Badge>
+                  <span className="text-muted-foreground">Source Records</span>
+                  <span className="font-medium">2,845 items</span>
                 </div>
               </CardContent>
             </Card>
@@ -160,37 +207,42 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Operational Reporting</h1>
-        <p className="text-muted-foreground">Generate and export detailed performance and inventory reports.</p>
+        <h1 className="text-4xl font-bold font-headline text-foreground">Operational Reporting</h1>
+        <p className="text-muted-foreground text-lg">Generate and analyze detailed performance and inventory metrics.</p>
       </div>
 
       {isGenerating ? (
-        <Card className="border-none shadow-lg py-20">
-          <CardContent className="flex flex-col items-center justify-center max-w-md mx-auto text-center space-y-6">
-            <Loader2 className="h-12 w-12 text-primary animate-spin" />
-            <div className="space-y-2 w-full">
-              <h3 className="font-bold text-lg">Generating Report...</h3>
-              <p className="text-sm text-muted-foreground">Compiling ledger entries and simulating cost roll-ups.</p>
-              <Progress value={progress} className="h-2 mt-4" />
-              <p className="text-[10px] font-mono text-muted-foreground">{progress}% Complete</p>
+        <Card className="border-none shadow-xl py-24">
+          <CardContent className="flex flex-col items-center justify-center max-w-md mx-auto text-center space-y-8">
+            <div className="relative h-16 w-16">
+              <Loader2 className="h-16 w-16 text-primary animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <FileText className="h-6 w-6 text-primary/50" />
+              </div>
+            </div>
+            <div className="space-y-3 w-full">
+              <h3 className="font-bold text-2xl">Compiling Data...</h3>
+              <p className="text-sm text-muted-foreground">Analyzing ledger entries and calculating variances.</p>
+              <Progress value={progress} className="h-3 mt-6" />
+              <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">{progress}% Complete</p>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reportTypes.map((report) => (
-            <Card key={report.id} className="border-none shadow-sm hover:shadow-md transition-shadow">
+            <Card key={report.id} className="border-none shadow-sm hover:shadow-md transition-all hover:-translate-y-1 group">
               <CardHeader>
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-4 ${report.color}`}>
-                  <report.icon className="h-6 w-6" />
+                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${report.color}`}>
+                  <report.icon className="h-7 w-7" />
                 </div>
-                <CardTitle className="text-lg font-headline">{report.title}</CardTitle>
-                <CardDescription>{report.desc}</CardDescription>
+                <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">{report.title}</CardTitle>
+                <CardDescription className="line-clamp-2 min-h-[40px]">{report.desc}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" className="w-full" onClick={() => handleGenerate(report.id)}>
+                <Button variant="outline" className="w-full border-primary/20 hover:border-primary hover:bg-primary/5 font-bold" onClick={() => handleGenerate(report.id)}>
                   Generate Report
                 </Button>
               </CardContent>
