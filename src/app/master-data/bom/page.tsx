@@ -5,14 +5,11 @@ import { useState } from "react"
 import { 
   Plus, 
   Search, 
-  Filter, 
-  Copy, 
-  Trash2, 
   ChevronRight, 
-  Info,
   DollarSign,
   Calendar,
-  TrendingUp
+  TrendingUp,
+  Copy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,10 +18,47 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const boms = [
-  { id: "BOM-CB-01", product: "Cheddar Bites (Classic)", version: "v2.1", status: "Active", effDate: "2024-01-01", cost: 2.45 },
-  { id: "BOM-MS-01", product: "Mozza Strings", version: "v1.4", status: "Active", effDate: "2023-11-15", cost: 1.85 },
-  { id: "BOM-BP-02", product: "Brie Pops", version: "v1.0", status: "Draft", effDate: "2024-06-01", cost: 3.12 },
-  { id: "BOM-PJ-03", product: "Pepper Jack Strings", version: "v3.0", status: "Active", effDate: "2024-02-10", cost: 1.98 },
+  { 
+    id: "BOM-OCS-01", 
+    product: "Original Cheese Stick", 
+    version: "v1.0", 
+    status: "Active", 
+    effDate: "2024-01-01", 
+    cost: 1.20,
+    components: [
+      { name: 'Mozzarella Cheese', qty: 0.05, unit: 'kg', loss: 2.0 },
+      { name: 'Batter Mix', qty: 0.02, unit: 'kg', loss: 5.0 },
+      { name: 'Breadcrumbs', qty: 0.02, unit: 'kg', loss: 5.0 },
+      { name: 'Frying Oil', qty: 0.01, unit: 'L', loss: 10.0 },
+    ]
+  },
+  { 
+    id: "BOM-LP-01", 
+    product: "Long Potato", 
+    version: "v1.1", 
+    status: "Active", 
+    effDate: "2024-02-15", 
+    cost: 0.85,
+    components: [
+      { name: 'Potato Starch', qty: 0.08, unit: 'kg', loss: 3.0 },
+      { name: 'Seasoning Powder', qty: 0.005, unit: 'kg', loss: 1.0 },
+      { name: 'Frying Oil', qty: 0.015, unit: 'L', loss: 10.0 },
+    ]
+  },
+  { 
+    id: "BOM-CPC-01", 
+    product: "Chicken PopCorn", 
+    version: "v1.0", 
+    status: "Active", 
+    effDate: "2024-03-01", 
+    cost: 1.50,
+    components: [
+      { name: 'Chicken Breast (Minced)', qty: 0.1, unit: 'kg', loss: 2.0 },
+      { name: 'Seasoning Powder', qty: 0.01, unit: 'kg', loss: 2.0 },
+      { name: 'Breadcrumbs', qty: 0.03, unit: 'kg', loss: 5.0 },
+      { name: 'Frying Oil', qty: 0.02, unit: 'L', loss: 12.0 },
+    ]
+  },
 ]
 
 export default function BOMManagementPage() {
@@ -117,13 +151,7 @@ export default function BOMManagementPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {[
-                          { name: 'Raw Milk (Full Cream)', qty: 10.5, unit: 'L', loss: 2.5 },
-                          { name: 'Rennet Extract', qty: 0.05, unit: 'kg', loss: 0.0 },
-                          { name: 'Sea Salt', qty: 0.12, unit: 'kg', loss: 1.0 },
-                          { name: 'Culture Starter', qty: 0.02, unit: 'kg', loss: 0.0 },
-                          { name: 'Packaging Wrap (Cheese)', qty: 1.0, unit: 'sqm', loss: 5.0 },
-                        ].map((comp, i) => (
+                        {selectedBOM.components.map((comp, i) => (
                           <tr key={i} className="hover:bg-muted/20">
                             <td className="p-3 font-medium">{comp.name}</td>
                             <td className="p-3 text-right">{comp.qty}</td>
@@ -147,17 +175,13 @@ export default function BOMManagementPage() {
                        Market Price Fluctuation Simulation
                      </h4>
                      <p className="text-xs text-muted-foreground mb-6">
-                       Simulate how changes in raw material costs impact the final finished good cost roll-up.
+                       Simulate how changes in raw material costs impact the final snack cost roll-up.
                      </p>
                      <div className="space-y-4">
-                       {[
-                         { name: 'Raw Milk (Full Cream)', current: 0.55, impact: 15 },
-                         { name: 'Rennet Extract', current: 12.50, impact: 5 },
-                       ].map((item, i) => (
+                       {selectedBOM.components.slice(0, 2).map((item, i) => (
                          <div key={i} className="flex items-center justify-between gap-4">
                            <span className="text-sm flex-1">{item.name}</span>
                            <div className="flex items-center gap-2">
-                             <span className="text-xs text-muted-foreground">${item.current}/unit</span>
                              <div className="flex items-center gap-1 text-secondary font-bold">
                                <Plus className="h-3 w-3" />
                                <Input defaultValue="10" className="w-12 h-8 py-0 px-2 text-center" />
@@ -169,25 +193,19 @@ export default function BOMManagementPage() {
                      </div>
                      <div className="mt-8 pt-6 border-t border-primary/10 flex items-center justify-between">
                        <span className="text-sm font-bold text-muted-foreground uppercase">Projected Unit Cost</span>
-                       <span className="text-2xl font-bold text-foreground">$2.82</span>
+                       <span className="text-2xl font-bold text-foreground">${(selectedBOM.cost * 1.1).toFixed(2)}</span>
                      </div>
                    </div>
                 </TabsContent>
                 <TabsContent value="history">
                   <div className="space-y-4">
-                    {[
-                      { v: 'v2.0', date: '2023-12-01', note: 'Adjusted loss factor for milk packaging.' },
-                      { v: 'v1.1', date: '2023-10-15', note: 'Added organic rennet variant.' },
-                      { v: 'v1.0', date: '2023-08-01', note: 'Initial BOM setup.' },
-                    ].map((h, i) => (
-                      <div key={i} className="flex gap-4 p-3 rounded-lg border border-dashed hover:border-solid hover:bg-muted/10 transition-all">
-                        <div className="font-mono text-xs font-bold bg-muted px-2 py-1 rounded h-fit">{h.v}</div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs text-muted-foreground">{h.date}</span>
-                          <span className="text-sm">{h.note}</span>
-                        </div>
+                    <div className="flex gap-4 p-3 rounded-lg border border-dashed hover:border-solid hover:bg-muted/10 transition-all">
+                      <div className="font-mono text-xs font-bold bg-muted px-2 py-1 rounded h-fit">{selectedBOM.version}</div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-muted-foreground">{selectedBOM.effDate}</span>
+                        <span className="text-sm">Initial BOM setup for {selectedBOM.product}.</span>
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>

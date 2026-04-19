@@ -28,10 +28,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const initialMaterials = [
-  { id: "MAT-001", name: "Raw Milk (Full Cream)", unit: "Liters", category: "Raw Material", stock: 2500 },
-  { id: "MAT-002", name: "Sea Salt", unit: "kg", category: "Ingredient", stock: 120 },
-  { id: "MAT-003", name: "Rennet Extract", unit: "kg", category: "Ingredient", stock: 15 },
-  { id: "MAT-004", name: "Culture Starter", unit: "kg", category: "Ingredient", stock: 8 },
+  { id: "MAT-001", name: "Mozzarella Cheese", unit: "kg", category: "Raw Material", stock: 150 },
+  { id: "MAT-002", name: "Potato Starch", unit: "kg", category: "Raw Material", stock: 200 },
+  { id: "MAT-003", name: "Chicken Breast (Minced)", unit: "kg", category: "Raw Material", stock: 80 },
+  { id: "MAT-004", name: "Premium Sausage", unit: "units", category: "Raw Material", stock: 500 },
+  { id: "MAT-005", name: "Batter Mix", unit: "kg", category: "Ingredient", stock: 100 },
+  { id: "MAT-006", name: "Breadcrumbs", unit: "kg", category: "Ingredient", stock: 120 },
+  { id: "MAT-007", name: "Frying Oil", unit: "Liters", category: "Ingredient", stock: 300 },
+  { id: "MAT-008", name: "Seasoning Powder", unit: "kg", category: "Ingredient", stock: 50 },
 ]
 
 export default function MaterialsPage() {
@@ -56,7 +60,7 @@ export default function MaterialsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold font-headline text-foreground">Raw Materials</h1>
-          <p className="text-muted-foreground">Manage your base ingredients and raw materials.</p>
+          <p className="text-muted-foreground">Manage ingredients and base materials for snacks.</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -80,7 +84,7 @@ export default function MaterialsPage() {
                   value={newMaterial.name} 
                   onChange={(e) => setNewMaterial({...newMaterial, name: e.target.value})}
                   className="col-span-3" 
-                  placeholder="e.g. Organic Whey"
+                  placeholder="e.g. Cheddar Slices"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -143,7 +147,7 @@ export default function MaterialsPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableRow className="bg-muted/30">
                 <TableHead className="w-[100px]">ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>

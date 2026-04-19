@@ -1,18 +1,18 @@
 
 "use client"
 
-import { Package, ArrowDownUp, AlertTriangle, Warehouse, Info } from "lucide-react"
+import { Warehouse, AlertTriangle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 const stockLevels = [
-  { id: "MAT-001", name: "Raw Milk (Full Cream)", category: "Raw Material", stock: 2500, unit: "L", min: 1000, warehouse: "Main Cold Storage" },
-  { id: "MAT-002", name: "Sea Salt", category: "Ingredient", stock: 120, unit: "kg", min: 50, warehouse: "Raw Material Depot" },
-  { id: "MAT-003", name: "Rennet Extract", category: "Ingredient", stock: 15, unit: "kg", min: 20, warehouse: "Raw Material Depot" },
-  { id: "MAT-004", name: "Culture Starter", category: "Ingredient", stock: 8, unit: "kg", min: 10, warehouse: "Raw Material Depot" },
-  { id: "MAT-005", name: "Packaging Wrap", category: "Packaging", stock: 450, unit: "sqm", min: 200, warehouse: "Packaging Warehouse" },
+  { id: "MAT-001", name: "Mozzarella Cheese", category: "Raw Material", stock: 150, unit: "kg", min: 50, warehouse: "Cold Storage A" },
+  { id: "MAT-002", name: "Potato Starch", category: "Raw Material", stock: 200, unit: "kg", min: 100, warehouse: "Dry Storage B" },
+  { id: "MAT-003", name: "Chicken Breast", category: "Raw Material", stock: 80, unit: "kg", min: 30, warehouse: "Cold Storage A" },
+  { id: "MAT-004", name: "Premium Sausage", category: "Raw Material", stock: 500, unit: "units", min: 200, warehouse: "Cold Storage A" },
+  { id: "MAT-007", name: "Frying Oil", category: "Ingredient", stock: 300, unit: "L", min: 500, warehouse: "Bulk Liquid Storage" },
 ]
 
 export default function InventoryOverviewPage() {
@@ -22,7 +22,7 @@ export default function InventoryOverviewPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold font-headline text-foreground">Stock Overview</h1>
-        <p className="text-muted-foreground">Monitor real-time inventory levels and warehouse distributions.</p>
+        <p className="text-muted-foreground">Monitor real-time ingredient levels for snack production.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -31,17 +31,17 @@ export default function InventoryOverviewPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Stock Health</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">92.4%</div>
-            <p className="text-xs text-muted-foreground mt-1">Average availability across all SKUs</p>
+            <div className="text-3xl font-bold">85.4%</div>
+            <p className="text-xs text-muted-foreground mt-1">Average availability across ingredients</p>
           </CardContent>
         </Card>
         <Card className="bg-accent/30 border-none shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Warehouse Capacity</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Warehouse Load</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">68.2%</div>
-            <p className="text-xs text-muted-foreground mt-1">Occupancy across 4 active facilities</p>
+            <div className="text-3xl font-bold">42.2%</div>
+            <p className="text-xs text-muted-foreground mt-1">Total occupancy across facilities</p>
           </CardContent>
         </Card>
         <Card className="bg-destructive/5 border-none shadow-sm">
@@ -59,7 +59,7 @@ export default function InventoryOverviewPage() {
         <Card className="lg:col-span-2 border-none shadow-sm">
           <CardHeader>
             <CardTitle className="font-headline">Live Inventory Ledger</CardTitle>
-            <CardDescription>Detailed stock levels for all materials and ingredients.</CardDescription>
+            <CardDescription>Current availability of raw materials and ingredients.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -117,35 +117,6 @@ export default function InventoryOverviewPage() {
                     <span className="text-destructive font-bold">{Math.round((item.stock / item.min) * 100)}%</span>
                   </div>
                   <Progress value={(item.stock / item.min) * 100} className="h-1 bg-muted [&>div]:bg-destructive" />
-                </div>
-              ))}
-              {lowStockItems.length === 0 && (
-                <p className="text-xs text-muted-foreground">No critical stock levels detected.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-sm bg-slate-900 text-slate-50">
-            <CardHeader>
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-primary">Warehouse Load</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { name: "Main Cold Storage", load: 85 },
-                { name: "Raw Material Depot", load: 40 },
-                { name: "Finished Bay", load: 92 },
-              ].map(wh => (
-                <div key={wh.name} className="flex items-center gap-3">
-                  <Warehouse className="h-4 w-4 text-slate-500" />
-                  <div className="flex-1">
-                    <div className="flex justify-between text-[10px] mb-1">
-                      <span>{wh.name}</span>
-                      <span>{wh.load}%</span>
-                    </div>
-                    <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${wh.load}%` }} />
-                    </div>
-                  </div>
                 </div>
               ))}
             </CardContent>
