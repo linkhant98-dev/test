@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -11,16 +10,21 @@ service cloud.firestore {
     }
 
     match /raw_materials/{id} { allow read, write: if isSignedIn(); }
+    
     match /finished_goods/{id} { 
       allow read, write: if isSignedIn(); 
-      match /bom_versions/{bomId} { allow read, write: if isSignedIn(); }
-      match /price_rules/{ruleId} { allow read, write: if isSignedIn(); }
+      match /{allSubcollections=**} {
+        allow read, write: if isSignedIn();
+      }
     }
+    
     match /warehouses/{id} { 
       allow read, write: if isSignedIn(); 
       match /stock_transactions/{tid} { allow read, write: if isSignedIn(); }
     }
+    
     match /waste_reasons/{id} { allow read, write: if isSignedIn(); }
+    
     match /production_orders/{id} { 
       allow read, write: if isSignedIn(); 
       match /consumption_records/{cid} { allow read, write: if isSignedIn(); }

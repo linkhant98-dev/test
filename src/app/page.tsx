@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -125,7 +124,7 @@ export default function Dashboard() {
       }
 
       // 3. Customers
-      const customers = [
+      const customersData = [
         { 
           name: "City Mart Supermarket", 
           email: "procurement@citymart.com", 
@@ -154,12 +153,12 @@ export default function Dashboard() {
         },
       ];
 
-      for (const c of customers) {
+      for (const c of customersData) {
         await addDocumentNonBlocking(collection(db, "customers"), c);
       }
 
       // 4. Invoices
-      const invoices = [
+      const invoicesData = [
         { 
           invoiceNumber: "INV-1001", 
           customerName: "City Mart Supermarket", 
@@ -172,27 +171,27 @@ export default function Dashboard() {
           items: [{ productName: "Original Cheese Stick", quantity: 100, price: 3150, total: 315000 }] 
         },
       ];
-      for (const i of invoices) {
+      for (const i of invoicesData) {
         await addDocumentNonBlocking(collection(db, "invoices"), i);
       }
 
       // 5. Warehouses
-      const warehouses = [
+      const warehousesData = [
         { name: "Main Cold Storage", location: "Building A, West Wing", status: "Active", capacity: "85%" },
         { name: "Raw Material Depot", location: "Building B, South Gate", status: "Active", capacity: "40%" },
       ];
 
-      for (const w of warehouses) {
+      for (const w of warehousesData) {
         await addDocumentNonBlocking(collection(db, "warehouses"), { ...w, createdAt: new Date().toISOString() });
       }
 
       // 6. Production Orders
-      const orders = [
+      const ordersData = [
         { product: "Original Cheese Stick", quantity: 1200, date: "2024-05-15", status: "Complete", yield: 94.2, variance: -0.8 },
         { product: "Long Potato", quantity: 800, date: "2024-05-18", status: "In Progress", yield: 0, variance: 0 },
       ];
 
-      for (const o of orders) {
+      for (const o of ordersData) {
         await addDocumentNonBlocking(collection(db, "production_orders"), {
           ...o,
           createdByUserId: user.uid,
