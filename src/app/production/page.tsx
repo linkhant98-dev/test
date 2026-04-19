@@ -12,7 +12,8 @@ import {
   CheckCircle, 
   AlertCircle,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  ClipboardList
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,9 +35,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 
-const orders = [
+const initialOrders = [
   { id: "PO-2024-001", product: "Classic Cheese Bites", date: "2024-05-10", quantity: 5000, status: "Completed", yield: 98.2, variance: -1.2 },
   { id: "PO-2024-002", product: "Smoked Gouda Cubes", date: "2024-05-11", quantity: 2000, status: "In Progress", yield: 0, variance: 0 },
   { id: "PO-2024-003", product: "Pepper Jack Strings", date: "2024-05-12", quantity: 3500, status: "Completed", yield: 91.5, variance: 4.8 },
@@ -46,7 +58,34 @@ const orders = [
 ]
 
 export default function ProductionOrdersPage() {
+  const [orders, setOrders] = useState(initialOrders)
   const [searchTerm, setSearchTerm] = useState("")
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [newOrder, setNewOrder] = useState({
+    product: "Classic Cheese Bites",
+    quantity: 1000,
+    date: new Date().toISOString().split('T')[0]
+  })
+
+  const handleCreateOrder = () => {
+    const id = `PO-2024-${String(orders.length + 1).padStart(3, '0')}`
+    const order = {
+      id,
+      product: newOrder.product,
+      date: newOrder.date,
+      quantity: Number(newOrder.quantity),
+      status: "In Progress",
+      yield: 0,
+      variance: 0
+    }
+    setOrders([order, ...orders])
+    setIsCreateOpen(false)
+  }
+
+  const filteredOrders = orders.filter(o => 
+    o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    o.product.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className="space-y-6">
@@ -55,10 +94,63 @@ export default function ProductionOrdersPage() {
           <h1 className="text-3xl font-bold font-headline text-foreground">Production Orders</h1>
           <p className="text-muted-foreground">Manage work orders and monitor real-time manufacturing output.</p>
         </div>
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Order
-        </Button>
+        
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Order
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">Create Production Order</DialogTitle>
+              <DialogDescription>
+                Initiate a new production run by selecting a finished good and target quantity.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="product">Finished Good</Label>
+                <Select 
+                  defaultValue={newOrder.product}
+                  onValueChange={(v) => setNewOrder({...newOrder, product: v})}
+                >
+                  <SelectTrigger id="product">
+                    <SelectValue placeholder="Select product" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Classic Cheese Bites">Classic Cheese Bites</SelectItem>
+                    <SelectItem value="Mozza Strings">Mozza Strings</SelectItem>
+                    <SelectItem value="Brie Appetizers">Brie Appetizers</SelectItem>
+                    <SelectItem value="Aged Cheddar Slices">Aged Cheddar Slices</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="quantity">Planned Quantity (kg)</Label>
+                <Input 
+                  id="quantity" 
+                  type="number" 
+                  value={newOrder.quantity}
+                  onChange={(e) => setNewOrder({...newOrder, quantity: Number(e.target.value)})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="date">Scheduled Date</Label>
+                <Input 
+                  id="date" 
+                  type="date" 
+                  value={newOrder.date}
+                  onChange={(e) => setNewOrder({...newOrder, date: e.target.value})}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleCreateOrder} className="w-full bg-secondary text-secondary-foreground">Start Production</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -67,7 +159,7 @@ export default function ProductionOrdersPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Current Queue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">18 Orders</div>
+            <div className="text-2xl font-bold">{orders.filter(o => o.status !== 'Completed').length} Orders</div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-secondary/10">
@@ -121,7 +213,7 @@ export default function ProductionOrdersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <TableRow key={order.id} className="group transition-colors">
                 <TableCell className="font-bold font-headline">{order.id}</TableCell>
                 <TableCell>{order.product}</TableCell>
@@ -160,6 +252,11 @@ export default function ProductionOrdersPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/production/record-consumption/${order.id}`} className="flex items-center text-primary font-bold">
+                          <ClipboardList className="h-4 w-4 mr-2" /> Record Consumption
+                        </Link>
+                      </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href={`/production/ai-insights?id=${order.id}`} className="flex items-center text-secondary font-bold">
                           <Sparkles className="h-4 w-4 mr-2" /> AI Analysis
