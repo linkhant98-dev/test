@@ -14,8 +14,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Globe,
-  LogOut,
-  UserCircle
+  LogOut
 } from "lucide-react"
 
 import {
@@ -45,7 +44,6 @@ export function AppSidebar() {
   const { user, isUserLoading } = useUser()
   const auth = useAuth()
 
-  // Don't show sidebar on login page
   if (pathname === "/login") return null
 
   const handleLogout = async () => {
@@ -117,6 +115,7 @@ export function AppSidebar() {
               width={48}
               height={48}
               className="rounded-lg object-contain"
+              data-ai-hint="cheese logo"
             />
           </div>
           <div className="flex flex-col">
@@ -167,7 +166,6 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4 space-y-4">
-        {/* User Info & Logout */}
         {!isUserLoading && user && (
           <div className="flex flex-col gap-2 p-2 rounded-xl bg-muted/40 border">
             <div className="flex items-center gap-3">

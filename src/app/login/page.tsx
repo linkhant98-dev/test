@@ -7,7 +7,7 @@ import Image from "next/image"
 import { Lock, Mail, Loader2, ShieldCheck, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { useAuth, useUser } from "@/firebase"
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login"
@@ -20,7 +20,6 @@ export default function LoginPage() {
   const { t } = useTranslation()
   const [isLoggingIn, setIsLoggingIn] = useState(false)
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user && !isUserLoading) {
       router.push("/")
@@ -31,7 +30,6 @@ export default function LoginPage() {
     if (!auth) return
     setIsLoggingIn(true)
     initiateAnonymousSignIn(auth)
-    // The redirect is handled by the useEffect above once auth state changes
   }
 
   if (isUserLoading) {
@@ -45,7 +43,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] p-4">
       <div className="w-full max-w-[1000px] grid grid-cols-1 md:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden border">
-        {/* Left Side: Branding/Visual */}
         <div className="hidden md:flex flex-col justify-between p-12 bg-secondary text-secondary-foreground relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <Image 
@@ -53,6 +50,7 @@ export default function LoginPage() {
               alt="Background pattern"
               fill
               className="object-cover"
+              data-ai-hint="cheese pattern"
             />
           </div>
           
@@ -65,6 +63,7 @@ export default function LoginPage() {
                   width={48}
                   height={48}
                   className="rounded-lg object-contain"
+                  data-ai-hint="cheese logo"
                 />
               </div>
               <div className="flex flex-col">
@@ -88,7 +87,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Right Side: Login Form */}
         <div className="p-8 md:p-16 flex flex-col justify-center">
           <div className="mb-8 md:hidden flex justify-center">
              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl overflow-hidden p-1">
@@ -98,6 +96,7 @@ export default function LoginPage() {
                   width={64}
                   height={64}
                   className="rounded-lg object-contain"
+                  data-ai-hint="cheese logo"
                 />
               </div>
           </div>

@@ -1,6 +1,8 @@
 
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Package, 
@@ -8,7 +10,8 @@ import {
   CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
-  ClipboardList
+  ClipboardList,
+  Loader2
 } from "lucide-react"
 import { 
   XAxis, 
@@ -23,6 +26,7 @@ import {
   Pie
 } from "recharts"
 import { useTranslation } from "@/context/language-context"
+import { useUser } from "@/firebase"
 
 const varianceData = [
   { name: 'Mon', variance: 12 },
@@ -43,6 +47,22 @@ const topProducts = [
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, isUserLoading, router]);
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const stats = [
     {
