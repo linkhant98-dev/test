@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useParams } from "next/navigation"
-import { Printer, ArrowLeft, Loader2, Mail, Phone, MapPin, Globe } from "lucide-react"
+import { Printer, ArrowLeft, Loader2, Mail, Phone, MapPin, Globe, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase"
@@ -37,7 +38,7 @@ export default function PrintInvoicePage() {
           </div>
           <div className="space-y-1 text-xs text-muted-foreground uppercase font-bold tracking-widest">
             <p className="flex items-center gap-2"><MapPin className="h-3 w-3" /> 123 Factory Lane, Industrial Zone, Yangon</p>
-            <p className="flex items-center gap-2"><Mail className="h-3 w-3" /> sales@cheesybites.com</p>
+            <p className="flex items-center gap-2"><Phone className="h-3 w-3" /> +95 912345678</p>
             <p className="flex items-center gap-2"><Globe className="h-3 w-3" /> www.cheesybites.com</p>
           </div>
         </div>
@@ -69,6 +70,10 @@ export default function PrintInvoicePage() {
             <div className="flex justify-between text-sm border-b border-dashed py-1">
               <span className="text-muted-foreground">Due Date:</span> 
               <span className="font-bold text-destructive">{invoice.dueDate}</span>
+            </div>
+            <div className="flex justify-between text-sm border-b border-dashed py-1">
+              <span className="text-muted-foreground">Payment:</span> 
+              <span className="font-bold flex items-center gap-1 justify-end"><CreditCard className="h-3 w-3" /> {invoice.paymentMethod}</span>
             </div>
             <div className="flex justify-between text-sm border-b border-dashed py-1">
               <span className="text-muted-foreground">Status:</span> 

@@ -40,6 +40,11 @@
         "invoiceNumber": { "type": "string" },
         "customerId": { "type": "string" },
         "customerName": { "type": "string" },
+        "paymentMethod": { 
+          "type": "string", 
+          "enum": ["Cash", "Bank", "KPay", "WavePay"],
+          "description": "The selected payment method for this invoice."
+        },
         "items": {
           "type": "array",
           "items": {

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -142,8 +143,28 @@ export default function Dashboard() {
 
       // 4. Invoices
       const invoices = [
-        { invoiceNumber: "INV-1001", customerName: "City Mart Supermarket", customerId: "dummy", totalAmount: 350000, status: "Sent", dueDate: "2024-06-01", createdAt: new Date().toISOString(), items: [{ productName: "Original Cheese Stick", quantity: 100, price: 3500, total: 350000 }] },
-        { invoiceNumber: "INV-1002", customerName: "Snack Shack Distribution", customerId: "dummy", totalAmount: 250000, status: "Paid", dueDate: "2024-05-20", createdAt: new Date().toISOString(), items: [{ productName: "Long Potato", quantity: 100, price: 2500, total: 250000 }] },
+        { 
+          invoiceNumber: "INV-1001", 
+          customerName: "City Mart Supermarket", 
+          customerId: "dummy", 
+          paymentMethod: "Bank",
+          totalAmount: 350000, 
+          status: "Sent", 
+          dueDate: "2024-06-01", 
+          createdAt: new Date().toISOString(), 
+          items: [{ productName: "Original Cheese Stick", quantity: 100, price: 3500, total: 350000 }] 
+        },
+        { 
+          invoiceNumber: "INV-1002", 
+          customerName: "Snack Shack Distribution", 
+          customerId: "dummy", 
+          paymentMethod: "KPay",
+          totalAmount: 250000, 
+          status: "Paid", 
+          dueDate: "2024-05-20", 
+          createdAt: new Date().toISOString(), 
+          items: [{ productName: "Long Potato", quantity: 100, price: 2500, total: 250000 }] 
+        },
       ];
       for (const i of invoices) {
         await addDocumentNonBlocking(collection(db, "invoices"), i);

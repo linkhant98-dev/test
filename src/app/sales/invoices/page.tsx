@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -15,7 +16,8 @@ import {
   Edit2,
   Save,
   Trash2,
-  Minus
+  Minus,
+  CreditCard
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,13 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 
-interface InvoiceItem {
-  productName: string;
-  quantity: number;
-  price: number;
-  unit: string;
-  total: number;
-}
+const PAYMENT_METHODS = ["Cash", "Bank", "KPay", "WavePay"];
 
 export default function InvoicesPage() {
   const db = useFirestore()
@@ -82,6 +78,7 @@ export default function InvoicesPage() {
 
   const [formData, setFormData] = useState({
     customerId: "",
+    paymentMethod: "Cash",
     items: [{ productName: "", quantity: 1, price: 0, unit: "Units" }]
   })
 
@@ -166,6 +163,7 @@ export default function InvoicesPage() {
       invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
       customerId: formData.customerId,
       customerName: customer?.name || "Unknown",
+      paymentMethod: formData.paymentMethod,
       items: invoiceItems,
       totalAmount,
       status: "Draft",
@@ -173,7 +171,7 @@ export default function InvoicesPage() {
       createdAt: new Date().toISOString()
     })
     setIsAddOpen(false)
-    setFormData({ customerId: "", items: [{ productName: "", quantity: 1, price: 0, unit: "Units" }] })
+    setFormData({ customerId: "", paymentMethod: "Cash", items: [{ productName: "", quantity: 1, price: 0, unit: "Units" }] })
   }
 
   const handleUpdateInvoice = () => {
@@ -186,6 +184,7 @@ export default function InvoicesPage() {
     
     const docRef = doc(db, "invoices", editingInvoice.id)
     updateDocumentNonBlocking(docRef, {
+      paymentMethod: editingInvoice.paymentMethod,
       items: updatedItems,
       totalAmount,
       dueDate: editingInvoice.dueDate
@@ -230,16 +229,34 @@ export default function InvoicesPage() {
               <DialogTitle className="font-headline text-2xl">Create New Invoice</DialogTitle>
             </DialogHeader>
             <div className="grid gap-6 py-4">
-              <div className="grid gap-2">
-                <Label>Bill To Customer</Label>
-                <Select onValueChange={(v) => setFormData({...formData, customerId: v})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Bill To Customer</Label>
+                  <Select onValueChange={(v) => setFormData({...formData, customerId: v})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Payment Method</Label>
+                  <Select 
+                    defaultValue={formData.paymentMethod} 
+                    onValueChange={(v) => setFormData({...formData, paymentMethod: v})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map(method => (
+                        <SelectItem key={method} value={method}>{method}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <div className="space-y-4">
@@ -327,6 +344,7 @@ export default function InvoicesPage() {
                   <TableHead>Invoice #</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Items</TableHead>
+                  <TableHead>Payment</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
@@ -339,6 +357,11 @@ export default function InvoicesPage() {
                     <TableCell className="font-medium">{inv.customerName}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[10px]">{inv.items?.length || 0} Lines</Badge>
+                    </TableCell>
+                    <TableCell>
+                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                         <CreditCard className="h-3 w-3" /> {inv.paymentMethod}
+                       </div>
                     </TableCell>
                     <TableCell className="font-bold">MMK {inv.totalAmount.toLocaleString()}</TableCell>
                     <TableCell>{getStatusBadge(inv.status)}</TableCell>
@@ -392,8 +415,20 @@ export default function InvoicesPage() {
                   <Input value={editingInvoice.customerName} disabled />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Due Date</Label>
-                  <Input type="date" value={editingInvoice.dueDate} onChange={(e) => setEditingInvoice({...editingInvoice, dueDate: e.target.value})} />
+                  <Label>Payment Method</Label>
+                  <Select 
+                    value={editingInvoice.paymentMethod} 
+                    onValueChange={(v) => setEditingInvoice({...editingInvoice, paymentMethod: v})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map(method => (
+                        <SelectItem key={method} value={method}>{method}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
