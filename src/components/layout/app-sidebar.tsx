@@ -3,7 +3,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
 import { 
   LayoutDashboard, 
@@ -13,7 +13,9 @@ import {
   FileText, 
   ShieldCheck,
   ChevronRight,
-  Globe
+  Globe,
+  LogOut,
+  UserCircle
 } from "lucide-react"
 
 import {
@@ -32,10 +34,26 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useTranslation } from "@/context/language-context"
 import { Button } from "@/components/ui/button"
+import { useUser, useAuth } from "@/firebase"
+import { signOut } from "firebase/auth"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { t, setLanguage, language } = useTranslation()
+  const { user, isUserLoading } = useUser()
+  const auth = useAuth()
+
+  // Don't show sidebar on login page
+  if (pathname === "/login") return null
+
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth)
+      router.push("/login")
+    }
+  }
 
   const navigation = [
     {
@@ -99,7 +117,6 @@ export function AppSidebar() {
               width={48}
               height={48}
               className="rounded-lg object-contain"
-              data-ai-hint="cheese logo"
             />
           </div>
           <div className="flex flex-col">
@@ -149,7 +166,37 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-4">
+        {/* User Info & Logout */}
+        {!isUserLoading && user && (
+          <div className="flex flex-col gap-2 p-2 rounded-xl bg-muted/40 border">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-8 w-8 border-2 border-primary">
+                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                  {user.isAnonymous ? "DA" : (user.email?.[0].toUpperCase() || "U")}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold truncate">
+                  {user.isAnonymous ? "Demo Admin" : (user.displayName || "Standard User")}
+                </span>
+                <span className="text-[10px] text-muted-foreground truncate opacity-70">
+                  Administrator
+                </span>
+              </div>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full h-8 text-[10px] font-bold text-destructive hover:text-destructive hover:bg-destructive/5"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-3 w-3 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
            <div className="flex items-center gap-2 px-2 text-xs font-bold text-muted-foreground uppercase mb-1">
              <Globe className="h-3 w-3" /> {t("language")}
