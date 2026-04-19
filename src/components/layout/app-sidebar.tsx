@@ -14,7 +14,14 @@ import {
   ShieldCheck,
   ChevronRight,
   Globe,
-  LogOut
+  LogOut,
+  Plus,
+  ClipboardList,
+  CheckCircle2,
+  Eye,
+  History,
+  Printer,
+  Trash2
 } from "lucide-react"
 
 import {
@@ -43,6 +50,11 @@ export function AppSidebar() {
   const { t, setLanguage, language } = useTranslation()
   const { user, isUserLoading } = useUser()
   const auth = useAuth()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   if (pathname === "/login") return null
 
@@ -108,14 +120,16 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 overflow-hidden p-1">
+          <div 
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 overflow-hidden p-1"
+            data-ai-hint="cheese logo"
+          >
             <Image 
               src="https://picsum.photos/seed/cheese-logo/200/200"
               alt="Cheesy Bites Logo"
               width={48}
               height={48}
               className="rounded-lg object-contain"
-              data-ai-hint="cheese logo"
             />
           </div>
           <div className="flex flex-col">
@@ -166,7 +180,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4 space-y-4">
-        {!isUserLoading && user && (
+        {mounted && !isUserLoading && user && (
           <div className="flex flex-col gap-2 p-2 rounded-xl bg-muted/40 border">
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8 border-2 border-primary">

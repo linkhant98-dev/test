@@ -19,6 +19,11 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser()
   const { t } = useTranslation()
   const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -32,7 +37,7 @@ export default function LoginPage() {
     initiateAnonymousSignIn(auth)
   }
 
-  if (isUserLoading) {
+  if (isUserLoading || !mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -44,26 +49,27 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] p-4">
       <div className="w-full max-w-[1000px] grid grid-cols-1 md:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden border">
         <div className="hidden md:flex flex-col justify-between p-12 bg-secondary text-secondary-foreground relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
+          <div className="absolute inset-0 opacity-10 pointer-events-none" data-ai-hint="cheese pattern">
             <Image 
               src="https://picsum.photos/seed/cheese-pattern/1200/1200"
               alt="Background pattern"
               fill
               className="object-cover"
-              data-ai-hint="cheese pattern"
             />
           </div>
           
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-12">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg overflow-hidden p-1">
+              <div 
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg overflow-hidden p-1"
+                data-ai-hint="cheese logo"
+              >
                 <Image 
                   src="https://picsum.photos/seed/cheese-logo/200/200"
                   alt="Logo"
                   width={48}
                   height={48}
                   className="rounded-lg object-contain"
-                  data-ai-hint="cheese logo"
                 />
               </div>
               <div className="flex flex-col">
@@ -89,14 +95,16 @@ export default function LoginPage() {
 
         <div className="p-8 md:p-16 flex flex-col justify-center">
           <div className="mb-8 md:hidden flex justify-center">
-             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl overflow-hidden p-1">
+             <div 
+                className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl overflow-hidden p-1"
+                data-ai-hint="cheese logo"
+              >
                 <Image 
                   src="https://picsum.photos/seed/cheese-logo/200/200"
                   alt="Logo"
                   width={64}
                   height={64}
                   className="rounded-lg object-contain"
-                  data-ai-hint="cheese logo"
                 />
               </div>
           </div>
