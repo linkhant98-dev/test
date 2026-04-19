@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -12,7 +11,9 @@ import {
   History,
   Printer,
   ChevronRight,
-  Info
+  Info,
+  CheckCircle2,
+  Factory
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
