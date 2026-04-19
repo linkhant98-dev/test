@@ -103,7 +103,7 @@ export default function CustomersPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold font-headline text-foreground">Customer Master</h1>
-          <p className="text-muted-foreground">Manage client directory, classifications, and credit policies.</p>
+          <p className="text-muted-foreground">Manage client directory, classifications, and credit policies (MMK).</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -191,7 +191,7 @@ export default function CustomersPage() {
                   <Input value={newCustomer.website} onChange={(e) => setNewCustomer({...newCustomer, website: e.target.value})} placeholder="https://..." />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Credit Limit ($)</Label>
+                  <Label>Credit Limit (MMK)</Label>
                   <Input type="number" value={newCustomer.creditLimit} onChange={(e) => setNewCustomer({...newCustomer, creditLimit: Number(e.target.value)})} />
                 </div>
               </div>
@@ -250,7 +250,7 @@ export default function CustomersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1 text-[11px]">
-                        <div className="flex items-center gap-1.5 font-bold"><CreditCard className="h-3 w-3" /> Limit: ${c.creditLimit?.toLocaleString()}</div>
+                        <div className="flex items-center gap-1.5 font-bold"><CreditCard className="h-3 w-3" /> Limit: MMK {c.creditLimit?.toLocaleString()}</div>
                         <div className="flex items-center gap-1.5 text-muted-foreground"><Clock className="h-3 w-3" /> Terms: {c.paymentTerms}</div>
                       </div>
                     </TableCell>
@@ -366,7 +366,7 @@ export default function CustomersPage() {
                   <Input value={editingCustomer.website} onChange={(e) => setEditingCustomer({...editingCustomer, website: e.target.value})} />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Credit Limit ($)</Label>
+                  <Label>Credit Limit (MMK)</Label>
                   <Input type="number" value={editingCustomer.creditLimit} onChange={(e) => setEditingCustomer({...editingCustomer, creditLimit: Number(e.target.value)})} />
                 </div>
               </div>

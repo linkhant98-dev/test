@@ -380,7 +380,7 @@ export default function BOMManagementPage() {
                            Dynamic Unit Cost Simulation
                          </h4>
                          <p className="text-xs text-muted-foreground mb-6">
-                           Enter market prices for each raw material to estimate the total production cost per unit.
+                           Enter market prices (MMK) for each raw material to estimate the total production cost per unit.
                          </p>
 
                          <div className="space-y-4">
@@ -391,7 +391,7 @@ export default function BOMManagementPage() {
                                  <span className="text-[10px] text-muted-foreground">Qty: {comp.qty} {comp.unit} (incl. {comp.loss}% loss)</span>
                                </div>
                                <div className="flex items-center gap-2 w-48">
-                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                 <span className="text-xs font-bold text-muted-foreground">MMK</span>
                                  <Input 
                                    type="number"
                                    placeholder="Price/Unit"
@@ -403,9 +403,9 @@ export default function BOMManagementPage() {
                                    })}
                                  />
                                </div>
-                               <div className="w-24 text-right">
+                               <div className="w-32 text-right">
                                  <span className="text-xs font-bold text-secondary">
-                                   ${((simulatedPrices[comp.name] || 0) * comp.qty * (1 + comp.loss / 100)).toFixed(2)}
+                                   MMK {((simulatedPrices[comp.name] || 0) * comp.qty * (1 + comp.loss / 100)).toLocaleString()}
                                  </span>
                                </div>
                              </div>
@@ -425,7 +425,7 @@ export default function BOMManagementPage() {
                            </div>
                            <div className="flex items-center gap-2">
                              <Badge className="bg-secondary text-lg h-10 px-4 font-bold font-mono">
-                               ${simulationResults.total.toFixed(2)}
+                               MMK {simulationResults.total.toLocaleString()}
                              </Badge>
                              <TrendingUp className="h-5 w-5 text-secondary" />
                            </div>

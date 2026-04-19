@@ -69,13 +69,13 @@ export default function Dashboard() {
     try {
       // 1. Materials
       const materials = [
-        { name: "Mozzarella Cheese", unit: "kg", category: "Raw Material", stock: 150 },
-        { name: "Potato Starch", unit: "kg", category: "Raw Material", stock: 200 },
-        { name: "Chicken Breast (Minced)", unit: "kg", category: "Raw Material", stock: 80 },
-        { name: "Premium Sausage", unit: "units", category: "Raw Material", stock: 500 },
-        { name: "Batter Mix", unit: "kg", category: "Ingredient", stock: 100 },
-        { name: "Breadcrumbs", unit: "kg", category: "Ingredient", stock: 120 },
-        { name: "Frying Oil", unit: "L", category: "Ingredient", stock: 300 },
+        { name: "Mozzarella Cheese", unit: "kg", category: "Raw Material", stock: 150, cost: 12000 },
+        { name: "Potato Starch", unit: "kg", category: "Raw Material", stock: 200, cost: 5000 },
+        { name: "Chicken Breast (Minced)", unit: "kg", category: "Raw Material", stock: 80, cost: 15000 },
+        { name: "Premium Sausage", unit: "units", category: "Raw Material", stock: 500, cost: 1200 },
+        { name: "Batter Mix", unit: "kg", category: "Ingredient", stock: 100, cost: 8000 },
+        { name: "Breadcrumbs", unit: "kg", category: "Ingredient", stock: 120, cost: 4000 },
+        { name: "Frying Oil", unit: "L", category: "Ingredient", stock: 300, cost: 6500 },
       ];
 
       for (const m of materials) {
@@ -84,10 +84,10 @@ export default function Dashboard() {
 
       // 2. Finished Goods & BOMs
       const products = [
-        { name: "Original Cheese Stick", category: "Finished Good", price: 12.50, stock: 45 },
-        { name: "Long Potato", category: "Finished Good", price: 8.00, stock: 120 },
-        { name: "Chicken PopCorn", category: "Finished Good", price: 15.00, stock: 30 },
-        { name: "Sausage Cheese Stick", category: "Finished Good", price: 14.50, stock: 25 },
+        { name: "Original Cheese Stick", category: "Finished Good", price: 3500, stock: 45 },
+        { name: "Long Potato", category: "Finished Good", price: 2500, stock: 120 },
+        { name: "Chicken PopCorn", category: "Finished Good", price: 4500, stock: 30 },
+        { name: "Sausage Cheese Stick", category: "Finished Good", price: 4000, stock: 25 },
       ];
 
       for (const p of products) {
@@ -116,7 +116,7 @@ export default function Dashboard() {
           customerType: "Corporate",
           customerClass: "VIP",
           taxId: "MM-778899",
-          creditLimit: 50000,
+          creditLimit: 5000000,
           paymentTerms: "Net 30",
           website: "https://www.citymart.com.mm",
           createdAt: new Date().toISOString() 
@@ -129,7 +129,7 @@ export default function Dashboard() {
           customerType: "Distributor",
           customerClass: "Grade A",
           taxId: "SS-112233",
-          creditLimit: 25000,
+          creditLimit: 2500000,
           paymentTerms: "Net 15",
           website: "https://snackshack.biz",
           createdAt: new Date().toISOString() 
@@ -142,8 +142,8 @@ export default function Dashboard() {
 
       // 4. Invoices
       const invoices = [
-        { invoiceNumber: "INV-1001", customerName: "City Mart Supermarket", customerId: "dummy", totalAmount: 1500, status: "Sent", dueDate: "2024-06-01", createdAt: new Date().toISOString(), items: [{ productName: "Original Cheese Stick", quantity: 100, price: 15, total: 1500 }] },
-        { invoiceNumber: "INV-1002", customerName: "Snack Shack Distribution", customerId: "dummy", totalAmount: 850, status: "Paid", dueDate: "2024-05-20", createdAt: new Date().toISOString(), items: [{ productName: "Long Potato", quantity: 100, price: 8.5, total: 850 }] },
+        { invoiceNumber: "INV-1001", customerName: "City Mart Supermarket", customerId: "dummy", totalAmount: 350000, status: "Sent", dueDate: "2024-06-01", createdAt: new Date().toISOString(), items: [{ productName: "Original Cheese Stick", quantity: 100, price: 3500, total: 350000 }] },
+        { invoiceNumber: "INV-1002", customerName: "Snack Shack Distribution", customerId: "dummy", totalAmount: 250000, status: "Paid", dueDate: "2024-05-20", createdAt: new Date().toISOString(), items: [{ productName: "Long Potato", quantity: 100, price: 2500, total: 250000 }] },
       ];
       for (const i of invoices) {
         await addDocumentNonBlocking(collection(db, "invoices"), i);
@@ -187,7 +187,7 @@ export default function Dashboard() {
 
   const stats = [
     { title: t("activeProductionOrders"), value: "12", description: "4 scheduled for today", icon: ShoppingCart, trend: "+2 from yesterday", trendType: "up" },
-    { title: t("inventoryValue"), value: "$45,231.89", description: "Across 3 warehouses", icon: Package, trend: "+4.5%", trendType: "up" },
+    { title: t("inventoryValue"), value: "MMK 1,245,231", description: "Across 3 warehouses", icon: Package, trend: "+4.5%", trendType: "up" },
     { title: t("avgYield"), value: "94.2%", description: "Target: 95.0%", icon: CheckCircle2, trend: "-0.8%", trendType: "down" },
     { title: t("efficiencyAlerts"), value: "3", description: "Requires urgent review", icon: ClipboardList, trend: "Operational", trendType: "up" }
   ]

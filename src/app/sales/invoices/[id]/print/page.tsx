@@ -98,8 +98,8 @@ export default function PrintInvoicePage() {
                 </td>
                 <td className="p-4 text-center font-mono">{item.quantity}</td>
                 <td className="p-4 text-center text-xs text-muted-foreground uppercase font-bold">{item.unit || 'Units'}</td>
-                <td className="p-4 text-right font-mono">${item.price.toFixed(2)}</td>
-                <td className="p-4 text-right font-black font-mono text-primary">${item.total.toFixed(2)}</td>
+                <td className="p-4 text-right font-mono">MMK {item.price.toLocaleString()}</td>
+                <td className="p-4 text-right font-black font-mono text-primary">MMK {item.total.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
@@ -107,18 +107,18 @@ export default function PrintInvoicePage() {
       </div>
 
       <div className="flex justify-end pt-12">
-        <div className="w-80 space-y-4">
+        <div className="w-96 space-y-4">
           <div className="flex justify-between text-sm px-2">
             <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Subtotal:</span> 
-            <span className="font-mono">${invoice.totalAmount.toFixed(2)}</span>
+            <span className="font-mono">MMK {invoice.totalAmount.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm px-2">
             <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Tax (0%):</span> 
-            <span className="font-mono">$0.00</span>
+            <span className="font-mono">MMK 0</span>
           </div>
-          <div className="flex justify-between text-2xl font-black bg-primary p-4 rounded-xl shadow-lg shadow-primary/20">
+          <div className="flex justify-between text-xl font-black bg-primary p-4 rounded-xl shadow-lg shadow-primary/20">
             <span className="tracking-tighter uppercase">Total:</span> 
-            <span className="font-mono">${invoice.totalAmount.toFixed(2)}</span>
+            <span className="font-mono">MMK {invoice.totalAmount.toLocaleString()}</span>
           </div>
         </div>
       </div>

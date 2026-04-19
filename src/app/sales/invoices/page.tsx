@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -217,7 +216,7 @@ export default function InvoicesPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold font-headline">Sales Invoices</h1>
-          <p className="text-muted-foreground">Manage multi-item billing and receivables tracking.</p>
+          <p className="text-muted-foreground">Manage multi-item billing and receivables tracking (MMK).</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -286,7 +285,7 @@ export default function InvoicesPage() {
                         />
                       </div>
                       <div className="col-span-1 text-right font-mono text-sm font-bold">
-                        ${(item.quantity * item.price).toFixed(2)}
+                        {(item.quantity * item.price).toLocaleString()}
                       </div>
                       <div className="col-span-1 flex justify-end">
                         <Button 
@@ -305,8 +304,8 @@ export default function InvoicesPage() {
 
               <div className="flex justify-end pt-4 border-t">
                 <div className="text-right">
-                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest block">Total Invoice Amount</span>
-                  <span className="text-2xl font-black text-primary">${calculateTotal(formData.items).toFixed(2)}</span>
+                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest block">Total Invoice Amount (MMK)</span>
+                  <span className="text-2xl font-black text-primary">MMK {calculateTotal(formData.items).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -341,7 +340,7 @@ export default function InvoicesPage() {
                     <TableCell>
                       <Badge variant="outline" className="text-[10px]">{inv.items?.length || 0} Lines</Badge>
                     </TableCell>
-                    <TableCell className="font-bold">${inv.totalAmount.toLocaleString()}</TableCell>
+                    <TableCell className="font-bold">MMK {inv.totalAmount.toLocaleString()}</TableCell>
                     <TableCell>{getStatusBadge(inv.status)}</TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -438,7 +437,7 @@ export default function InvoicesPage() {
                         />
                       </div>
                       <div className="col-span-1 text-right font-mono text-sm font-bold">
-                        ${(item.quantity * item.price).toFixed(2)}
+                        {(item.quantity * item.price).toLocaleString()}
                       </div>
                       <div className="col-span-1 flex justify-end">
                         <Button 
@@ -457,8 +456,8 @@ export default function InvoicesPage() {
 
               <div className="flex justify-end pt-4 border-t">
                 <div className="text-right">
-                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest block">Updated Total</span>
-                  <span className="text-2xl font-black text-primary">${calculateTotal(editingInvoice.items).toFixed(2)}</span>
+                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest block">Updated Total (MMK)</span>
+                  <span className="text-2xl font-black text-primary">MMK {calculateTotal(editingInvoice.items).toLocaleString()}</span>
                 </div>
               </div>
             </div>

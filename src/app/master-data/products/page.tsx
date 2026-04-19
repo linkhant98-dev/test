@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -112,7 +111,7 @@ export default function ProductsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold font-headline">Finished Goods</h1>
-          <p className="text-muted-foreground">Catalog of all produced snacks and products.</p>
+          <p className="text-muted-foreground">Catalog of all produced snacks and products (MMK).</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -140,7 +139,7 @@ export default function ProductsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="price">Unit Price ($)</Label>
+                  <Label htmlFor="price">Unit Price (MMK)</Label>
                   <Input id="price" type="number" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: Number(e.target.value)})} />
                 </div>
                 <div className="grid gap-2">
@@ -184,7 +183,7 @@ export default function ProductsPage() {
                     <TableCell className="font-mono text-xs text-muted-foreground font-bold">{p.id.slice(-5)}</TableCell>
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell>{p.category}</TableCell>
-                    <TableCell className="text-right">${(p.price || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right">MMK {(p.price || 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right font-bold">{(p.stock || 0).toLocaleString()}</TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -224,7 +223,7 @@ export default function ProductsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Unit Price ($)</Label>
+                  <Label>Unit Price (MMK)</Label>
                   <Input type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: Number(e.target.value)})} />
                 </div>
                 <div className="grid gap-2">

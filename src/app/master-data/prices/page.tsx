@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -70,7 +69,7 @@ export default function PriceMasterPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-headline">Price Master</h1>
-          <p className="text-muted-foreground">Manage selling prices and standard material costs.</p>
+          <p className="text-muted-foreground">Manage selling prices and standard material costs (MMK).</p>
         </div>
       </div>
 
@@ -148,7 +147,7 @@ export default function PriceMasterPage() {
                         <TableCell className="font-bold">{p.name}</TableCell>
                         <TableCell><Badge variant="outline">{p.category}</Badge></TableCell>
                         <TableCell className="text-right font-mono font-bold text-primary">
-                          ${(p.price || 0).toFixed(2)}
+                          MMK {(p.price || 0).toLocaleString()}
                         </TableCell>
                         <TableCell>
                           <Button 
@@ -188,7 +187,7 @@ export default function PriceMasterPage() {
                         <TableCell className="font-bold">{m.name}</TableCell>
                         <TableCell className="text-xs uppercase font-bold text-muted-foreground">{m.unit}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-secondary">
-                          ${(m.cost || 0).toFixed(2)}
+                          MMK {(m.cost || 0).toLocaleString()}
                         </TableCell>
                         <TableCell>
                           <Button 
@@ -216,7 +215,7 @@ export default function PriceMasterPage() {
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl">Modify Price Master</DialogTitle>
-            <DialogDescription>Update the master value for this item. Changes apply globally.</DialogDescription>
+            <DialogDescription>Update the master value for this item (MMK). Changes apply globally.</DialogDescription>
           </DialogHeader>
           {editingItem && (
             <div className="grid gap-6 py-4">
@@ -226,15 +225,14 @@ export default function PriceMasterPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="price-input" className="font-bold">
-                  {editingItem.type === 'product' ? 'New Selling Price ($)' : 'New Standard Cost ($)'}
+                  {editingItem.type === 'product' ? 'New Selling Price (MMK)' : 'New Standard Cost (MMK)'}
                 </Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">MMK</span>
                   <Input 
                     id="price-input"
                     type="number"
-                    step="0.01"
-                    className="pl-9 font-mono text-lg font-bold"
+                    className="pl-12 font-mono text-lg font-bold"
                     value={editingItem.newValue}
                     onChange={(e) => setEditingItem({ ...editingItem, newValue: e.target.value })}
                   />
