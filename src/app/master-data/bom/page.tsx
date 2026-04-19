@@ -9,15 +9,27 @@ import {
   DollarSign,
   Calendar,
   TrendingUp,
-  Copy
+  Copy,
+  Save
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-const boms = [
+const initialBoms = [
   { 
     id: "BOM-OCS-01", 
     product: "Original Cheese Stick", 
@@ -62,7 +74,35 @@ const boms = [
 ]
 
 export default function BOMManagementPage() {
-  const [selectedBOM, setSelectedBOM] = useState(boms[0])
+  const [bomsList, setBomsList] = useState(initialBoms)
+  const [selectedBOMId, setSelectedBOMId] = useState(initialBoms[0].id)
+  const [isAddComponentOpen, setIsAddComponentOpen] = useState(false)
+  const [newComponent, setNewComponent] = useState({
+    name: "",
+    qty: 0,
+    unit: "kg",
+    loss: 0
+  })
+
+  const selectedBOM = bomsList.find(b => b.id === selectedBOMId) || bomsList[0]
+
+  const handleAddComponent = () => {
+    if (!newComponent.name) return
+
+    const updatedBoms = bomsList.map(bom => {
+      if (bom.id === selectedBOMId) {
+        return {
+          ...bom,
+          components: [...bom.components, { ...newComponent }]
+        }
+      }
+      return bom
+    })
+
+    setBomsList(updatedBoms)
+    setIsAddComponentOpen(false)
+    setNewComponent({ name: "", qty: 0, unit: "kg", loss: 0 })
+  }
 
   return (
     <div className="space-y-6">
@@ -92,11 +132,11 @@ export default function BOMManagementPage() {
             </div>
           </CardHeader>
           <div className="divide-y">
-            {boms.map((bom) => (
+            {bomsList.map((bom) => (
               <div 
                 key={bom.id} 
                 className={`p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between ${selectedBOM.id === bom.id ? 'bg-accent/40 border-l-4 border-primary' : ''}`}
-                onClick={() => setSelectedBOM(bom)}
+                onClick={() => setSelectedBOMId(bom.id)}
               >
                 <div className="flex flex-col gap-1">
                   <span className="text-sm font-bold">{bom.product}</span>
@@ -163,9 +203,76 @@ export default function BOMManagementPage() {
                     </table>
                   </div>
                   <div className="flex justify-end">
-                    <Button variant="outline" size="sm">
-                      <Plus className="h-3 w-3 mr-2" /> Add Component
-                    </Button>
+                    <Dialog open={isAddComponentOpen} onOpenChange={setIsAddComponentOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Plus className="h-3 w-3 mr-2" /> Add Component
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle className="font-headline text-xl">Add BOM Component</DialogTitle>
+                          <DialogDescription>
+                            Add a raw material or ingredient to this BOM version.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid gap-2">
+                            <Label>Material Name</Label>
+                            <Select onValueChange={(v) => setNewComponent({...newComponent, name: v})}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select material" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Mozzarella Cheese">Mozzarella Cheese</SelectItem>
+                                <SelectItem value="Potato Starch">Potato Starch</SelectItem>
+                                <SelectItem value="Chicken Breast">Chicken Breast</SelectItem>
+                                <SelectItem value="Batter Mix">Batter Mix</SelectItem>
+                                <SelectItem value="Breadcrumbs">Breadcrumbs</SelectItem>
+                                <SelectItem value="Frying Oil">Frying Oil</SelectItem>
+                                <SelectItem value="Seasoning Powder">Seasoning Powder</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                              <Label>Quantity</Label>
+                              <Input 
+                                type="number" 
+                                value={newComponent.qty}
+                                onChange={(e) => setNewComponent({...newComponent, qty: Number(e.target.value)})}
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Unit</Label>
+                              <Select onValueChange={(v) => setNewComponent({...newComponent, unit: v})} defaultValue={newComponent.unit}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="kg">kg</SelectItem>
+                                  <SelectItem value="L">L</SelectItem>
+                                  <SelectItem value="units">units</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            <Label>Process Loss (%)</Label>
+                            <Input 
+                              type="number" 
+                              value={newComponent.loss}
+                              onChange={(e) => setNewComponent({...newComponent, loss: Number(e.target.value)})}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button onClick={handleAddComponent} className="w-full bg-secondary text-secondary-foreground">
+                            <Save className="h-4 w-4 mr-2" /> Save Component
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </TabsContent>
                 <TabsContent value="simulation">
