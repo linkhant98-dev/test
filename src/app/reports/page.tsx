@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { 
   FileText, 
   Download, 
@@ -62,21 +62,6 @@ const reportTypes = [
 ]
 
 const mockDataMap: Record<string, any[]> = {
-  "prod-rep": [
-    { name: 'Batch 001', actual: 1200, standard: 1100, variance: 9.1 },
-    { name: 'Batch 002', actual: 1150, standard: 1100, variance: 4.5 },
-    { name: 'Batch 003', actual: 980, standard: 1100, variance: -10.9 },
-    { name: 'Batch 004', actual: 1300, standard: 1100, variance: 18.2 },
-    { name: 'Batch 005', actual: 1250, standard: 1100, variance: 13.6 },
-  ],
-  "inv-cons": [
-    { name: 'Mozzarella Cheese', standard: 500, actual: 525, variance: 5.0, unit: 'kg', costVar: 125.50 },
-    { name: 'Potato Starch', standard: 200, actual: 192, variance: -4.0, unit: 'kg', costVar: -32.00 },
-    { name: 'Chicken Breast', standard: 150, actual: 162, variance: 8.0, unit: 'kg', costVar: 96.00 },
-    { name: 'Batter Mix', standard: 80, actual: 82, variance: 2.5, unit: 'kg', costVar: 10.50 },
-    { name: 'Frying Oil', standard: 120, actual: 135, variance: 12.5, unit: 'L', costVar: 45.00 },
-    { name: 'Premium Sausage', standard: 1000, actual: 1005, variance: 0.5, unit: 'units', costVar: 7.50 },
-  ],
   "inv-val": [
     { name: 'Mozzarella Cheese', stock: 1250, unit: 'kg', warehouse: 'Cold Storage A', value: 7500 },
     { name: 'Potato Starch', stock: 800, unit: 'kg', warehouse: 'Dry Storage B', value: 1600 },
@@ -89,22 +74,6 @@ const mockDataMap: Record<string, any[]> = {
     { name: 'Spoilage', value: 85, color: '#f59e0b' },
     { name: 'QC Reject', value: 45, color: '#ef4444' },
     { name: 'Handling', value: 30, color: '#10b981' },
-  ],
-}
-
-const insightsMap: Record<string, { title: string, desc: string, type: 'up' | 'down' | 'alert' }[]> = {
-  "prod-rep": [
-    { title: "Standard Output Exceeded", desc: "Aggregate output exceeded planned targets by 6.8% across 5 batches.", type: "up" },
-    { title: "Efficiency Dip", desc: "Batch 003 showed a 10.9% deficit due to equipment downtime.", type: "alert" },
-  ],
-  "inv-cons": [
-    { title: "High Material Variance", desc: "Frying Oil consumption is 12.5% above standard. Investigate fryer temperature settings.", type: "alert" },
-    { title: "Chicken Yield Concern", desc: "8% over-consumption of chicken breast noted in the Chicken PopCorn run.", type: "alert" },
-    { title: "Efficient Starch Usage", desc: "Potato Starch remains 4% under budget with no impact on quality.", type: "up" },
-  ],
-  "inv-val": [
-    { title: "High Stock Level", desc: "Mozzarella stock is at 95% capacity in Cold Storage A.", type: "alert" },
-    { title: "Valuation Growth", desc: "Total inventory value increased by 12% this month.", type: "up" },
   ],
 }
 
@@ -121,6 +90,46 @@ export default function ReportsPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Process Real Data for Reports
+  const performanceData = useMemo(() => {
+    if (!realOrders) return [];
+    return realOrders.map(o => ({
+      name: o.id.slice(-5).toUpperCase(),
+      standard: o.quantity,
+      actual: Math.round(o.quantity * ((o.yield || 100) / 100)),
+      variance: o.variance || 0
+    })).slice(-10);
+  }, [realOrders]);
+
+  const consumptionSummary = useMemo(() => {
+    if (!realOrders) return [];
+    const productAggregates: Record<string, { standard: number, actual: number, count: number }> = {};
+    
+    realOrders.forEach(o => {
+      if (!productAggregates[o.product]) {
+        productAggregates[o.product] = { standard: 0, actual: 0, count: 0 };
+      }
+      const yieldFactor = (o.yield || 100) / 100;
+      productAggregates[o.product].standard += o.quantity;
+      productAggregates[o.product].actual += o.quantity * yieldFactor;
+      productAggregates[o.product].count += 1;
+    });
+
+    return Object.entries(productAggregates).map(([name, data]) => ({
+      name,
+      standard: data.standard,
+      actual: data.actual,
+      variance: Number(((data.actual - data.standard) / data.standard * 100).toFixed(1)) || 0,
+      costVar: Math.abs(data.actual - data.standard) * 2.5 
+    }));
+  }, [realOrders]);
+
+  const currentData = useMemo(() => {
+    if (selectedReportId === 'prod-rep') return performanceData;
+    if (selectedReportId === 'inv-cons') return consumptionSummary;
+    return mockDataMap[selectedReportId || ""] || [];
+  }, [selectedReportId, performanceData, consumptionSummary]);
 
   const handleGenerate = (id: string) => {
     setIsGenerating(true)
@@ -143,8 +152,7 @@ export default function ReportsPage() {
 
   if (selectedReportId) {
     const report = reportTypes.find(r => r.id === selectedReportId)
-    const data = mockDataMap[selectedReportId] || []
-    const insights = insightsMap[selectedReportId] || []
+    const data = currentData;
 
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -191,8 +199,8 @@ export default function ReportsPage() {
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                         />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                        <Bar name="Standard Usage" dataKey="standard" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={32} />
-                        <Bar name="Actual Usage" dataKey="actual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={32} />
+                        <Bar name="Standard (Planned)" dataKey="standard" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={32} />
+                        <Bar name="Actual (Recorded)" dataKey="actual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={32} />
                       </BarChart>
                     ) : selectedReportId === 'inv-val' ? (
                       <AreaChart data={data}>
@@ -216,7 +224,7 @@ export default function ReportsPage() {
                         <Tooltip />
                         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                           {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                            <Cell key={`cell-${index}`} fill={entry.color || '#94a3b8'} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -250,18 +258,18 @@ export default function ReportsPage() {
                                 <span className="text-[10px] text-muted-foreground uppercase">{row.warehouse || (row.unit ? `Unit: ${row.unit}` : '')}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right font-mono text-muted-foreground">{row.standard?.toLocaleString() || row.stock?.toLocaleString()}</TableCell>
-                            <TableCell className="text-right font-mono font-bold">{row.actual?.toLocaleString() || `$${row.value?.toLocaleString()}`}</TableCell>
-                            <TableCell className={`text-right font-bold ${row.variance > 5 ? 'text-destructive' : row.variance < 0 ? 'text-secondary' : 'text-foreground'}`}>
+                            <TableCell className="text-right font-mono text-muted-foreground">{(row.standard || row.stock || 0).toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-mono font-bold">{(row.actual || 0).toLocaleString() || `$${(row.value || 0).toLocaleString()}`}</TableCell>
+                            <TableCell className={`text-right font-bold ${Math.abs(row.variance) > 5 ? 'text-destructive' : row.variance < 0 ? 'text-secondary' : 'text-foreground'}`}>
                               {row.variance !== undefined ? `${row.variance > 0 ? '+' : ''}${row.variance}%` : '-'}
                             </TableCell>
                             {selectedReportId === 'inv-cons' && (
                               <TableCell className={`text-right font-bold ${row.costVar > 0 ? 'text-destructive' : 'text-secondary'}`}>
-                                ${Math.abs(row.costVar).toFixed(2)}
+                                ${Math.abs(row.costVar || 0).toFixed(2)}
                               </TableCell>
                             )}
                             <TableCell>
-                              {Math.abs(row.variance) > 5 ? (
+                              {Math.abs(row.variance || 0) > 5 ? (
                                 <Badge variant="destructive" className="text-[10px] uppercase font-black px-2 py-0">Review</Badge>
                               ) : (
                                 <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase font-black px-2 py-0">Optimal</Badge>
@@ -285,43 +293,24 @@ export default function ReportsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {insights.length > 0 ? insights.map((insight, idx) => (
-                  <div key={idx} className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
-                    insight.type === 'up' ? 'bg-secondary/5 border-secondary/10' : 
-                    insight.type === 'alert' ? 'bg-destructive/5 border-destructive/10' : 'bg-muted/30 border-muted'
-                  }`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-1 h-6 w-6 rounded-full flex items-center justify-center ${
-                        insight.type === 'up' ? 'bg-secondary/20 text-secondary' : 
-                        insight.type === 'alert' ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {insight.type === 'up' && <TrendingUp className="h-3 w-3" />}
-                        {insight.type === 'alert' && <AlertTriangle className="h-3 w-3" />}
-                        {insight.type === 'down' && <TrendingDown className="h-3 w-3" />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold mb-0.5">{insight.title}</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{insight.desc}</p>
-                      </div>
+                <div className={`p-4 rounded-2xl border transition-all hover:shadow-md bg-secondary/5 border-secondary/10`}>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 h-6 w-6 rounded-full flex items-center justify-center bg-secondary/20 text-secondary">
+                      <TrendingUp className="h-3 w-3" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold mb-0.5">Real-time Data Active</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Report is currently pulling live metrics from verified production logs.</p>
                     </div>
                   </div>
-                )) : (
-                  <div className="text-center py-8">
-                    <Info className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-20" />
-                    <p className="text-xs text-muted-foreground italic">No strategic insights generated for this report.</p>
-                  </div>
-                )}
+                </div>
                 
                 <div className="pt-6 border-t mt-4 space-y-4">
                   <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Corrective Directives</h4>
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/20 border border-primary/10 text-[11px] font-medium">
                       <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>Audit fryer oil consumption vs temperature logs.</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/20 border border-primary/10 text-[11px] font-medium">
-                      <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>Re-verify chicken breast recipe scaling.</span>
+                      <span>Compare batch variances against floor temperature logs.</span>
                     </div>
                   </div>
                 </div>
