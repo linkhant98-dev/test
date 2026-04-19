@@ -15,12 +15,21 @@ import {
   AlertTriangle,
   Factory,
   ShoppingCart,
-  Zap
+  Zap,
+  Table as TableIcon
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table"
 import { 
   BarChart, 
   Bar, 
@@ -43,29 +52,26 @@ const reportTypes = [
 
 const mockDataMap: Record<string, any[]> = {
   "prod-rep": [
-    { name: 'Line 1', value: 8500 },
-    { name: 'Line 2', value: 6200 },
-    { name: 'Line 3', value: 4100 },
-    { name: 'Packing', value: 9800 },
+    { name: 'Line 1', value: 8500, secondary: '92%', status: 'Optimal' },
+    { name: 'Line 2', value: 6200, secondary: '88%', status: 'Running' },
+    { name: 'Line 3', value: 4100, secondary: '74%', status: 'Maintenance' },
+    { name: 'Packing', value: 9800, secondary: '95%', status: 'Optimal' },
   ],
   "inv-cons": [
-    { name: 'Milk', value: 12500 },
-    { name: 'Salt', value: 450 },
-    { name: 'Rennet', value: 25 },
-    { name: 'Culture', value: 15 },
+    { name: 'Raw Milk', value: 12500, secondary: '-2%', status: 'Within BOM' },
+    { name: 'Sea Salt', value: 450, secondary: '+5%', status: 'High Var' },
+    { name: 'Rennet', value: 25, secondary: '0%', status: 'On Target' },
+    { name: 'Culture', value: 15, secondary: '+1%', status: 'On Target' },
   ],
   "inv-val": [
-    { name: 'Main Whse', value: 45000 },
-    { name: 'Cold Store', value: 32000 },
-    { name: 'Raw Depot', value: 28000 },
+    { name: 'Main Whse', value: 45000, secondary: 'Building A', status: 'Active' },
+    { name: 'Cold Store', value: 32000, secondary: 'Building B', status: 'Active' },
+    { name: 'Raw Depot', value: 28000, secondary: 'Building B', status: 'Active' },
   ],
   "default": [
-    { name: 'Jan', value: 4000 },
-    { name: 'Feb', value: 3000 },
-    { name: 'Mar', value: 2000 },
-    { name: 'Apr', value: 2780 },
-    { name: 'May', value: 1890 },
-    { name: 'Jun', value: 2390 },
+    { name: 'Metric A', value: 4000, secondary: 'N/A', status: 'N/A' },
+    { name: 'Metric B', value: 3000, secondary: 'N/A', status: 'N/A' },
+    { name: 'Metric C', value: 2000, secondary: 'N/A', status: 'N/A' },
   ]
 }
 
@@ -123,9 +129,9 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-2 border-none shadow-sm">
-            <CardHeader>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <Card className="lg:col-span-8 border-none shadow-sm">
+            <CardHeader className="border-b pb-6">
               <div className="flex items-center gap-3">
                 <div className={`p-3 rounded-xl ${report?.color}`}>
                   {report && <report.icon className="h-6 w-6" />}
@@ -136,27 +142,66 @@ export default function ReportsPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="h-[400px] mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
-                  <Tooltip 
-                    cursor={{fill: '#F9FAFB'}}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} 
-                  />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]}>
-                    {data.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(var(--secondary))'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent className="pt-6">
+              <div className="h-[300px] mb-8">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+                    <Tooltip 
+                      cursor={{fill: '#F9FAFB'}}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} 
+                    />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]}>
+                      {data.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(var(--secondary))'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <TableIcon className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Detailed Grid View</h3>
+                </div>
+                <div className="rounded-xl border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead>Target Entity</TableHead>
+                        <TableHead className="text-right">Value</TableHead>
+                        <TableHead>{selectedReportId === 'prod-rep' ? 'Efficiency' : selectedReportId === 'inv-cons' ? 'Variance' : 'Location/Info'}</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.map((row, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium">{row.name}</TableCell>
+                          <TableCell className="text-right font-bold">{row.value.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <span className={row.secondary.startsWith('+') ? 'text-destructive font-bold' : row.secondary.startsWith('-') ? 'text-secondary font-bold' : ''}>
+                              {row.secondary}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={row.status === 'Optimal' || row.status === 'Active' ? 'secondary' : row.status === 'Maintenance' || row.status === 'High Var' ? 'destructive' : 'outline'} className="text-[10px] px-1.5 py-0">
+                              {row.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <div className="space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             <Card className="border-none shadow-sm">
               <CardHeader>
                 <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Key Insights</CardTitle>
