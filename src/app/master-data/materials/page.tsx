@@ -2,7 +2,7 @@
 "use client"
 
 import { useState } from "react"
-import { Database, Plus, Search, Trash2, Edit2, MoreVertical, Archive } from "lucide-react"
+import { Database, Plus, Search, Trash2, Edit2, MoreVertical, Archive, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,21 +26,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
-const initialMaterials = [
-  { id: "MAT-001", name: "Mozzarella Cheese", unit: "kg", category: "Raw Material", stock: 150 },
-  { id: "MAT-002", name: "Potato Starch", unit: "kg", category: "Raw Material", stock: 200 },
-  { id: "MAT-003", name: "Chicken Breast (Minced)", unit: "kg", category: "Raw Material", stock: 80 },
-  { id: "MAT-004", name: "Premium Sausage", unit: "units", category: "Raw Material", stock: 500 },
-  { id: "MAT-005", name: "Batter Mix", unit: "kg", category: "Ingredient", stock: 100 },
-  { id: "MAT-006", name: "Breadcrumbs", unit: "kg", category: "Ingredient", stock: 120 },
-  { id: "MAT-007", name: "Frying Oil", unit: "Liters", category: "Ingredient", stock: 300 },
-  { id: "MAT-008", name: "Seasoning Powder", unit: "kg", category: "Ingredient", stock: 50 },
-]
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 
 export default function MaterialsPage() {
-  const [materials, setMaterials] = useState(initialMaterials)
+  const db = useFirestore()
+  const materialsRef = useMemoFirebase(() => collection(db, "raw_materials"), [db])
+  const { data: materials, isLoading } = useCollection(materialsRef)
+
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
   const [newMaterial, setNewMaterial] = useState({
     name: "",
     unit: "kg",
@@ -49,11 +44,25 @@ export default function MaterialsPage() {
   })
 
   const handleAddMaterial = () => {
-    const id = `MAT-${String(materials.length + 1).padStart(3, '0')}`
-    setMaterials([...materials, { ...newMaterial, id, stock: Number(newMaterial.stock) }])
+    if (!newMaterial.name) return
+    addDocumentNonBlocking(materialsRef, {
+      ...newMaterial,
+      stock: Number(newMaterial.stock),
+      createdAt: new Date().toISOString()
+    })
     setIsAddOpen(false)
     setNewMaterial({ name: "", unit: "kg", category: "Raw Material", stock: 0 })
   }
+
+  const handleDeleteMaterial = (id: string) => {
+    const docRef = doc(db, "raw_materials", id)
+    deleteDocumentNonBlocking(docRef)
+  }
+
+  const filteredMaterials = materials?.filter(m => 
+    m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    m.category.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || []
 
   return (
     <div className="space-y-6">
@@ -141,59 +150,80 @@ export default function MaterialsPage() {
         <CardHeader className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search materials..." className="pl-9 bg-muted/20" />
+            <Input 
+              placeholder="Search materials..." 
+              className="pl-9 bg-muted/20" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead className="w-[100px]">ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Current Stock</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {materials.map((m) => (
-                <TableRow key={m.id} className="group transition-colors">
-                  <TableCell className="font-mono text-xs font-bold text-muted-foreground">{m.id}</TableCell>
-                  <TableCell className="font-medium">{m.name}</TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent text-accent-foreground">
-                      {m.category}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-bold">{m.stock.toLocaleString()}</TableCell>
-                  <TableCell className="text-muted-foreground">{m.unit}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>
-                          <Edit2 className="h-4 w-4 mr-2" /> Edit Info
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Archive className="h-4 w-4 mr-2" /> Archive
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {isLoading ? (
+            <div className="p-12 flex justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="w-[100px]">ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Current Stock</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredMaterials.map((m) => (
+                  <TableRow key={m.id} className="group transition-colors">
+                    <TableCell className="font-mono text-xs font-bold text-muted-foreground">{m.id.slice(-5)}</TableCell>
+                    <TableCell className="font-medium">{m.name}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent text-accent-foreground">
+                        {m.category}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-bold">{m.stock.toLocaleString()}</TableCell>
+                    <TableCell className="text-muted-foreground">{m.unit}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>
+                            <Edit2 className="h-4 w-4 mr-2" /> Edit Info
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Archive className="h-4 w-4 mr-2" /> Archive
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDeleteMaterial(m.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {!isLoading && filteredMaterials.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
+                      No materials found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

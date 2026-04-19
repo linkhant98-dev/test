@@ -1,20 +1,67 @@
 
 "use client"
 
-import { Package, Plus, Search } from "lucide-react"
+import { useState } from "react"
+import { Package, Plus, Search, MoreVertical, Edit2, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-
-const products = [
-  { id: "PRD-001", name: "Original Cheese Stick", category: "Finished Good", price: 5.50, stock: 450 },
-  { id: "PRD-002", name: "Long Potato", category: "Finished Good", price: 4.50, stock: 890 },
-  { id: "PRD-003", name: "Chicken PopCorn", category: "Finished Good", price: 6.00, stock: 120 },
-  { id: "PRD-004", name: "Sausage Cheese Stick", category: "Finished Good", price: 6.50, stock: 340 },
-]
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 
 export default function ProductsPage() {
+  const db = useFirestore()
+  const productsRef = useMemoFirebase(() => collection(db, "finished_goods"), [db])
+  const { data: products, isLoading } = useCollection(productsRef)
+
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    category: "Finished Good",
+    price: 0,
+    stock: 0
+  })
+
+  const handleAddProduct = () => {
+    if (!newProduct.name) return
+    addDocumentNonBlocking(productsRef, {
+      ...newProduct,
+      price: Number(newProduct.price),
+      stock: Number(newProduct.stock),
+      createdAt: new Date().toISOString()
+    })
+    setIsAddOpen(false)
+    setNewProduct({ name: "", category: "Finished Good", price: 0, stock: 0 })
+  }
+
+  const handleDeleteProduct = (id: string) => {
+    deleteDocumentNonBlocking(doc(db, "finished_goods", id))
+  }
+
+  const filteredProducts = products?.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || []
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -22,41 +69,125 @@ export default function ProductsPage() {
           <h1 className="text-3xl font-bold font-headline">Finished Goods</h1>
           <p className="text-muted-foreground">Catalog of all produced snacks and products.</p>
         </div>
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Plus className="h-4 w-4 mr-2" /> Add Product
-        </Button>
+        
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <Plus className="h-4 w-4 mr-2" /> Add Product
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Finished Good</DialogTitle>
+              <DialogDescription>Define a new product for cataloging.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Product Name</Label>
+                <Input 
+                  id="name" 
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="price">Unit Price ($)</Label>
+                  <Input 
+                    id="price" 
+                    type="number"
+                    value={newProduct.price}
+                    onChange={(e) => setNewProduct({...newProduct, price: Number(e.target.value)})}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="stock">Initial Stock</Label>
+                  <Input 
+                    id="stock" 
+                    type="number"
+                    value={newProduct.stock}
+                    onChange={(e) => setNewProduct({...newProduct, stock: Number(e.target.value)})}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleAddProduct}>Save Product</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="border-none shadow-sm">
         <CardHeader className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search products..." className="pl-9 bg-muted/20" />
+            <Input 
+              placeholder="Search products..." 
+              className="pl-9 bg-muted/20" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead>ID</TableHead>
-                <TableHead>Product Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Unit Price</TableHead>
-                <TableHead className="text-right">Stock Level</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-mono text-xs text-muted-foreground font-bold">{p.id}</TableCell>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell>{p.category}</TableCell>
-                  <TableCell className="text-right">${p.price.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-bold">{p.stock}</TableCell>
+          {isLoading ? (
+            <div className="p-12 flex justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead>ID</TableHead>
+                  <TableHead>Product Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Unit Price</TableHead>
+                  <TableHead className="text-right">Stock Level</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-mono text-xs text-muted-foreground font-bold">{p.id.slice(-5)}</TableCell>
+                    <TableCell className="font-medium">{p.name}</TableCell>
+                    <TableCell>{p.category}</TableCell>
+                    <TableCell className="text-right">${p.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-bold">{p.stock}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Edit2 className="h-4 w-4 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleDeleteProduct(p.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {!isLoading && filteredProducts.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                      No products found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

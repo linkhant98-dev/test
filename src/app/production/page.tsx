@@ -13,7 +13,9 @@ import {
   Printer,
   Info,
   CheckCircle2,
-  Factory
+  Factory,
+  Loader2,
+  Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -47,20 +49,19 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 import { useTranslation } from "@/context/language-context"
-
-const initialOrders = [
-  { id: "PO-2024-001", product: "Original Cheese Stick", date: "2024-05-10", quantity: 500, status: "Completed", yield: 98.2, variance: -1.2 },
-  { id: "PO-2024-002", product: "Long Potato", date: "2024-05-11", quantity: 800, status: "In Progress", yield: 0, variance: 0 },
-  { id: "PO-2024-003", product: "Chicken PopCorn", date: "2024-05-12", quantity: 300, status: "Completed", yield: 91.5, variance: 4.8 },
-  { id: "PO-2024-004", product: "Sausage Cheese Stick", date: "2024-05-13", quantity: 450, status: "Draft", yield: 0, variance: 0 },
-]
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 
 export default function ProductionOrdersPage() {
   const { t } = useTranslation();
-  const [orders, setOrders] = useState(initialOrders)
+  const db = useFirestore()
+  const { user } = useUser()
+  const ordersRef = useMemoFirebase(() => collection(db, "production_orders"), [db])
+  const { data: orders, isLoading } = useCollection(ordersRef)
+
   const [searchTerm, setSearchTerm] = useState("")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState<typeof initialOrders[0] | null>(null)
+  const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [activeDialog, setActiveDialog] = useState<'details' | 'logs' | 'print' | null>(null)
   
   const [newOrder, setNewOrder] = useState({
@@ -70,24 +71,28 @@ export default function ProductionOrdersPage() {
   })
 
   const handleCreateOrder = () => {
-    const id = `PO-2024-${String(orders.length + 1).padStart(3, '0')}`
-    const order = {
-      id,
+    if (!user) return
+    addDocumentNonBlocking(ordersRef, {
       product: newOrder.product,
       date: newOrder.date,
       quantity: Number(newOrder.quantity),
       status: "In Progress",
       yield: 0,
-      variance: 0
-    }
-    setOrders([order, ...orders])
+      variance: 0,
+      createdByUserId: user.uid,
+      createdAt: new Date().toISOString()
+    })
     setIsCreateOpen(false)
   }
 
-  const filteredOrders = orders.filter(o => 
+  const handleDeleteOrder = (id: string) => {
+    deleteDocumentNonBlocking(doc(db, "production_orders", id))
+  }
+
+  const filteredOrders = orders?.filter(o => 
     o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
     o.product.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  ) || []
 
   return (
     <div className="space-y-6">
@@ -109,7 +114,9 @@ export default function ProductionOrdersPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Current Queue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders.filter(o => o.status !== 'Completed').length} Orders</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : orders?.filter(o => o.status !== 'Completed').length} Orders
+            </div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-secondary/10">
@@ -137,81 +144,98 @@ export default function ProductionOrdersPage() {
             <Filter className="h-4 w-4" />
           </Button>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[120px]">Order ID</TableHead>
-              <TableHead>Finished Good</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Qty (Units)</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Yield %</TableHead>
-              <TableHead className="text-right">Var. %</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredOrders.map((order) => (
-              <TableRow key={order.id} className="group transition-colors">
-                <TableCell className="font-bold font-headline">{order.id}</TableCell>
-                <TableCell>{order.product}</TableCell>
-                <TableCell className="text-muted-foreground">{order.date}</TableCell>
-                <TableCell className="text-right font-medium">{order.quantity.toLocaleString()}</TableCell>
-                <TableCell>
-                  <Badge 
-                    variant={
-                      order.status === 'Completed' ? 'default' : 
-                      order.status === 'In Progress' ? 'secondary' : 'outline'
-                    }
-                    className={
-                      order.status === 'Completed' ? 'bg-secondary text-secondary-foreground' : 
-                      order.status === 'In Progress' ? 'bg-primary text-primary-foreground' : ''
-                    }
-                  >
-                    {order.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  {order.yield > 0 ? (
-                    <span className={order.yield < 90 ? 'text-destructive font-bold' : 'text-foreground'}>
-                      {order.yield}%
-                    </span>
-                  ) : '-'}
-                </TableCell>
-                <TableCell className={`text-right font-medium ${order.variance > 5 ? 'text-destructive' : order.variance < 0 ? 'text-secondary' : ''}`}>
-                  {order.variance !== 0 ? `${order.variance > 0 ? '+' : ''}${order.variance}%` : '-'}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/production/record-consumption/${order.id}`} className="w-full flex items-center text-primary font-bold">
-                          <ClipboardList className="h-4 w-4 mr-2" /> {t("recordConsumption")}
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { setSelectedOrder(order); setActiveDialog('details'); }}>
-                        <Eye className="h-4 w-4 mr-2" /> View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setSelectedOrder(order); setActiveDialog('logs'); }}>
-                        <History className="h-4 w-4 mr-2" /> Production Logs
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setSelectedOrder(order); setActiveDialog('print'); }}>
-                        <Printer className="h-4 w-4 mr-2" /> Print Labels
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+        {isLoading ? (
+          <div className="p-12 flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[120px]">Order ID</TableHead>
+                <TableHead>Finished Good</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Qty (Units)</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Yield %</TableHead>
+                <TableHead className="text-right">Var. %</TableHead>
+                <TableHead className="w-[100px]"></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredOrders.map((order) => (
+                <TableRow key={order.id} className="group transition-colors">
+                  <TableCell className="font-bold font-headline">{order.id.slice(-5).toUpperCase()}</TableCell>
+                  <TableCell>{order.product}</TableCell>
+                  <TableCell className="text-muted-foreground">{order.date}</TableCell>
+                  <TableCell className="text-right font-medium">{order.quantity.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={
+                        order.status === 'Completed' ? 'default' : 
+                        order.status === 'In Progress' ? 'secondary' : 'outline'
+                      }
+                      className={
+                        order.status === 'Completed' ? 'bg-secondary text-secondary-foreground' : 
+                        order.status === 'In Progress' ? 'bg-primary text-primary-foreground' : ''
+                      }
+                    >
+                      {order.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {order.yield > 0 ? (
+                      <span className={order.yield < 90 ? 'text-destructive font-bold' : 'text-foreground'}>
+                        {order.yield}%
+                      </span>
+                    ) : '-'}
+                  </TableCell>
+                  <TableCell className={`text-right font-medium ${order.variance > 5 ? 'text-destructive' : order.variance < 0 ? 'text-secondary' : ''}`}>
+                    {order.variance !== 0 ? `${order.variance > 0 ? '+' : ''}${order.variance}%` : '-'}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/production/record-consumption/${order.id}`} className="w-full flex items-center text-primary font-bold">
+                            <ClipboardList className="h-4 w-4 mr-2" /> {t("recordConsumption")}
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { setSelectedOrder(order); setActiveDialog('details'); }}>
+                          <Eye className="h-4 w-4 mr-2" /> View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedOrder(order); setActiveDialog('logs'); }}>
+                          <History className="h-4 w-4 mr-2" /> Production Logs
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedOrder(order); setActiveDialog('print'); }}>
+                          <Printer className="h-4 w-4 mr-2" /> Print Labels
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteOrder(order.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredOrders.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground italic">
+                    No production orders found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </Card>
 
       {/* Create Order Dialog */}
@@ -256,7 +280,7 @@ export default function ProductionOrdersPage() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl">Order Details</DialogTitle>
-            <DialogDescription>Full specification for production run {selectedOrder?.id}</DialogDescription>
+            <DialogDescription>Full specification for production run {selectedOrder?.id?.slice(-5).toUpperCase()}</DialogDescription>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-6 py-4">
@@ -285,8 +309,6 @@ export default function ProductionOrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Logs and Print dialogs omitted for brevity but they follow the same pattern */}
     </div>
   )
 }
