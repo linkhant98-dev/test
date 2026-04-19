@@ -1,8 +1,9 @@
+
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Package, 
   ShoppingCart, 
@@ -11,9 +12,12 @@ import {
   ArrowDownRight,
   ClipboardList,
   Loader2,
-  Database,
   Sparkles,
-  RefreshCcw
+  RefreshCcw,
+  Users,
+  Tag,
+  TrendingUp,
+  AlertTriangle
 } from "lucide-react"
 import { 
   XAxis, 
@@ -29,8 +33,8 @@ import {
 } from "recharts"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/context/language-context"
-import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase"
-import { collection, doc, serverTimestamp } from "firebase/firestore"
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase"
+import { collection } from "firebase/firestore"
 
 const varianceData = [
   { name: 'Mon', variance: 12 },
@@ -55,6 +59,67 @@ export default function Dashboard() {
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
   const [isSeeding, setIsSeeding] = useState(false);
+
+  // Live Data Fetching
+  const invoicesRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "invoices");
+  }, [db, user]);
+
+  const customersRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "customers");
+  }, [db, user]);
+
+  const productsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "finished_goods");
+  }, [db, user]);
+
+  const { data: invoices } = useCollection(invoicesRef);
+  const { data: customers } = useCollection(customersRef);
+  const { data: products } = useCollection(productsRef);
+
+  const stats = useMemo(() => {
+    const totalSales = invoices?.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0) || 0;
+    const customerCount = customers?.length || 0;
+    const productCount = products?.length || 0;
+    
+    return [
+      { 
+        title: "Total Revenue", 
+        value: `MMK ${totalSales.toLocaleString()}`, 
+        description: `${invoices?.length || 0} Invoices issued`, 
+        icon: ShoppingCart, 
+        trend: "+12.5%", 
+        trendType: "up" 
+      },
+      { 
+        title: "Customer Base", 
+        value: customerCount.toString(), 
+        description: "Active business partners", 
+        icon: Users, 
+        trend: "+2 new", 
+        trendType: "up" 
+      },
+      { 
+        title: "Product Catalog", 
+        value: productCount.toString(), 
+        description: "Items in Master Data", 
+        icon: Tag, 
+        trend: "Stable", 
+        trendType: "up" 
+      },
+      { 
+        title: "Yield Efficiency", 
+        value: "94.2%", 
+        description: "Avg. Production Output", 
+        icon: TrendingUp, 
+        trend: "-0.8%", 
+        trendType: "down" 
+      }
+    ];
+  }, [invoices, customers, products]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -83,17 +148,16 @@ export default function Dashboard() {
       }
 
       // 2. Finished Goods & BOMs & Tiered Prices
-      const products = [
+      const productNames = [
         { name: "Original Cheese Stick", category: "Finished Good", price: 3500, stock: 45 },
         { name: "Long Potato", category: "Finished Good", price: 2500, stock: 120 },
         { name: "Chicken PopCorn", category: "Finished Good", price: 4500, stock: 30 },
         { name: "Sausage Cheese Stick", category: "Finished Good", price: 4000, stock: 25 },
       ];
 
-      for (const p of products) {
+      for (const p of productNames) {
         const productRef = await addDocumentNonBlocking(collection(db, "finished_goods"), { ...p, createdAt: new Date().toISOString() });
         if (productRef) {
-          // Add default BOM
           await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "bom_versions"), {
             version: "v1.0",
             status: "Active",
@@ -105,17 +169,9 @@ export default function Dashboard() {
             ]
           });
 
-          // Add tiered price rules
           await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "price_rules"), {
             customerType: "Distributor",
             price: p.price * 0.8,
-            validFrom: "2024-01-01",
-            validTo: "2025-12-31",
-            createdAt: new Date().toISOString()
-          });
-          await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "price_rules"), {
-            customerType: "Corporate",
-            price: p.price * 0.9,
             validFrom: "2024-01-01",
             validTo: "2025-12-31",
             createdAt: new Date().toISOString()
@@ -138,65 +194,10 @@ export default function Dashboard() {
           website: "https://www.citymart.com.mm",
           createdAt: new Date().toISOString() 
         },
-        { 
-          name: "Snack Shack Distribution", 
-          email: "info@snackshack.com", 
-          phone: "+95 987654321", 
-          address: "Mandalay Plaza", 
-          customerType: "Distributor",
-          customerClass: "Grade A",
-          taxId: "SS-112233",
-          creditLimit: 2500000,
-          paymentTerms: "Net 15",
-          website: "https://snackshack.biz",
-          createdAt: new Date().toISOString() 
-        },
       ];
 
       for (const c of customersData) {
         await addDocumentNonBlocking(collection(db, "customers"), c);
-      }
-
-      // 4. Invoices
-      const invoicesData = [
-        { 
-          invoiceNumber: "INV-1001", 
-          customerName: "City Mart Supermarket", 
-          customerId: "dummy", 
-          paymentMethod: "Bank",
-          totalAmount: 315000, 
-          status: "Sent", 
-          dueDate: "2024-06-01", 
-          createdAt: new Date().toISOString(), 
-          items: [{ productName: "Original Cheese Stick", quantity: 100, price: 3150, total: 315000 }] 
-        },
-      ];
-      for (const i of invoicesData) {
-        await addDocumentNonBlocking(collection(db, "invoices"), i);
-      }
-
-      // 5. Warehouses
-      const warehousesData = [
-        { name: "Main Cold Storage", location: "Building A, West Wing", status: "Active", capacity: "85%" },
-        { name: "Raw Material Depot", location: "Building B, South Gate", status: "Active", capacity: "40%" },
-      ];
-
-      for (const w of warehousesData) {
-        await addDocumentNonBlocking(collection(db, "warehouses"), { ...w, createdAt: new Date().toISOString() });
-      }
-
-      // 6. Production Orders
-      const ordersData = [
-        { product: "Original Cheese Stick", quantity: 1200, date: "2024-05-15", status: "Complete", yield: 94.2, variance: -0.8 },
-        { product: "Long Potato", quantity: 800, date: "2024-05-18", status: "In Progress", yield: 0, variance: 0 },
-      ];
-
-      for (const o of ordersData) {
-        await addDocumentNonBlocking(collection(db, "production_orders"), {
-          ...o,
-          createdByUserId: user.uid,
-          createdAt: new Date().toISOString()
-        });
       }
 
       alert("Demo ecosystem seeded successfully!");
@@ -211,19 +212,12 @@ export default function Dashboard() {
     return <div className="h-full w-full flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
-  const stats = [
-    { title: t("activeProductionOrders"), value: "12", description: "4 scheduled for today", icon: ShoppingCart, trend: "+2 from yesterday", trendType: "up" },
-    { title: t("inventoryValue"), value: "MMK 1,245,231", description: "Across 3 warehouses", icon: Package, trend: "+4.5%", trendType: "up" },
-    { title: t("avgYield"), value: "94.2%", description: "Target: 95.0%", icon: CheckCircle2, trend: "-0.8%", trendType: "down" },
-    { title: t("efficiencyAlerts"), value: "3", description: "Requires urgent review", icon: ClipboardList, trend: "Operational", trendType: "up" }
-  ]
-
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <h1 className="text-4xl font-bold tracking-tight font-headline text-foreground">{t("operationalOverview")}</h1>
-          <p className="text-muted-foreground">{t("realTimeMonitoring")}</p>
+          <h1 className="text-4xl font-bold tracking-tight font-headline text-foreground">Operational Intelligence</h1>
+          <p className="text-muted-foreground">Live monitoring of Sales, Customers, and Production metrics.</p>
         </div>
         <Button 
           variant="outline" 
@@ -244,7 +238,7 @@ export default function Dashboard() {
               <stat.icon className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+              <div className="text-2xl font-bold text-foreground truncate">{stat.value}</div>
               <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
               <div className="mt-3 flex items-center gap-1">
                 {stat.trendType === 'up' ? <ArrowUpRight className="h-3 w-3 text-secondary" /> : <ArrowDownRight className="h-3 w-3 text-destructive" />}
@@ -257,7 +251,7 @@ export default function Dashboard() {
 
       <div className="grid gap-6 md:grid-cols-7">
         <Card className="md:col-span-4 border-none shadow-sm">
-          <CardHeader><CardTitle className="font-headline">{t("productionVarianceTrend")}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-headline">Production Variance Trend</CardTitle></CardHeader>
           <CardContent className="pl-2 h-[300px]">
              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={varianceData}>
@@ -272,7 +266,7 @@ export default function Dashboard() {
         </Card>
 
         <Card className="md:col-span-3 border-none shadow-sm">
-          <CardHeader><CardTitle className="font-headline">{t("productionMix")}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-headline">Production Mix</CardTitle></CardHeader>
           <CardContent className="h-[300px] flex flex-col items-center justify-center">
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
