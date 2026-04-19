@@ -10,7 +10,8 @@ import {
   CheckCircle2, 
   TrendingUp, 
   TrendingDown,
-  Loader2
+  Loader2,
+  Info
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
