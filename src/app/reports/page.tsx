@@ -21,7 +21,8 @@ import {
   Calendar,
   Layers,
   Info,
-  Warehouse
+  Warehouse,
+  Scale
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -50,10 +51,12 @@ import {
   Area,
   Legend
 } from "recharts"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
 
 const reportTypes = [
   { id: "prod-rep", title: "Production Performance", icon: Factory, desc: "Standard vs Actual output efficiency and throughput targets.", color: "bg-blue-100 text-blue-700" },
-  { id: "inv-cons", title: "Material Variance Analysis", icon: ShoppingCart, desc: "Detailed breakdown of Actual usage vs. Theoretical BOM standards.", color: "bg-purple-100 text-purple-700" },
+  { id: "inv-cons", title: "Raw Consumption & Variance", icon: Scale, desc: "Detailed breakdown of Actual raw material usage vs. Theoretical BOM standards.", color: "bg-amber-100 text-amber-700" },
   { id: "inv-val", title: "Inventory Details & Valuation", icon: Warehouse, desc: "Granular stock levels, warehouse distribution, and asset value.", color: "bg-emerald-100 text-emerald-700" },
   { id: "waste-an", title: "Waste & Loss Analysis", icon: FileText, desc: "Categorized reporting on process loss, spoilage, and rejects.", color: "bg-rose-100 text-rose-700" },
 ]
@@ -67,11 +70,12 @@ const mockDataMap: Record<string, any[]> = {
     { name: 'Batch 005', actual: 1250, standard: 1100, variance: 13.6 },
   ],
   "inv-cons": [
-    { name: 'Mozzarella Cheese', standard: 5000, actual: 5120, variance: 2.4, unit: 'kg' },
-    { name: 'Potato Starch', standard: 2000, actual: 1950, variance: -2.5, unit: 'kg' },
-    { name: 'Chicken Breast', standard: 1500, actual: 1580, variance: 5.3, unit: 'kg' },
-    { name: 'Batter Mix', standard: 800, actual: 820, variance: 2.5, unit: 'kg' },
-    { name: 'Frying Oil', standard: 1200, actual: 1250, variance: 4.1, unit: 'L' },
+    { name: 'Mozzarella Cheese', standard: 500, actual: 525, variance: 5.0, unit: 'kg', costVar: 125.50 },
+    { name: 'Potato Starch', standard: 200, actual: 192, variance: -4.0, unit: 'kg', costVar: -32.00 },
+    { name: 'Chicken Breast', standard: 150, actual: 162, variance: 8.0, unit: 'kg', costVar: 96.00 },
+    { name: 'Batter Mix', standard: 80, actual: 82, variance: 2.5, unit: 'kg', costVar: 10.50 },
+    { name: 'Frying Oil', standard: 120, actual: 135, variance: 12.5, unit: 'L', costVar: 45.00 },
+    { name: 'Premium Sausage', standard: 1000, actual: 1005, variance: 0.5, unit: 'units', costVar: 7.50 },
   ],
   "inv-val": [
     { name: 'Mozzarella Cheese', stock: 1250, unit: 'kg', warehouse: 'Cold Storage A', value: 7500 },
@@ -94,8 +98,9 @@ const insightsMap: Record<string, { title: string, desc: string, type: 'up' | 'd
     { title: "Efficiency Dip", desc: "Batch 003 showed a 10.9% deficit due to equipment downtime.", type: "alert" },
   ],
   "inv-cons": [
-    { title: "Yield Concern", desc: "Chicken Breast over-consumption (5.3%) indicates potential recipe scaling issues.", type: "alert" },
-    { title: "Starch Optimization", desc: "Potato Starch usage is 2.5% more efficient than standard BOM.", type: "up" },
+    { title: "High Material Variance", desc: "Frying Oil consumption is 12.5% above standard. Investigate fryer temperature settings.", type: "alert" },
+    { title: "Chicken Yield Concern", desc: "8% over-consumption of chicken breast noted in the Chicken PopCorn run.", type: "alert" },
+    { title: "Efficient Starch Usage", desc: "Potato Starch remains 4% under budget with no impact on quality.", type: "up" },
   ],
   "inv-val": [
     { title: "High Stock Level", desc: "Mozzarella stock is at 95% capacity in Cold Storage A.", type: "alert" },
@@ -104,6 +109,10 @@ const insightsMap: Record<string, { title: string, desc: string, type: 'up' | 'd
 }
 
 export default function ReportsPage() {
+  const db = useFirestore()
+  const ordersRef = useMemoFirebase(() => collection(db, "production_orders"), [db])
+  const { data: realOrders } = useCollection(ordersRef)
+
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -164,8 +173,8 @@ export default function ReportsPage() {
                   <div>
                     <CardTitle className="font-headline text-3xl mb-1">{report?.title}</CardTitle>
                     <CardDescription className="flex items-center gap-4 text-sm">
-                      <span className="flex items-center gap-1 font-medium"><Calendar className="h-3 w-3" /> Reporting Month: May 2024</span>
-                      <span className="flex items-center gap-1 font-medium text-secondary"><CheckCircle2 className="h-3 w-3" /> Verified Status</span>
+                      <span className="flex items-center gap-1 font-medium"><Calendar className="h-3 w-3" /> Reporting Period: May 2024</span>
+                      <span className="flex items-center gap-1 font-medium text-secondary"><CheckCircle2 className="h-3 w-3" /> Verified Audit Data</span>
                     </CardDescription>
                   </div>
                 </div>
@@ -182,8 +191,8 @@ export default function ReportsPage() {
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                         />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                        <Bar name="Standard" dataKey="standard" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={32} />
-                        <Bar name="Actual" dataKey="actual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={32} />
+                        <Bar name="Standard Usage" dataKey="standard" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={32} />
+                        <Bar name="Actual Usage" dataKey="actual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={32} />
                       </BarChart>
                     ) : selectedReportId === 'inv-val' ? (
                       <AreaChart data={data}>
@@ -218,58 +227,46 @@ export default function ReportsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 px-2 py-1">
                     <TableIcon className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Detailed Analysis Grid</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Comparative Audit Matrix</h3>
                   </div>
                   <div className="rounded-xl border overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/40">
-                          <TableHead className="font-bold">Item/Batch</TableHead>
-                          {selectedReportId === 'inv-val' ? (
-                            <>
-                              <TableHead className="text-right font-bold">Current Stock</TableHead>
-                              <TableHead className="font-bold">Warehouse</TableHead>
-                              <TableHead className="text-right font-bold">Asset Value</TableHead>
-                            </>
-                          ) : (
-                            <>
-                              <TableHead className="text-right font-bold">Standard</TableHead>
-                              <TableHead className="text-right font-bold">Actual</TableHead>
-                              <TableHead className="text-right font-bold">Variance (%)</TableHead>
-                            </>
-                          )}
+                          <TableHead className="font-bold">Item / Description</TableHead>
+                          <TableHead className="text-right font-bold">Standard</TableHead>
+                          <TableHead className="text-right font-bold">Actual</TableHead>
+                          <TableHead className="text-right font-bold">Variance (%)</TableHead>
+                          {selectedReportId === 'inv-cons' && <TableHead className="text-right font-bold">Cost Impact</TableHead>}
                           <TableHead className="w-[120px] font-bold">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {data.map((row, idx) => (
                           <TableRow key={idx}>
-                            <TableCell className="font-bold text-sm">{row.name}</TableCell>
-                            {selectedReportId === 'inv-val' ? (
-                              <>
-                                <TableCell className="text-right font-mono">{row.stock} {row.unit}</TableCell>
-                                <TableCell className="text-xs">{row.warehouse}</TableCell>
-                                <TableCell className="text-right font-bold text-secondary">${row.value.toLocaleString()}</TableCell>
-                                <TableCell>
-                                  <Badge className="bg-secondary/10 text-secondary text-[10px] uppercase">Stable</Badge>
-                                </TableCell>
-                              </>
-                            ) : (
-                              <>
-                                <TableCell className="text-right font-mono text-muted-foreground">{row.standard.toLocaleString()}</TableCell>
-                                <TableCell className="text-right font-mono font-bold">{row.actual.toLocaleString()}</TableCell>
-                                <TableCell className={`text-right font-bold ${row.variance > 5 ? 'text-destructive' : row.variance < 0 ? 'text-secondary' : 'text-foreground'}`}>
-                                  {row.variance > 0 ? '+' : ''}{row.variance}%
-                                </TableCell>
-                                <TableCell>
-                                  {Math.abs(row.variance) > 5 ? (
-                                    <Badge variant="destructive" className="text-[10px] uppercase">Review</Badge>
-                                  ) : (
-                                    <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase">Optimal</Badge>
-                                  )}
-                                </TableCell>
-                              </>
+                            <TableCell className="font-bold text-sm">
+                              <div className="flex flex-col">
+                                <span>{row.name}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase">{row.warehouse || (row.unit ? `Unit: ${row.unit}` : '')}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-muted-foreground">{row.standard?.toLocaleString() || row.stock?.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-mono font-bold">{row.actual?.toLocaleString() || `$${row.value?.toLocaleString()}`}</TableCell>
+                            <TableCell className={`text-right font-bold ${row.variance > 5 ? 'text-destructive' : row.variance < 0 ? 'text-secondary' : 'text-foreground'}`}>
+                              {row.variance !== undefined ? `${row.variance > 0 ? '+' : ''}${row.variance}%` : '-'}
+                            </TableCell>
+                            {selectedReportId === 'inv-cons' && (
+                              <TableCell className={`text-right font-bold ${row.costVar > 0 ? 'text-destructive' : 'text-secondary'}`}>
+                                ${Math.abs(row.costVar).toFixed(2)}
+                              </TableCell>
                             )}
+                            <TableCell>
+                              {Math.abs(row.variance) > 5 ? (
+                                <Badge variant="destructive" className="text-[10px] uppercase font-black px-2 py-0">Review</Badge>
+                              ) : (
+                                <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase font-black px-2 py-0">Optimal</Badge>
+                              )}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -284,7 +281,7 @@ export default function ReportsPage() {
             <Card className="border-none shadow-sm h-fit">
               <CardHeader>
                 <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <Zap className="h-4 w-4" /> Strategic Insights
+                  <Zap className="h-4 w-4" /> Operational Intelligence
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -311,20 +308,20 @@ export default function ReportsPage() {
                 )) : (
                   <div className="text-center py-8">
                     <Info className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-20" />
-                    <p className="text-xs text-muted-foreground italic">No insights triggered for this report.</p>
+                    <p className="text-xs text-muted-foreground italic">No strategic insights generated for this report.</p>
                   </div>
                 )}
                 
                 <div className="pt-6 border-t mt-4 space-y-4">
-                  <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Operational Actions</h4>
+                  <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Corrective Directives</h4>
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/20 border border-primary/10 text-[11px] font-medium">
                       <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>Re-calibrate Mozzarella sensors in Cold Storage A.</span>
+                      <span>Audit fryer oil consumption vs temperature logs.</span>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/20 border border-primary/10 text-[11px] font-medium">
                       <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>Audit BOM recipe vs actual chicken usage.</span>
+                      <span>Re-verify chicken breast recipe scaling.</span>
                     </div>
                   </div>
                 </div>
@@ -339,9 +336,9 @@ export default function ReportsPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
       <div className="flex flex-col gap-3">
-        <h1 className="text-5xl font-bold font-headline text-foreground tracking-tighter">Operational Intelligence</h1>
+        <h1 className="text-5xl font-bold font-headline text-foreground tracking-tighter">Strategic Insights</h1>
         <p className="text-muted-foreground text-xl max-w-2xl leading-relaxed">
-          Detailed performance metrics comparing standard operating procedures with actual factory output and inventory status.
+          Aggregated performance audit of Standard vs Actual consumption, yield efficiency, and inventory valuation.
         </p>
       </div>
 
@@ -355,8 +352,8 @@ export default function ReportsPage() {
               </div>
             </div>
             <div className="space-y-4 w-full">
-              <h3 className="font-bold text-3xl font-headline tracking-tight">Synthesizing Report</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">Cross-referencing BOM standards with active production logs and warehouse transactions...</p>
+              <h3 className="font-bold text-3xl font-headline tracking-tight">Synthesizing Core Data</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Cross-referencing theoretical BOM standards with actual production consumption logs...</p>
               <div className="pt-6">
                 <Progress value={progress} className="h-2 mt-4 bg-muted/50" />
                 <p className="text-[10px] font-black text-muted-foreground mt-3 uppercase tracking-[0.2em]">{progress}% Processed</p>
@@ -365,7 +362,7 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {reportTypes.map((report) => (
             <Card key={report.id} className="border-none shadow-sm hover:shadow-2xl transition-all hover:-translate-y-2 group bg-white overflow-hidden">
               <div className="h-2 w-full bg-muted group-hover:bg-primary transition-colors" />
@@ -382,7 +379,7 @@ export default function ReportsPage() {
                   className="w-full border-primary/20 hover:border-primary hover:bg-primary/5 font-bold h-12 text-md shadow-sm" 
                   onClick={() => handleGenerate(report.id)}
                 >
-                  Generate Intelligence
+                  Generate Strategic Analysis
                 </Button>
               </CardContent>
             </Card>
