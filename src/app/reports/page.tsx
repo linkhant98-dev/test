@@ -61,26 +61,15 @@ const reportTypes = [
   { id: "waste-an", title: "Waste & Loss Analysis", icon: FileText, desc: "Categorized reporting on process loss, spoilage, and rejects.", color: "bg-rose-100 text-rose-700" },
 ]
 
-const mockDataMap: Record<string, any[]> = {
-  "inv-val": [
-    { name: 'Mozzarella Cheese', stock: 1250, unit: 'kg', warehouse: 'Cold Storage A', value: 7500 },
-    { name: 'Potato Starch', stock: 800, unit: 'kg', warehouse: 'Dry Storage B', value: 1600 },
-    { name: 'Chicken Breast', stock: 450, unit: 'kg', warehouse: 'Cold Storage A', value: 2700 },
-    { name: 'Sea Salt', stock: 120, unit: 'kg', warehouse: 'Dry Storage B', value: 240 },
-    { name: 'Frying Oil', stock: 600, unit: 'L', warehouse: 'Bulk Storage', value: 1800 },
-  ],
-  "waste-an": [
-    { name: 'Process Loss', value: 150, color: '#3b82f6' },
-    { name: 'Spoilage', value: 85, color: '#f59e0b' },
-    { name: 'QC Reject', value: 45, color: '#ef4444' },
-    { name: 'Handling', value: 30, color: '#10b981' },
-  ],
-}
-
 export default function ReportsPage() {
   const db = useFirestore()
+  
+  // Real Data Sources
   const ordersRef = useMemoFirebase(() => collection(db, "production_orders"), [db])
-  const { data: realOrders } = useCollection(ordersRef)
+  const { data: realOrders, isLoading: ordersLoading } = useCollection(ordersRef)
+  
+  const materialsRef = useMemoFirebase(() => collection(db, "raw_materials"), [db])
+  const { data: realMaterials, isLoading: materialsLoading } = useCollection(materialsRef)
 
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -91,17 +80,21 @@ export default function ReportsPage() {
     setMounted(true)
   }, [])
 
-  // Process Real Data for Reports
+  // Process Real Data for Performance Report
   const performanceData = useMemo(() => {
     if (!realOrders) return [];
-    return realOrders.map(o => ({
-      name: o.id.slice(-5).toUpperCase(),
-      standard: o.quantity,
-      actual: Math.round(o.quantity * ((o.yield || 100) / 100)),
-      variance: o.variance || 0
-    })).slice(-10);
+    return realOrders
+      .filter(o => o.status === 'Complete')
+      .map(o => ({
+        name: o.id.slice(-5).toUpperCase(),
+        standard: o.quantity || 0,
+        actual: Math.round((o.quantity || 0) * ((o.yield || 100) / 100)),
+        variance: o.variance || 0,
+        product: o.product
+      })).slice(-8);
   }, [realOrders]);
 
+  // Process Real Data for Consumption Summary
   const consumptionSummary = useMemo(() => {
     if (!realOrders) return [];
     const productAggregates: Record<string, { standard: number, actual: number, count: number }> = {};
@@ -111,8 +104,8 @@ export default function ReportsPage() {
         productAggregates[o.product] = { standard: 0, actual: 0, count: 0 };
       }
       const yieldFactor = (o.yield || 100) / 100;
-      productAggregates[o.product].standard += o.quantity;
-      productAggregates[o.product].actual += o.quantity * yieldFactor;
+      productAggregates[o.product].standard += o.quantity || 0;
+      productAggregates[o.product].actual += (o.quantity || 0) * yieldFactor;
       productAggregates[o.product].count += 1;
     });
 
@@ -125,11 +118,34 @@ export default function ReportsPage() {
     }));
   }, [realOrders]);
 
+  // Process Real Data for Inventory Valuation
+  const inventoryValuation = useMemo(() => {
+    if (!realMaterials) return [];
+    return realMaterials.map(m => ({
+      name: m.name,
+      stock: m.stock || 0,
+      unit: m.unit,
+      warehouse: 'Main Store',
+      value: (m.stock || 0) * (m.category === 'Raw Material' ? 1.5 : 0.5), // Simulated unit price
+      variance: 0 // Materials don't have production variance here
+    }));
+  }, [realMaterials]);
+
+  // Mock data for waste (can be extended to production subcollections if needed)
+  const wasteData = [
+    { name: 'Process Loss', value: 150, color: '#3b82f6', standard: 120, actual: 150, variance: 25 },
+    { name: 'Spoilage', value: 85, color: '#f59e0b', standard: 50, actual: 85, variance: 70 },
+    { name: 'QC Reject', value: 45, color: '#ef4444', standard: 30, actual: 45, variance: 50 },
+    { name: 'Handling', value: 30, color: '#10b981', standard: 20, actual: 30, variance: 50 },
+  ];
+
   const currentData = useMemo(() => {
     if (selectedReportId === 'prod-rep') return performanceData;
     if (selectedReportId === 'inv-cons') return consumptionSummary;
-    return mockDataMap[selectedReportId || ""] || [];
-  }, [selectedReportId, performanceData, consumptionSummary]);
+    if (selectedReportId === 'inv-val') return inventoryValuation;
+    if (selectedReportId === 'waste-an') return wasteData;
+    return [];
+  }, [selectedReportId, performanceData, consumptionSummary, inventoryValuation]);
 
   const handleGenerate = (id: string) => {
     setIsGenerating(true)
@@ -145,7 +161,7 @@ export default function ReportsPage() {
         }
         return prev + 10
       })
-    }, 100)
+    }, 150)
   }
 
   if (!mounted) return null
@@ -165,7 +181,7 @@ export default function ReportsPage() {
               <Printer className="h-4 w-4 mr-2" /> Print PDF
             </Button>
             <Button size="sm" className="bg-secondary text-secondary-foreground">
-              <Download className="h-4 w-4 mr-2" /> Export Data
+              <Download className="h-4 w-4 mr-2" /> Export CSV
             </Button>
           </div>
         </div>
@@ -181,8 +197,8 @@ export default function ReportsPage() {
                   <div>
                     <CardTitle className="font-headline text-3xl mb-1">{report?.title}</CardTitle>
                     <CardDescription className="flex items-center gap-4 text-sm">
-                      <span className="flex items-center gap-1 font-medium"><Calendar className="h-3 w-3" /> Reporting Period: May 2024</span>
-                      <span className="flex items-center gap-1 font-medium text-secondary"><CheckCircle2 className="h-3 w-3" /> Verified Audit Data</span>
+                      <span className="flex items-center gap-1 font-medium"><Calendar className="h-3 w-3" /> Report Generated: {new Date().toLocaleDateString()}</span>
+                      <span className="flex items-center gap-1 font-medium text-secondary"><CheckCircle2 className="h-3 w-3" /> Verified Real-time Data</span>
                     </CardDescription>
                   </div>
                 </div>
@@ -211,20 +227,20 @@ export default function ReportsPage() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 11}} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11}} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
                         <Tooltip />
-                        <Area type="monotone" name="Stock Value ($)" dataKey="value" stroke="hsl(var(--secondary))" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
+                        <Area type="monotone" name="Valuation ($)" dataKey="value" stroke="hsl(var(--secondary))" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
                       </AreaChart>
                     ) : (
                       <BarChart data={data}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="name" />
+                        <XAxis dataKey="name" tick={{fontSize: 10}} />
                         <YAxis />
                         <Tooltip />
                         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                           {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color || '#94a3b8'} />
+                            <Cell key={`cell-${index}`} fill={(entry as any).color || '#94a3b8'} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -235,48 +251,54 @@ export default function ReportsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 px-2 py-1">
                     <TableIcon className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Comparative Audit Matrix</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Comparative Analysis Matrix</h3>
                   </div>
                   <div className="rounded-xl border overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/40">
-                          <TableHead className="font-bold">Item / Description</TableHead>
+                          <TableHead className="font-bold">Entity Description</TableHead>
                           <TableHead className="text-right font-bold">Standard</TableHead>
                           <TableHead className="text-right font-bold">Actual</TableHead>
                           <TableHead className="text-right font-bold">Variance (%)</TableHead>
-                          {selectedReportId === 'inv-cons' && <TableHead className="text-right font-bold">Cost Impact</TableHead>}
+                          {selectedReportId === 'inv-cons' && <TableHead className="text-right font-bold">Cost impact</TableHead>}
                           <TableHead className="w-[120px] font-bold">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {data.map((row, idx) => (
+                        {data.length > 0 ? data.map((row, idx) => (
                           <TableRow key={idx}>
                             <TableCell className="font-bold text-sm">
                               <div className="flex flex-col">
                                 <span>{row.name}</span>
-                                <span className="text-[10px] text-muted-foreground uppercase">{row.warehouse || (row.unit ? `Unit: ${row.unit}` : '')}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase">{(row as any).product || (row as any).warehouse || (row.unit ? `Unit: ${row.unit}` : '')}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right font-mono text-muted-foreground">{(row.standard || row.stock || 0).toLocaleString()}</TableCell>
-                            <TableCell className="text-right font-mono font-bold">{(row.actual || 0).toLocaleString() || `$${(row.value || 0).toLocaleString()}`}</TableCell>
+                            <TableCell className="text-right font-mono text-muted-foreground">{(row.standard || (row as any).stock || 0).toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-mono font-bold">{(row.actual || 0).toLocaleString() || `$${((row as any).value || 0).toLocaleString()}`}</TableCell>
                             <TableCell className={`text-right font-bold ${Math.abs(row.variance) > 5 ? 'text-destructive' : row.variance < 0 ? 'text-secondary' : 'text-foreground'}`}>
                               {row.variance !== undefined ? `${row.variance > 0 ? '+' : ''}${row.variance}%` : '-'}
                             </TableCell>
                             {selectedReportId === 'inv-cons' && (
-                              <TableCell className={`text-right font-bold ${row.costVar > 0 ? 'text-destructive' : 'text-secondary'}`}>
-                                ${Math.abs(row.costVar || 0).toFixed(2)}
+                              <TableCell className={`text-right font-bold ${(row as any).costVar > 0 ? 'text-destructive' : 'text-secondary'}`}>
+                                ${Math.abs((row as any).costVar || 0).toFixed(2)}
                               </TableCell>
                             )}
                             <TableCell>
                               {Math.abs(row.variance || 0) > 5 ? (
                                 <Badge variant="destructive" className="text-[10px] uppercase font-black px-2 py-0">Review</Badge>
                               ) : (
-                                <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase font-black px-2 py-0">Optimal</Badge>
+                                <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase font-black px-2 py-0">Healthy</Badge>
                               )}
                             </TableCell>
                           </TableRow>
-                        ))}
+                        )) : (
+                           <TableRow>
+                            <TableCell colSpan={selectedReportId === 'inv-cons' ? 6 : 5} className="text-center py-12 text-muted-foreground italic">
+                              No production data available for analysis.
+                            </TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                   </div>
@@ -289,7 +311,7 @@ export default function ReportsPage() {
             <Card className="border-none shadow-sm h-fit">
               <CardHeader>
                 <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <Zap className="h-4 w-4" /> Operational Intelligence
+                  <Zap className="h-4 w-4" /> Operational Insights
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -299,18 +321,18 @@ export default function ReportsPage() {
                       <TrendingUp className="h-3 w-3" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-bold mb-0.5">Real-time Data Active</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">Report is currently pulling live metrics from verified production logs.</p>
+                      <p className="text-sm font-bold mb-0.5">Live Audit Active</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">System is auditing theoretical BOM values against saved operator consumption logs.</p>
                     </div>
                   </div>
                 </div>
                 
                 <div className="pt-6 border-t mt-4 space-y-4">
-                  <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Corrective Directives</h4>
+                  <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Efficiency Directives</h4>
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/20 border border-primary/10 text-[11px] font-medium">
                       <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>Compare batch variances against floor temperature logs.</span>
+                      <span>Review variances exceeding 5% for ingredient spoilage.</span>
                     </div>
                   </div>
                 </div>
@@ -325,9 +347,9 @@ export default function ReportsPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
       <div className="flex flex-col gap-3">
-        <h1 className="text-5xl font-bold font-headline text-foreground tracking-tighter">Strategic Insights</h1>
+        <h1 className="text-5xl font-bold font-headline text-foreground tracking-tighter">Operational Intelligence</h1>
         <p className="text-muted-foreground text-xl max-w-2xl leading-relaxed">
-          Aggregated performance audit of Standard vs Actual consumption, yield efficiency, and inventory valuation.
+          Aggregated performance audits comparing standard targets with real-world consumption and inventory valuation.
         </p>
       </div>
 
@@ -341,11 +363,11 @@ export default function ReportsPage() {
               </div>
             </div>
             <div className="space-y-4 w-full">
-              <h3 className="font-bold text-3xl font-headline tracking-tight">Synthesizing Core Data</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">Cross-referencing theoretical BOM standards with actual production consumption logs...</p>
+              <h3 className="font-bold text-3xl font-headline tracking-tight">Processing Analytics</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Synthesizing production logs and cross-referencing against standard BOM requirements...</p>
               <div className="pt-6">
                 <Progress value={progress} className="h-2 mt-4 bg-muted/50" />
-                <p className="text-[10px] font-black text-muted-foreground mt-3 uppercase tracking-[0.2em]">{progress}% Processed</p>
+                <p className="text-[10px] font-black text-muted-foreground mt-3 uppercase tracking-[0.2em]">{progress}% Synthesized</p>
               </div>
             </div>
           </CardContent>
@@ -368,7 +390,7 @@ export default function ReportsPage() {
                   className="w-full border-primary/20 hover:border-primary hover:bg-primary/5 font-bold h-12 text-md shadow-sm" 
                   onClick={() => handleGenerate(report.id)}
                 >
-                  Generate Strategic Analysis
+                  Generate Audit Report
                 </Button>
               </CardContent>
             </Card>

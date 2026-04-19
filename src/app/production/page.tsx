@@ -92,8 +92,8 @@ export default function ProductionOrdersPage() {
   }
 
   const filteredOrders = orders?.filter(o => 
-    o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    o.product.toLowerCase().includes(searchTerm.toLowerCase())
+    (o.id && o.id.toLowerCase().includes(searchTerm.toLowerCase())) || 
+    (o.product && o.product.toLowerCase().includes(searchTerm.toLowerCase()))
   ) || []
 
   const getStatusBadge = (status: string) => {
@@ -215,7 +215,7 @@ export default function ProductionOrdersPage() {
                   </TableCell>
                   <TableCell>{order.product}</TableCell>
                   <TableCell className="text-muted-foreground">{order.date}</TableCell>
-                  <TableCell className="text-right font-medium">{order.quantity.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-medium">{order.quantity?.toLocaleString()}</TableCell>
                   <TableCell>
                     {getStatusBadge(order.status)}
                   </TableCell>
