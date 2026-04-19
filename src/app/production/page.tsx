@@ -12,11 +12,8 @@ import {
   Eye,
   History,
   Printer,
-  Info,
-  CheckCircle2,
-  Factory,
-  Loader2,
-  Trash2
+  Trash2,
+  Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -59,7 +56,6 @@ export default function ProductionOrdersPage() {
   const db = useFirestore()
   const { user, isUserLoading: isAuthLoading } = useUser()
 
-  // Conditional ref creation to prevent fetching before auth is ready
   const ordersRef = useMemoFirebase(() => {
     if (!user) return null;
     return collection(db, "production_orders");
@@ -298,7 +294,6 @@ export default function ProductionOrdersPage() {
         )}
       </Card>
 
-      {/* Create Order Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -347,7 +342,6 @@ export default function ProductionOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Details Dialog */}
       <Dialog open={activeDialog === 'details'} onOpenChange={() => setActiveDialog(null)}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>

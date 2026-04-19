@@ -110,13 +110,25 @@ export default function MaterialsPage() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
-                <Input 
-                  id="name" 
-                  value={newMaterial.name} 
-                  onChange={(e) => setNewMaterial({...newMaterial, name: e.target.value})}
-                  className="col-span-3" 
-                  placeholder="e.g. Cheddar Slices"
-                />
+                <Select 
+                  onValueChange={(v) => setNewMaterial({...newMaterial, name: v})}
+                  defaultValue={newMaterial.name}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select or type material" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Mozzarella Cheese">Mozzarella Cheese</SelectItem>
+                    <SelectItem value="Potato Starch">Potato Starch</SelectItem>
+                    <SelectItem value="Chicken Breast (Minced)">Chicken Breast (Minced)</SelectItem>
+                    <SelectItem value="Premium Sausage">Premium Sausage</SelectItem>
+                    <SelectItem value="Batter Mix">Batter Mix</SelectItem>
+                    <SelectItem value="Breadcrumbs">Breadcrumbs</SelectItem>
+                    <SelectItem value="Frying Oil">Frying Oil</SelectItem>
+                    <SelectItem value="Seasoning Powder">Seasoning Powder</SelectItem>
+                    <SelectItem value="Sea Salt">Sea Salt</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category" className="text-right">Category</Label>

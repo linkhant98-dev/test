@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -68,6 +69,20 @@ const initialBoms = [
       { name: 'Seasoning Powder', qty: 0.01, unit: 'kg', loss: 2.0 },
       { name: 'Breadcrumbs', qty: 0.03, unit: 'kg', loss: 5.0 },
       { name: 'Frying Oil', qty: 0.02, unit: 'L', loss: 12.0 },
+    ]
+  },
+  { 
+    id: "BOM-SCS-01", 
+    product: "Sausage Cheese Stick", 
+    version: "v1.0", 
+    status: "Active", 
+    effDate: "2024-04-01", 
+    cost: 1.75,
+    components: [
+      { name: 'Premium Sausage', qty: 1, unit: 'units', loss: 0 },
+      { name: 'Mozzarella Cheese', qty: 0.03, unit: 'kg', loss: 2.0 },
+      { name: 'Batter Mix', qty: 0.02, unit: 'kg', loss: 5.0 },
+      { name: 'Frying Oil', qty: 0.01, unit: 'L', loss: 10.0 },
     ]
   },
 ]
@@ -310,12 +325,13 @@ export default function BOMManagementPage() {
                               <SelectContent>
                                 <SelectItem value="Mozzarella Cheese">Mozzarella Cheese</SelectItem>
                                 <SelectItem value="Potato Starch">Potato Starch</SelectItem>
-                                <SelectItem value="Chicken Breast">Chicken Breast</SelectItem>
+                                <SelectItem value="Chicken Breast (Minced)">Chicken Breast (Minced)</SelectItem>
+                                <SelectItem value="Premium Sausage">Premium Sausage</SelectItem>
                                 <SelectItem value="Batter Mix">Batter Mix</SelectItem>
                                 <SelectItem value="Breadcrumbs">Breadcrumbs</SelectItem>
                                 <SelectItem value="Frying Oil">Frying Oil</SelectItem>
                                 <SelectItem value="Seasoning Powder">Seasoning Powder</SelectItem>
-                                <SelectItem value="Premium Sausage">Premium Sausage</SelectItem>
+                                <SelectItem value="Sea Salt">Sea Salt</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
