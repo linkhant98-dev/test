@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -109,8 +108,32 @@ export default function Dashboard() {
 
       // 3. Customers
       const customers = [
-        { name: "City Mart Supermarket", email: "procurement@citymart.com", phone: "+95 912345678", address: "Pyay Road, Yangon", createdAt: new Date().toISOString() },
-        { name: "Snack Shack Distribution", email: "info@snackshack.com", phone: "+95 987654321", address: "Mandalay Plaza", createdAt: new Date().toISOString() },
+        { 
+          name: "City Mart Supermarket", 
+          email: "procurement@citymart.com", 
+          phone: "+95 912345678", 
+          address: "Pyay Road, Yangon", 
+          customerType: "Corporate",
+          customerClass: "VIP",
+          taxId: "MM-778899",
+          creditLimit: 50000,
+          paymentTerms: "Net 30",
+          website: "https://www.citymart.com.mm",
+          createdAt: new Date().toISOString() 
+        },
+        { 
+          name: "Snack Shack Distribution", 
+          email: "info@snackshack.com", 
+          phone: "+95 987654321", 
+          address: "Mandalay Plaza", 
+          customerType: "Distributor",
+          customerClass: "Grade A",
+          taxId: "SS-112233",
+          creditLimit: 25000,
+          paymentTerms: "Net 15",
+          website: "https://snackshack.biz",
+          createdAt: new Date().toISOString() 
+        },
       ];
 
       for (const c of customers) {

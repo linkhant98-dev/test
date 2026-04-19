@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "customer": {
@@ -10,9 +9,27 @@
         "email": { "type": "string", "format": "email" },
         "phone": { "type": "string" },
         "address": { "type": "string" },
+        "customerType": { 
+          "type": "string", 
+          "enum": ["Retailer", "Wholesaler", "Distributor", "Corporate"],
+          "description": "The category of business relationship."
+        },
+        "customerClass": { 
+          "type": "string", 
+          "enum": ["Grade A", "Grade B", "Grade C", "VIP"],
+          "description": "The classification of the customer for credit and pricing."
+        },
+        "taxId": { "type": "string", "description": "Business registration or Tax ID." },
+        "creditLimit": { "type": "number", "description": "Maximum allowed outstanding balance." },
+        "paymentTerms": { 
+          "type": "string", 
+          "enum": ["COD", "Net 7", "Net 15", "Net 30"],
+          "description": "Standard payment agreement."
+        },
+        "website": { "type": "string", "format": "uri" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name"]
+      "required": ["name", "customerType"]
     },
     "invoice": {
       "title": "Invoice",
