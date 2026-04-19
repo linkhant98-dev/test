@@ -1,7 +1,8 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { 
   Plus, 
   Search, 
@@ -54,10 +55,17 @@ import { collection, doc } from "firebase/firestore"
 
 export default function ProductionOrdersPage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const db = useFirestore()
-  const { user } = useUser()
-  const ordersRef = useMemoFirebase(() => collection(db, "production_orders"), [db])
-  const { data: orders, isLoading } = useCollection(ordersRef)
+  const { user, isUserLoading: isAuthLoading } = useUser()
+
+  // Conditional ref creation to prevent fetching before auth is ready
+  const ordersRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "production_orders");
+  }, [db, user]);
+
+  const { data: orders, isLoading: isDataLoading } = useCollection(ordersRef)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -71,8 +79,14 @@ export default function ProductionOrdersPage() {
     status: "Planning"
   })
 
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, isAuthLoading, router]);
+
   const handleCreateOrder = () => {
-    if (!user) return
+    if (!user || !ordersRef) return
     addDocumentNonBlocking(ordersRef, {
       product: newOrder.product,
       date: newOrder.date,
@@ -111,6 +125,14 @@ export default function ProductionOrdersPage() {
     }
   }
 
+  if (isAuthLoading || !user) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -132,7 +154,7 @@ export default function ProductionOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? "..." : orders?.filter(o => o.status === 'Planning').length}
+              {isDataLoading ? "..." : orders?.filter(o => o.status === 'Planning').length}
             </div>
           </CardContent>
         </Card>
@@ -142,7 +164,7 @@ export default function ProductionOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              {isLoading ? "..." : orders?.filter(o => o.status === 'In Progress').length}
+              {isDataLoading ? "..." : orders?.filter(o => o.status === 'In Progress').length}
             </div>
           </CardContent>
         </Card>
@@ -152,7 +174,7 @@ export default function ProductionOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-secondary">
-              {isLoading ? "..." : orders?.filter(o => o.status === 'Complete').length}
+              {isDataLoading ? "..." : orders?.filter(o => o.status === 'Complete').length}
             </div>
           </CardContent>
         </Card>
@@ -162,7 +184,7 @@ export default function ProductionOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold opacity-50">
-              {isLoading ? "..." : orders?.filter(o => o.status === 'Closed').length}
+              {isDataLoading ? "..." : orders?.filter(o => o.status === 'Closed').length}
             </div>
           </CardContent>
         </Card>
@@ -183,7 +205,7 @@ export default function ProductionOrdersPage() {
             <Filter className="h-4 w-4" />
           </Button>
         </div>
-        {isLoading ? (
+        {isDataLoading ? (
           <div className="p-12 flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>

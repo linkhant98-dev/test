@@ -1,13 +1,14 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Package, Plus, Search, MoreVertical, Edit2, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import {
   DropdownMenu,
@@ -29,9 +30,16 @@ import {
 import { Label } from "@/components/ui/label"
 
 export default function ProductsPage() {
+  const router = useRouter();
   const db = useFirestore()
-  const productsRef = useMemoFirebase(() => collection(db, "finished_goods"), [db])
-  const { data: products, isLoading } = useCollection(productsRef)
+  const { user, isUserLoading: isAuthLoading } = useUser()
+
+  const productsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "finished_goods");
+  }, [db, user]);
+
+  const { data: products, isLoading: isDataLoading } = useCollection(productsRef)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -42,8 +50,14 @@ export default function ProductsPage() {
     stock: 0
   })
 
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, isAuthLoading, router]);
+
   const handleAddProduct = () => {
-    if (!newProduct.name) return
+    if (!newProduct.name || !productsRef) return
     addDocumentNonBlocking(productsRef, {
       ...newProduct,
       price: Number(newProduct.price),
@@ -61,6 +75,14 @@ export default function ProductsPage() {
   const filteredProducts = products?.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || []
+
+  if (isAuthLoading || !user) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -131,7 +153,7 @@ export default function ProductsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
+          {isDataLoading ? (
             <div className="p-12 flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
@@ -178,7 +200,7 @@ export default function ProductsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!isLoading && filteredProducts.length === 0 && (
+                {!isDataLoading && filteredProducts.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                       No products found.

@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { 
   FileText, 
   Download, 
@@ -53,7 +54,7 @@ import {
   Area,
   Legend
 } from "recharts"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
 
 const reportTypes = [
@@ -66,23 +67,32 @@ const reportTypes = [
 ]
 
 export default function ReportsPage() {
+  const router = useRouter();
   const db = useFirestore()
+  const { user, isUserLoading: isAuthLoading } = useUser()
   
-  // Real Data Sources
-  const ordersRef = useMemoFirebase(() => collection(db, "production_orders"), [db])
+  // Guarded Data Sources
+  const ordersRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "production_orders");
+  }, [db, user]);
   const { data: realOrders, isLoading: ordersLoading } = useCollection(ordersRef)
   
-  const materialsRef = useMemoFirebase(() => collection(db, "raw_materials"), [db])
+  const materialsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "raw_materials");
+  }, [db, user]);
   const { data: realMaterials, isLoading: materialsLoading } = useCollection(materialsRef)
 
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    if (!isAuthLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, isAuthLoading, router]);
 
   // Process Real Data for Performance Report
   const performanceData = useMemo(() => {
@@ -139,7 +149,6 @@ export default function ReportsPage() {
   // Material Rank Data
   const materialRankData = useMemo(() => {
     if (!realMaterials) return [];
-    // Simulate some variance data for ranking
     return realMaterials.map(m => {
       const simulatedVariance = Math.floor(Math.random() * 50) - 20;
       return {
@@ -198,7 +207,13 @@ export default function ReportsPage() {
     }, 150)
   }
 
-  if (!mounted) return null
+  if (isAuthLoading || !user) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (selectedReportId) {
     const report = reportTypes.find(r => r.id === selectedReportId)

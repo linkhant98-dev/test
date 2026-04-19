@@ -1,7 +1,8 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Database, Plus, Search, Trash2, Edit2, MoreVertical, Archive, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,13 +27,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 
 export default function MaterialsPage() {
+  const router = useRouter();
   const db = useFirestore()
-  const materialsRef = useMemoFirebase(() => collection(db, "raw_materials"), [db])
-  const { data: materials, isLoading } = useCollection(materialsRef)
+  const { user, isUserLoading: isAuthLoading } = useUser()
+  
+  const materialsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "raw_materials");
+  }, [db, user]);
+  
+  const { data: materials, isLoading: isDataLoading } = useCollection(materialsRef)
 
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -43,8 +51,14 @@ export default function MaterialsPage() {
     stock: 0
   })
 
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, isAuthLoading, router]);
+
   const handleAddMaterial = () => {
-    if (!newMaterial.name) return
+    if (!newMaterial.name || !materialsRef) return
     addDocumentNonBlocking(materialsRef, {
       ...newMaterial,
       stock: Number(newMaterial.stock),
@@ -63,6 +77,14 @@ export default function MaterialsPage() {
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     m.category.toLowerCase().includes(searchTerm.toLowerCase())
   ) || []
+
+  if (isAuthLoading || !user) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -159,7 +181,7 @@ export default function MaterialsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
+          {isDataLoading ? (
             <div className="p-12 flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
@@ -214,7 +236,7 @@ export default function MaterialsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!isLoading && filteredMaterials.length === 0 && (
+                {!isDataLoading && filteredMaterials.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
                       No materials found.
