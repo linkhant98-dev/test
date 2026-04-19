@@ -82,7 +82,7 @@ export default function RecordConsumptionPage() {
       const standard = item.stdQtyPerUnit * order.quantity
       const actual = actualValues[item.material] || 0
       const variance = actual - standard
-      const variancePercent = (variance / standard) * 100
+      const variancePercent = standard > 0 ? (variance / standard) * 100 : 0
       
       return {
         ...item,
@@ -119,7 +119,7 @@ export default function RecordConsumptionPage() {
 
     // 2. Update the parent order summary
     updateDocumentNonBlocking(orderRef, {
-      status: "Completed",
+      status: "Complete",
       yield: Number((100 - Math.abs(totalVariancePercent)).toFixed(1)),
       variance: Number(totalVariancePercent.toFixed(1)),
       completedAt: new Date().toISOString()

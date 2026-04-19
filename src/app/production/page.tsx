@@ -67,7 +67,8 @@ export default function ProductionOrdersPage() {
   const [newOrder, setNewOrder] = useState({
     product: "Original Cheese Stick",
     quantity: 100,
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    status: "Planning"
   })
 
   const handleCreateOrder = () => {
@@ -76,7 +77,7 @@ export default function ProductionOrdersPage() {
       product: newOrder.product,
       date: newOrder.date,
       quantity: Number(newOrder.quantity),
-      status: "In Progress",
+      status: newOrder.status,
       yield: 0,
       variance: 0,
       createdByUserId: user.uid,
@@ -86,13 +87,29 @@ export default function ProductionOrdersPage() {
   }
 
   const handleDeleteOrder = (id: string) => {
-    deleteDocumentNonBlocking(doc(db, "production_orders", id))
+    const docRef = doc(db, "production_orders", id)
+    deleteDocumentNonBlocking(docRef)
   }
 
   const filteredOrders = orders?.filter(o => 
     o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
     o.product.toLowerCase().includes(searchTerm.toLowerCase())
   ) || []
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Planning':
+        return <Badge variant="outline" className="bg-muted/50">Planning</Badge>
+      case 'In Progress':
+        return <Badge variant="default" className="bg-primary text-primary-foreground">In Progress</Badge>
+      case 'Complete':
+        return <Badge variant="secondary" className="bg-secondary text-secondary-foreground">Complete</Badge>
+      case 'Closed':
+        return <Badge variant="outline" className="opacity-50">Closed</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -108,23 +125,45 @@ export default function ProductionOrdersPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-none shadow-sm bg-accent/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Current Queue</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Planning</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? "..." : orders?.filter(o => o.status !== 'Completed').length} Orders
+              {isLoading ? "..." : orders?.filter(o => o.status === 'Planning').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-sm bg-primary/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">In Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {isLoading ? "..." : orders?.filter(o => o.status === 'In Progress').length}
             </div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-secondary/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Today's Target</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Complete</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,500 Units</div>
+            <div className="text-2xl font-bold text-secondary">
+              {isLoading ? "..." : orders?.filter(o => o.status === 'Complete').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-sm bg-muted/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Closed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold opacity-50">
+              {isLoading ? "..." : orders?.filter(o => o.status === 'Closed').length}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -170,18 +209,7 @@ export default function ProductionOrdersPage() {
                   <TableCell className="text-muted-foreground">{order.date}</TableCell>
                   <TableCell className="text-right font-medium">{order.quantity.toLocaleString()}</TableCell>
                   <TableCell>
-                    <Badge 
-                      variant={
-                        order.status === 'Completed' ? 'default' : 
-                        order.status === 'In Progress' ? 'secondary' : 'outline'
-                      }
-                      className={
-                        order.status === 'Completed' ? 'bg-secondary text-secondary-foreground' : 
-                        order.status === 'In Progress' ? 'bg-primary text-primary-foreground' : ''
-                      }
-                    >
-                      {order.status}
-                    </Badge>
+                    {getStatusBadge(order.status)}
                   </TableCell>
                   <TableCell className="text-right">
                     {order.yield > 0 ? (
@@ -196,29 +224,31 @@ export default function ProductionOrdersPage() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/production/record-consumption/${order.id}`} className="w-full flex items-center text-primary font-bold">
-                            <ClipboardList className="h-4 w-4 mr-2" /> {t("recordConsumption")}
-                          </Link>
-                        </DropdownMenuItem>
+                        {(order.status === 'Planning' || order.status === 'In Progress') && (
+                          <DropdownMenuItem asChild>
+                            <Link href={`/production/record-consumption/${order.id}`} className="w-full flex items-center text-primary font-bold cursor-pointer">
+                              <ClipboardList className="h-4 w-4 mr-2" /> {t("recordConsumption")}
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { setSelectedOrder(order); setActiveDialog('details'); }}>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => { setSelectedOrder(order); setActiveDialog('details'); }}>
                           <Eye className="h-4 w-4 mr-2" /> View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setSelectedOrder(order); setActiveDialog('logs'); }}>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => { setSelectedOrder(order); setActiveDialog('logs'); }}>
                           <History className="h-4 w-4 mr-2" /> Production Logs
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setSelectedOrder(order); setActiveDialog('print'); }}>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => { setSelectedOrder(order); setActiveDialog('print'); }}>
                           <Printer className="h-4 w-4 mr-2" /> Print Labels
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteOrder(order.id)}>
+                        <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => handleDeleteOrder(order.id)}>
                           <Trash2 className="h-4 w-4 mr-2" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -268,9 +298,21 @@ export default function ProductionOrdersPage() {
               <Label htmlFor="date">Scheduled Date</Label>
               <Input id="date" type="date" value={newOrder.date} onChange={(e) => setNewOrder({...newOrder, date: e.target.value})} />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="status">Initial Status</Label>
+              <Select defaultValue={newOrder.status} onValueChange={(v) => setNewOrder({...newOrder, status: v})}>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Planning">Planning</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleCreateOrder} className="w-full bg-secondary text-secondary-foreground">Start Production</Button>
+            <Button onClick={handleCreateOrder} className="w-full bg-secondary text-secondary-foreground">Create Order</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -299,7 +341,7 @@ export default function ProductionOrdersPage() {
                 </div>
                 <div className="p-3 rounded-lg bg-muted/30 border">
                   <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">Status</span>
-                  <Badge className={selectedOrder.status === 'Completed' ? 'bg-secondary' : 'bg-primary'}>{selectedOrder.status}</Badge>
+                  <div className="mt-1">{getStatusBadge(selectedOrder.status)}</div>
                 </div>
               </div>
             </div>
