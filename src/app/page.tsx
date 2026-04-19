@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -11,7 +11,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ClipboardList,
-  Loader2
+  Loader2,
+  Database,
+  Sparkles
 } from "lucide-react"
 import { 
   XAxis, 
@@ -25,8 +27,10 @@ import {
   PieChart,
   Pie
 } from "recharts"
+import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/context/language-context"
-import { useUser } from "@/firebase"
+import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase"
+import { collection, getDocs } from "firebase/firestore"
 
 const varianceData = [
   { name: 'Mon', variance: 12 },
@@ -48,13 +52,67 @@ const topProducts = [
 export default function Dashboard() {
   const { t } = useTranslation();
   const router = useRouter();
+  const db = useFirestore();
   const { user, isUserLoading } = useUser();
+  const [isSeeding, setIsSeeding] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push("/login");
     }
   }, [user, isUserLoading, router]);
+
+  const seedDemoData = async () => {
+    if (!db) return;
+    setIsSeeding(true);
+    
+    const materials = [
+      { name: "Mozzarella Cheese", unit: "kg", category: "Raw Material", stock: 150 },
+      { name: "Potato Starch", unit: "kg", category: "Raw Material", stock: 200 },
+      { name: "Chicken Breast (Minced)", unit: "kg", category: "Raw Material", stock: 80 },
+      { name: "Premium Sausage", unit: "units", category: "Raw Material", stock: 500 },
+      { name: "Batter Mix", unit: "kg", category: "Ingredient", stock: 100 },
+      { name: "Breadcrumbs", unit: "kg", category: "Ingredient", stock: 120 },
+      { name: "Frying Oil", unit: "L", category: "Ingredient", stock: 300 },
+    ];
+
+    const products = [
+      { name: "Original Cheese Stick", category: "Finished Good", price: 12.50, stock: 45 },
+      { name: "Long Potato", category: "Finished Good", price: 8.00, stock: 120 },
+      { name: "Chicken PopCorn", category: "Finished Good", price: 15.00, stock: 30 },
+      { name: "Sausage Cheese Stick", category: "Finished Good", price: 14.50, stock: 25 },
+    ];
+
+    const warehouses = [
+      { name: "Main Cold Storage", location: "Building A, West Wing", status: "Active", capacity: "85%" },
+      { name: "Raw Material Depot", location: "Building B, South Gate", status: "Active", capacity: "40%" },
+    ];
+
+    const reasons = [
+      { code: "SPOIL", description: "Natural spoilage or expiry", category: "Inventory", severity: "High" },
+      { code: "DAMG", description: "Physical damage during handling", category: "Operations", severity: "Medium" },
+    ];
+
+    try {
+      for (const m of materials) {
+        addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() });
+      }
+      for (const p of products) {
+        addDocumentNonBlocking(collection(db, "finished_goods"), { ...p, createdAt: new Date().toISOString() });
+      }
+      for (const w of warehouses) {
+        addDocumentNonBlocking(collection(db, "warehouses"), { ...w, createdAt: new Date().toISOString() });
+      }
+      for (const r of reasons) {
+        addDocumentNonBlocking(collection(db, "waste_reasons"), { ...r, createdAt: new Date().toISOString() });
+      }
+      alert("Demo data seeded successfully!");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   if (isUserLoading || !user) {
     return (
@@ -101,9 +159,20 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-bold tracking-tight font-headline text-foreground">{t("operationalOverview")}</h1>
-        <p className="text-muted-foreground">{t("realTimeMonitoring")}</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-4xl font-bold tracking-tight font-headline text-foreground">{t("operationalOverview")}</h1>
+          <p className="text-muted-foreground">{t("realTimeMonitoring")}</p>
+        </div>
+        <Button 
+          variant="outline" 
+          className="border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-bold h-12"
+          onClick={seedDemoData}
+          disabled={isSeeding}
+        >
+          {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+          Seed Demo Data
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

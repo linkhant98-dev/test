@@ -1,22 +1,34 @@
 
 "use client"
 
-import { Warehouse, AlertTriangle } from "lucide-react"
+import { Warehouse, AlertTriangle, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-
-const stockLevels = [
-  { id: "MAT-001", name: "Mozzarella Cheese", category: "Raw Material", stock: 150, unit: "kg", min: 50, warehouse: "Cold Storage A" },
-  { id: "MAT-002", name: "Potato Starch", category: "Raw Material", stock: 200, unit: "kg", min: 100, warehouse: "Dry Storage B" },
-  { id: "MAT-003", name: "Chicken Breast", category: "Raw Material", stock: 80, unit: "kg", min: 30, warehouse: "Cold Storage A" },
-  { id: "MAT-004", name: "Premium Sausage", category: "Raw Material", stock: 500, unit: "units", min: 200, warehouse: "Cold Storage A" },
-  { id: "MAT-007", name: "Frying Oil", category: "Ingredient", stock: 300, unit: "L", min: 500, warehouse: "Bulk Liquid Storage" },
-]
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
+import { collection } from "firebase/firestore"
 
 export default function InventoryOverviewPage() {
-  const lowStockItems = stockLevels.filter(item => item.stock <= item.min)
+  const db = useFirestore()
+  const { user } = useUser()
+
+  const materialsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "raw_materials");
+  }, [db, user]);
+
+  const { data: materials, isLoading: materialsLoading } = useCollection(materialsRef)
+
+  const lowStockItems = materials?.filter(item => (item.stock || 0) <= 50) || [] // Using 50 as default threshold
+
+  if (materialsLoading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -66,29 +78,29 @@ export default function InventoryOverviewPage() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead>Material</TableHead>
-                  <TableHead>Warehouse</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead className="text-right">On Hand</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stockLevels.map((item) => (
+                {materials?.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-bold text-sm">{item.name}</span>
-                        <span className="text-[10px] text-muted-foreground uppercase">{item.category}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase">{item.id.slice(-5)}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs">{item.warehouse}</TableCell>
+                    <TableCell className="text-xs">{item.category}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex flex-col items-end">
-                        <span className="font-bold">{item.stock.toLocaleString()} {item.unit}</span>
-                        <span className="text-[10px] text-muted-foreground">Min: {item.min}</span>
+                        <span className="font-bold">{(item.stock || 0).toLocaleString()} {item.unit}</span>
+                        <span className="text-[10px] text-muted-foreground">Min: 50</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {item.stock <= item.min ? (
+                      {(item.stock || 0) <= 50 ? (
                         <Badge variant="destructive" className="text-[10px] py-0">Critical</Badge>
                       ) : (
                         <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] py-0">Healthy</Badge>
@@ -96,6 +108,13 @@ export default function InventoryOverviewPage() {
                     </TableCell>
                   </TableRow>
                 ))}
+                {!materialsLoading && materials?.length === 0 && (
+                   <TableRow>
+                    <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
+                      No materials found. Seed demo data from Dashboard.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -114,11 +133,14 @@ export default function InventoryOverviewPage() {
                 <div key={item.id} className="space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="font-medium">{item.name}</span>
-                    <span className="text-destructive font-bold">{Math.round((item.stock / item.min) * 100)}%</span>
+                    <span className="text-destructive font-bold">{Math.round(((item.stock || 0) / 50) * 100)}%</span>
                   </div>
-                  <Progress value={(item.stock / item.min) * 100} className="h-1 bg-muted [&>div]:bg-destructive" />
+                  <Progress value={((item.stock || 0) / 50) * 100} className="h-1 bg-muted [&>div]:bg-destructive" />
                 </div>
               ))}
+              {lowStockItems.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">All stock levels healthy.</p>
+              )}
             </CardContent>
           </Card>
         </div>
