@@ -6,7 +6,7 @@ import {
   Plus, 
   Search, 
   Filter, 
-  MoreHorizontal, 
+  ChevronDown, 
   ClipboardList,
   Eye,
   History,
@@ -198,13 +198,21 @@ export default function ProductionOrdersPage() {
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Yield %</TableHead>
                 <TableHead className="text-right">Var. %</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[120px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrders.map((order) => (
                 <TableRow key={order.id} className="group transition-colors">
-                  <TableCell className="font-bold font-headline">{order.id.slice(-5).toUpperCase()}</TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto font-bold font-headline text-primary"
+                      onClick={() => { setSelectedOrder(order); setActiveDialog('details'); }}
+                    >
+                      {order.id.slice(-5).toUpperCase()}
+                    </Button>
+                  </TableCell>
                   <TableCell>{order.product}</TableCell>
                   <TableCell className="text-muted-foreground">{order.date}</TableCell>
                   <TableCell className="text-right font-medium">{order.quantity.toLocaleString()}</TableCell>
@@ -224,8 +232,8 @@ export default function ProductionOrdersPage() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="outline" size="sm" className="gap-2">
+                          Actions <ChevronDown className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
