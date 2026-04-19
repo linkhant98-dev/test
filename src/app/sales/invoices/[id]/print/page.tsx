@@ -1,9 +1,9 @@
-
 "use client"
 
 import { useParams } from "next/navigation"
 import { Printer, ArrowLeft, Loader2, Mail, Phone, MapPin, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase"
 import { doc } from "firebase/firestore"
 import Link from "next/link"
