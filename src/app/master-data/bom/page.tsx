@@ -12,7 +12,7 @@ import {
   Info,
   DollarSign,
   Calendar,
-  Sparkles
+  TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -142,8 +142,8 @@ export default function BOMManagementPage() {
                 </TabsContent>
                 <TabsContent value="simulation">
                    <div className="bg-accent/20 rounded-xl p-6 border border-primary/20">
-                     <h4 className="font-headline font-bold mb-4 flex items-center gap-2">
-                       <Sparkles className="h-4 w-4 text-secondary" />
+                     <h4 className="font-headline font-bold mb-4 flex items-center gap-2 text-secondary">
+                       <TrendingUp className="h-4 w-4" />
                        Market Price Fluctuation Simulation
                      </h4>
                      <p className="text-xs text-muted-foreground mb-6">

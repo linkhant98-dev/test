@@ -4,6 +4,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import Image from "next/image"
 import { 
   LayoutDashboard, 
   Database, 
@@ -91,12 +92,19 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
-            <span className="text-xl font-bold text-primary-foreground">🧀</span>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 overflow-hidden p-1">
+            <Image 
+              src="https://picsum.photos/seed/cheese-logo/200/200"
+              alt="Cheesy Bites Logo"
+              width={48}
+              height={48}
+              className="rounded-lg object-contain"
+              data-ai-hint="cheese logo"
+            />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold leading-none font-headline text-foreground">Cheesy Bites</span>
-            <span className="text-xs text-muted-foreground">Inventory Control</span>
+            <span className="text-xl font-black leading-none font-headline text-foreground tracking-tighter">CHEESY</span>
+            <span className="text-sm font-bold text-primary -mt-1">BITES</span>
           </div>
         </div>
       </SidebarHeader>
