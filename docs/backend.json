@@ -1,576 +1,5 @@
 {
-  "entities": {
-    "Material": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Material",
-      "type": "object",
-      "description": "Represents both raw materials and finished goods used or produced in the system, maintaining their core properties and cost information.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Material entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The common name of the material (e.g., 'All-Purpose Flour', 'Cheesy Bites Party Pack')."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description or specification of the material."
-        },
-        "unitOfMeasure": {
-          "type": "string",
-          "description": "The standard unit of measure for this material (e.g., 'kg', 'unit', 'pack', 'liter')."
-        },
-        "type": {
-          "type": "string",
-          "description": "The classification of the material, distinguishing between raw materials and finished goods.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "currentAverageCost": {
-          "type": "number",
-          "description": "The current calculated average cost per unit for raw materials, updated through goods receipts. Applicable to RAW_MATERIAL type."
-        },
-        "standardCost": {
-          "type": "number",
-          "description": "The standard cost per unit for finished goods, typically derived from the Bill of Materials. Applicable to FINISHED_GOOD type."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the material record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the material record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "unitOfMeasure",
-        "type",
-        "createdAt"
-      ]
-    },
-    "Warehouse": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Warehouse",
-      "type": "object",
-      "description": "Defines physical locations where materials are stored and inventory is managed.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Warehouse entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the warehouse (e.g., 'Main Storage', 'Production Line 1 Warehouse')."
-        },
-        "location": {
-          "type": "string",
-          "description": "The physical address or detailed location description of the warehouse."
-        },
-        "description": {
-          "type": "string",
-          "description": "An optional description providing more details about the warehouse."
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Indicates whether the warehouse is currently active and available for operations."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the warehouse record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the warehouse record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "location",
-        "isActive",
-        "createdAt"
-      ]
-    },
-    "WasteReason": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "WasteReason",
-      "type": "object",
-      "description": "Standardized reasons for material wastage or spoilage, used to categorize and analyze losses.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the WasteReason entity."
-        },
-        "code": {
-          "type": "string",
-          "description": "A short, unique code for the waste reason (e.g., 'SPOIL', 'DAMG', 'EXPIRY')."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the waste reason."
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Indicates whether this waste reason is currently active and selectable."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the waste reason record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the waste reason record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "code",
-        "description",
-        "isActive",
-        "createdAt"
-      ]
-    },
-    "BillOfMaterial": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BillOfMaterial",
-      "type": "object",
-      "description": "Represents a specific version of a Bill of Material for a finished good, including its effective dates and cost simulation.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the BillOfMaterial entity."
-        },
-        "finishedGoodMaterialId": {
-          "type": "string",
-          "description": "Reference to the Material entity representing the finished good this BOM produces. (Relationship: Material 1:N BillOfMaterial)"
-        },
-        "version": {
-          "type": "string",
-          "description": "The version identifier for this Bill of Material (e.g., 'Rev A', '1.0', 'Seasonal 2023')."
-        },
-        "effectiveStartDate": {
-          "type": "string",
-          "description": "The date from which this BOM version becomes effective.",
-          "format": "date-time"
-        },
-        "effectiveEndDate": {
-          "type": "string",
-          "description": "The date until which this BOM version is effective. Can be null if indefinitely active.",
-          "format": "date-time"
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of this specific BOM version."
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Indicates if this BOM version is currently considered active based on its effective dates and manual status."
-        },
-        "simulatedCost": {
-          "type": "number",
-          "description": "The last calculated simulated cost for producing one unit of the finished good using this BOM version."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the BOM record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the BOM record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "finishedGoodMaterialId",
-        "version",
-        "effectiveStartDate",
-        "isActive",
-        "createdAt"
-      ]
-    },
-    "BillOfMaterialItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BillOfMaterialItem",
-      "type": "object",
-      "description": "Represents a single raw material component within a specific Bill of Material version, including its required quantity.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the BillOfMaterialItem entity."
-        },
-        "billOfMaterialId": {
-          "type": "string",
-          "description": "Reference to the BillOfMaterial entity this item belongs to. (Relationship: BillOfMaterial 1:N BillOfMaterialItem)"
-        },
-        "rawMaterialId": {
-          "type": "string",
-          "description": "Reference to the Material entity representing the raw material component. (Relationship: Material 1:N BillOfMaterialItem)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The quantity of the raw material required to produce one unit of the finished good."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the BOM item record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the BOM item record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "billOfMaterialId",
-        "rawMaterialId",
-        "quantity",
-        "createdAt"
-      ]
-    },
-    "InventoryStock": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "InventoryStock",
-      "type": "object",
-      "description": "Tracks the current quantity and cost of a specific material at a particular warehouse.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the InventoryStock entity."
-        },
-        "materialId": {
-          "type": "string",
-          "description": "Reference to the Material entity in stock. (Relationship: Material 1:N InventoryStock)"
-        },
-        "warehouseId": {
-          "type": "string",
-          "description": "Reference to the Warehouse where the material is stored. (Relationship: Warehouse 1:N InventoryStock)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The current quantity of the material in stock at this warehouse."
-        },
-        "averageCost": {
-          "type": "number",
-          "description": "The calculated average cost per unit for this material at this specific warehouse location."
-        },
-        "lastMovementDate": {
-          "type": "string",
-          "description": "The timestamp of the last inventory transaction affecting this stock item.",
-          "format": "date-time"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the stock record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the stock record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "materialId",
-        "warehouseId",
-        "quantity",
-        "averageCost",
-        "lastMovementDate",
-        "createdAt"
-      ]
-    },
-    "InventoryTransaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "InventoryTransaction",
-      "type": "object",
-      "description": "Records all movements of materials into, out of, or between inventory locations, along with relevant details.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the InventoryTransaction entity."
-        },
-        "transactionType": {
-          "type": "string",
-          "description": "The type of inventory transaction (e.g., 'GOODS_RECEIPT', 'ISSUES_TO_PRODUCTION', 'RETURN_FROM_PRODUCTION', 'ADJUSTMENT', 'TRANSFER_OUT', 'TRANSFER_IN', 'SCRAP').",
-          "items": {
-            "type": "string"
-          }
-        },
-        "transactionDate": {
-          "type": "string",
-          "description": "The date and time when the transaction occurred.",
-          "format": "date-time"
-        },
-        "materialId": {
-          "type": "string",
-          "description": "Reference to the Material involved in the transaction. (Relationship: Material 1:N InventoryTransaction)"
-        },
-        "warehouseId": {
-          "type": "string",
-          "description": "Reference to the Warehouse where the transaction originated or terminated. (Relationship: Warehouse 1:N InventoryTransaction)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The quantity of material moved in this transaction."
-        },
-        "unitCost": {
-          "type": "number",
-          "description": "The cost per unit of the material at the time of the transaction."
-        },
-        "totalValue": {
-          "type": "number",
-          "description": "The total monetary value of the transaction (quantity * unitCost)."
-        },
-        "referenceDocument": {
-          "type": "string",
-          "description": "An optional reference number or identifier from an external document (e.g., Purchase Order, Sales Order)."
-        },
-        "description": {
-          "type": "string",
-          "description": "An optional descriptive note about the transaction."
-        },
-        "relatedTransactionId": {
-          "type": "string",
-          "description": "For 'TRANSFER_OUT' transactions, refers to the corresponding 'TRANSFER_IN' transaction ID, and vice-versa. (Relationship: InventoryTransaction 1:1 InventoryTransaction)"
-        },
-        "wasteReasonId": {
-          "type": "string",
-          "description": "Reference to the WasteReason if the transaction involves waste or scrap. (Relationship: WasteReason 1:N InventoryTransaction)"
-        },
-        "productionOrderId": {
-          "type": "string",
-          "description": "Reference to the ProductionOrder if the transaction is related to production (e.g., issues, returns). (Relationship: ProductionOrder 1:N InventoryTransaction)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the transaction record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the transaction record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "transactionType",
-        "transactionDate",
-        "materialId",
-        "warehouseId",
-        "quantity",
-        "unitCost",
-        "totalValue",
-        "createdAt"
-      ]
-    },
-    "ProductionOrder": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ProductionOrder",
-      "type": "object",
-      "description": "Manages the lifecycle of a production run for a specific finished good, tracking planned vs. actual quantities and BOM usage.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ProductionOrder entity."
-        },
-        "orderNumber": {
-          "type": "string",
-          "description": "A unique identifier or code for the production order."
-        },
-        "finishedGoodMaterialId": {
-          "type": "string",
-          "description": "Reference to the Material entity representing the finished good being produced. (Relationship: Material 1:N ProductionOrder)"
-        },
-        "billOfMaterialId": {
-          "type": "string",
-          "description": "Reference to the specific BillOfMaterial version used for this production order. (Relationship: BillOfMaterial 1:N ProductionOrder)"
-        },
-        "plannedQuantity": {
-          "type": "number",
-          "description": "The target quantity of finished goods planned for this production order."
-        },
-        "actualOutputQuantity": {
-          "type": "number",
-          "description": "The actual quantity of finished goods produced and completed for this order."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the production order (e.g., 'PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED').",
-          "items": {
-            "type": "string"
-          }
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The planned or actual start date of the production order.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The planned or actual completion date of the production order.",
-          "format": "date-time"
-        },
-        "warehouseId": {
-          "type": "string",
-          "description": "Reference to the Warehouse where the production primarily takes place or where output is received. (Relationship: Warehouse 1:N ProductionOrder)"
-        },
-        "notes": {
-          "type": "string",
-          "description": "Any additional notes or comments related to the production order."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the production order record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the production order record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "orderNumber",
-        "finishedGoodMaterialId",
-        "billOfMaterialId",
-        "plannedQuantity",
-        "status",
-        "startDate",
-        "warehouseId",
-        "createdAt"
-      ]
-    },
-    "ProductionOrderConsumption": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ProductionOrderConsumption",
-      "type": "object",
-      "description": "Records the actual quantities of raw materials consumed for a specific production order, differing from the BOM's planned quantities.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ProductionOrderConsumption entity."
-        },
-        "productionOrderId": {
-          "type": "string",
-          "description": "Reference to the ProductionOrder for which materials were consumed. (Relationship: ProductionOrder 1:N ProductionOrderConsumption)"
-        },
-        "rawMaterialId": {
-          "type": "string",
-          "description": "Reference to the Material entity representing the raw material consumed. (Relationship: Material 1:N ProductionOrderConsumption)"
-        },
-        "consumedQuantity": {
-          "type": "number",
-          "description": "The actual quantity of the raw material consumed for this production order."
-        },
-        "actualCostAtConsumption": {
-          "type": "number",
-          "description": "The actual cost per unit of the raw material at the time of consumption."
-        },
-        "warehouseId": {
-          "type": "string",
-          "description": "Reference to the Warehouse from which the material was consumed. (Relationship: Warehouse 1:N ProductionOrderConsumption)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the consumption record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the consumption record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "productionOrderId",
-        "rawMaterialId",
-        "consumedQuantity",
-        "actualCostAtConsumption",
-        "warehouseId",
-        "createdAt"
-      ]
-    },
-    "ProductionVariance": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ProductionVariance",
-      "type": "object",
-      "description": "Stores calculated variances and insights for a completed production order, highlighting deviations from planned values.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ProductionVariance entity."
-        },
-        "productionOrderId": {
-          "type": "string",
-          "description": "Reference to the ProductionOrder for which the variances are calculated. (Relationship: ProductionOrder 1:1 ProductionVariance)"
-        },
-        "quantityVariance": {
-          "type": "number",
-          "description": "The difference between planned and actual output or consumption quantity, representing efficiency."
-        },
-        "costVariance": {
-          "type": "number",
-          "description": "The difference between standard/planned cost and actual cost for the production order."
-        },
-        "wastePercentage": {
-          "type": "number",
-          "description": "The calculated percentage of raw materials wasted during production relative to planned usage."
-        },
-        "yieldPercentage": {
-          "type": "number",
-          "description": "The calculated percentage of finished goods successfully produced relative to the input materials or planned output."
-        },
-        "varianceThresholdFlagged": {
-          "type": "boolean",
-          "description": "Indicates if any calculated variance exceeds predefined thresholds, requiring attention."
-        },
-        "aiInsights": {
-          "type": "string",
-          "description": "Textual insights generated by the AI tool, analyzing variances and suggesting root causes or actions."
-        },
-        "calculationDate": {
-          "type": "string",
-          "description": "The date and time when these variances were calculated.",
-          "format": "date-time"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the variance record was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "productionOrderId",
-        "quantityVariance",
-        "costVariance",
-        "wastePercentage",
-        "yieldPercentage",
-        "varianceThresholdFlagged",
-        "calculationDate",
-        "createdAt"
-      ]
-    }
-  },
+  "entities": {},
   "auth": {
     "providers": [
       "password",
@@ -580,212 +9,176 @@
   "firestore": {
     "structure": [
       {
-        "path": "/app_roles/admin/{userId}",
+        "path": "/users/{userId}",
         "definition": {
-          "entityName": "app_role_admin",
+          "entityName": "user",
           "schema": {
-            "$ref": "#/backend/entities/UserRole"
+            "$ref": "#/backend/entities/user"
           },
-          "description": "Represents the administrator role for a user. Used for global authorization checks. Authorization relies on the *existence* of a document at this path for a given user ID."
+          "description": "Stores user profiles. Ownership is path-based, meaning a user can only read/write their own profile data. Includes metadata like display name, email, etc."
         }
       },
       {
-        "path": "/app_roles/inventoryManager/{userId}",
+        "path": "/admin_users/{userId}",
         "definition": {
-          "entityName": "app_role_inventoryManager",
+          "entityName": "admin_user",
           "schema": {
-            "$ref": "#/backend/entities/UserRole"
+            "$ref": "#/backend/entities/admin_user"
           },
-          "description": "Represents the inventory manager role for a user. Used for authorization to manage materials, warehouses, waste reasons, inventory stock, and inventory transactions. Authorization relies on the *existence* of a document at this path for a given user ID."
+          "description": "A dedicated collection for 'admin' role management. The presence of a document with `userId` as its ID signifies that the user has the administrative role. Used for robust DBAC via `exists()` checks in security rules."
         }
       },
       {
-        "path": "/app_roles/productionManager/{userId}",
+        "path": "/master_data_manager_users/{userId}",
         "definition": {
-          "entityName": "app_role_productionManager",
+          "entityName": "master_data_manager_user",
           "schema": {
-            "$ref": "#/backend/entities/UserRole"
+            "$ref": "#/backend/entities/master_data_manager_user"
           },
-          "description": "Represents the production manager role for a user. Used for authorization to manage Bill of Materials, production orders, consumption records, and variances. Authorization relies on the *existence* of a document at this path for a given user ID."
+          "description": "A dedicated collection for 'master data manager' role management. The presence of a document with `userId` as its ID signifies this role, enabling CRUD access to master data entities."
         }
       },
       {
-        "path": "/materials/{materialId}",
+        "path": "/inventory_manager_users/{userId}",
         "definition": {
-          "entityName": "Material",
+          "entityName": "inventory_manager_user",
           "schema": {
-            "$ref": "#/backend/entities/Material"
+            "$ref": "#/backend/entities/inventory_manager_user"
           },
-          "description": "Stores all raw materials and finished goods. Access is managed by global roles (e.g., 'inventoryManager').",
-          "params": [
-            {
-              "name": "materialId",
-              "description": "Unique identifier for the Material."
-            }
-          ]
+          "description": "A dedicated collection for 'inventory manager' role management. The presence of a document with `userId` as its ID signifies this role, enabling management of inventory and stock transactions."
+        }
+      },
+      {
+        "path": "/production_manager_users/{userId}",
+        "definition": {
+          "entityName": "production_manager_user",
+          "schema": {
+            "$ref": "#/backend/entities/production_manager_user"
+          },
+          "description": "A dedicated collection for 'production manager' role management. The presence of a document with `userId` as its ID signifies this role, enabling oversight and management of production orders."
+        }
+      },
+      {
+        "path": "/production_operator_users/{userId}",
+        "definition": {
+          "entityName": "production_operator_user",
+          "schema": {
+            "$ref": "#/backend/entities/production_operator_user"
+          },
+          "description": "A dedicated collection for 'production operator' role management. The presence of a document with `userId` as its ID signifies this role, enabling recording of consumption and output for production orders."
+        }
+      },
+      {
+        "path": "/raw_materials/{materialId}",
+        "definition": {
+          "entityName": "raw_material",
+          "schema": {
+            "$ref": "#/backend/entities/raw_material"
+          },
+          "description": "Stores master data for all raw materials. Access is role-based (e.g., Master Data Manager for CRUD, others for read). All documents in this collection share the same security posture."
+        }
+      },
+      {
+        "path": "/finished_goods/{finishedGoodId}",
+        "definition": {
+          "entityName": "finished_good",
+          "schema": {
+            "$ref": "#/backend/entities/finished_good"
+          },
+          "description": "Stores master data for all finished goods. Access is role-based (e.g., Master Data Manager for CRUD, others for read). All documents in this collection share the same security posture."
         }
       },
       {
         "path": "/warehouses/{warehouseId}",
         "definition": {
-          "entityName": "Warehouse",
+          "entityName": "warehouse",
           "schema": {
-            "$ref": "#/backend/entities/Warehouse"
+            "$ref": "#/backend/entities/warehouse"
           },
-          "description": "Stores definitions of physical storage locations. Access is managed by global roles (e.g., 'inventoryManager').",
-          "params": [
-            {
-              "name": "warehouseId",
-              "description": "Unique identifier for the Warehouse."
-            }
-          ]
+          "description": "Stores master data for all warehouses. Access is role-based (e.g., Master Data Manager for CRUD, others for read). All documents in this collection share the same security posture."
         }
       },
       {
-        "path": "/wasteReasons/{wasteReasonId}",
+        "path": "/waste_reasons/{reasonId}",
         "definition": {
-          "entityName": "WasteReason",
+          "entityName": "waste_reason",
           "schema": {
-            "$ref": "#/backend/entities/WasteReason"
+            "$ref": "#/backend/entities/waste_reason"
           },
-          "description": "Stores standardized reasons for material wastage. Access is managed by global roles (e.g., 'inventoryManager').",
-          "params": [
-            {
-              "name": "wasteReasonId",
-              "description": "Unique identifier for the WasteReason."
-            }
-          ]
+          "description": "Stores master data for predefined waste reasons. Access is role-based (e.g., Master Data Manager for CRUD, others for read). All documents in this collection share the same security posture."
         }
       },
       {
-        "path": "/materials/{materialId}/billOfMaterials/{bomId}",
+        "path": "/finished_goods/{finishedGoodId}/bom_versions/{bomVersionId}",
         "definition": {
-          "entityName": "BillOfMaterial",
+          "entityName": "bom_version",
           "schema": {
-            "$ref": "#/backend/entities/BillOfMaterial"
+            "$ref": "#/backend/entities/bom_version"
           },
-          "description": "Stores specific versions of Bills of Material, nested under the finished good Material they produce. Access is managed by global roles (e.g., 'productionManager'). Includes denormalized 'finishedGoodMaterialId' from the path for authorization independence.",
-          "params": [
-            {
-              "name": "materialId",
-              "description": "The unique identifier of the finished good Material (parent)."
-            },
-            {
-              "name": "bomId",
-              "description": "Unique identifier for the BillOfMaterial version."
-            }
-          ]
+          "description": "Stores different versions of Bill of Materials (BOMs) for a specific finished good. Includes denormalized 'finishedGoodId' and 'status' (e.g., 'ACTIVE', 'DRAFT') for authorization independence, enabling atomic checks and list queries without fetching parent data. Access is role-based (e.g., Master Data Manager)."
         }
       },
       {
-        "path": "/materials/{materialId}/billOfMaterials/{bomId}/items/{itemId}",
+        "path": "/warehouses/{warehouseId}/stock_transactions/{transactionId}",
         "definition": {
-          "entityName": "BillOfMaterialItem",
+          "entityName": "stock_transaction",
           "schema": {
-            "$ref": "#/backend/entities/BillOfMaterialItem"
+            "$ref": "#/backend/entities/stock_transaction"
           },
-          "description": "Stores individual raw material components for a specific Bill of Material, nested under the BillOfMaterial. Access is managed by global roles (e.g., 'productionManager'). Includes denormalized 'finishedGoodMaterialId' and 'billOfMaterialId' from the path for authorization independence.",
-          "params": [
-            {
-              "name": "materialId",
-              "description": "The unique identifier of the finished good Material (grandparent)."
-            },
-            {
-              "name": "bomId",
-              "description": "The unique identifier of the BillOfMaterial (parent)."
-            },
-            {
-              "name": "itemId",
-              "description": "Unique identifier for the BillOfMaterialItem."
-            }
-          ]
+          "description": "Records all stock movements within a specific warehouse. Includes denormalized 'warehouseId', 'materialId', 'transactionType', 'userId', and 'timestamp' for authorization independence and efficient querying. Access is role-based (e.g., Inventory Manager, Production Operator)."
         }
       },
       {
-        "path": "/inventoryStocks/{inventoryStockId}",
+        "path": "/production_orders/{productionOrderId}",
         "definition": {
-          "entityName": "InventoryStock",
+          "entityName": "production_order",
           "schema": {
-            "$ref": "#/backend/entities/InventoryStock"
+            "$ref": "#/backend/entities/production_order"
           },
-          "description": "Tracks current quantities and costs of materials at specific warehouses. Document IDs are recommended to be a composite of `materialId` and `warehouseId` (e.g., `materialId-warehouseId`) to ensure uniqueness and simplify lookups. Access is managed by global roles (e.g., 'inventoryManager').",
-          "params": [
-            {
-              "name": "inventoryStockId",
-              "description": "Unique identifier for the InventoryStock, ideally a composite of materialId and warehouseId."
-            }
-          ]
+          "description": "Manages the lifecycle of production orders. Includes denormalized 'bomVersionId', 'finishedGoodId', 'warehouseId', 'status' (e.g., 'PLANNED', 'IN_PROGRESS'), and 'createdByUserId' for authorization independence, supporting atomic operations and clear security rules. Access is role-based (e.g., Production Manager for CRUD, Production Operator for specific updates)."
         }
       },
       {
-        "path": "/inventoryTransactions/{transactionId}",
+        "path": "/production_orders/{productionOrderId}/consumption_records/{recordId}",
         "definition": {
-          "entityName": "InventoryTransaction",
+          "entityName": "consumption_record",
           "schema": {
-            "$ref": "#/backend/entities/InventoryTransaction"
+            "$ref": "#/backend/entities/consumption_record"
           },
-          "description": "Records all movements of materials. Top-level for easy global querying and chronological order. Access is managed by global roles (e.g., 'inventoryManager').",
-          "params": [
-            {
-              "name": "transactionId",
-              "description": "Unique identifier for the InventoryTransaction."
-            }
-          ]
+          "description": "Records the actual raw materials consumed for a specific production order. Includes denormalized 'productionOrderId', 'materialId', 'quantity', 'timestamp', and 'userId' for authorization independence and query efficiency. Access is role-based (e.g., Production Operator to create, Production Manager to view)."
         }
       },
       {
-        "path": "/productionOrders/{productionOrderId}",
+        "path": "/production_orders/{productionOrderId}/output_records/{recordId}",
         "definition": {
-          "entityName": "ProductionOrder",
+          "entityName": "output_record",
           "schema": {
-            "$ref": "#/backend/entities/ProductionOrder"
+            "$ref": "#/backend/entities/output_record"
           },
-          "description": "Manages the lifecycle of production runs. Top-level for global order management. Access is managed by global roles (e.g., 'productionManager').",
-          "params": [
-            {
-              "name": "productionOrderId",
-              "description": "Unique identifier for the ProductionOrder."
-            }
-          ]
+          "description": "Records the actual finished goods produced from a specific production order. Includes denormalized 'productionOrderId', 'finishedGoodId', 'quantity', 'timestamp', and 'userId' for authorization independence and query efficiency. Access is role-based (e.g., Production Operator to create, Production Manager to view)."
         }
       },
       {
-        "path": "/productionOrders/{productionOrderId}/consumptionRecords/{consumptionId}",
+        "path": "/production_orders/{productionOrderId}/variances/{varianceId}",
         "definition": {
-          "entityName": "ProductionOrderConsumption",
+          "entityName": "variance",
           "schema": {
-            "$ref": "#/backend/entities/ProductionOrderConsumption"
+            "$ref": "#/backend/entities/variance"
           },
-          "description": "Records actual raw material consumption for a specific production order, nested under the ProductionOrder. Access is managed by global roles (e.g., 'productionManager'). Includes denormalized 'productionOrderId' from the path for authorization independence.",
-          "params": [
-            {
-              "name": "productionOrderId",
-              "description": "The unique identifier of the ProductionOrder (parent)."
-            },
-            {
-              "name": "consumptionId",
-              "description": "Unique identifier for the ProductionOrderConsumption record."
-            }
-          ]
+          "description": "Stores calculated variances for a specific production order. Created by backend logic. Includes denormalized 'productionOrderId', 'finishedGoodId', 'bomVersionId', 'varianceType', and 'timestamp' for authorization independence. Primarily read-only for Production Managers and Admins."
         }
       },
       {
-        "path": "/productionOrders/{productionOrderId}/variance",
+        "path": "/production_orders/{productionOrderId}/insights/{insightId}",
         "definition": {
-          "entityName": "ProductionVariance",
+          "entityName": "ai_insight",
           "schema": {
-            "$ref": "#/backend/entities/ProductionVariance"
+            "$ref": "#/backend/entities/ai_insight"
           },
-          "description": "Stores calculated variances for a completed production order. Designed as a 1:1 subcollection, where the document ID is implicitly 'variance' or 'default'. Access is managed by global roles (e.g., 'productionManager'). Includes denormalized 'productionOrderId' from the path for authorization independence.",
-          "params": [
-            {
-              "name": "productionOrderId",
-              "description": "The unique identifier of the ProductionOrder (parent)."
-            }
-          ]
+          "description": "Stores AI-generated insights related to a specific production order's variances. Created by backend logic. Includes denormalized 'productionOrderId' and 'generatedTimestamp' for authorization independence. Primarily read-only for Production Managers and Admins."
         }
       }
     ],
-    "reasoning": "The proposed Firestore structure prioritizes Authorization Independence and Query-as-Permission (QAP) principles by strategically employing structural segregation, consistent access modeling, and explicit role management.\n\n**Authorization Independence:**\n1.  **Role-Based Access Denormalization:** User roles are denormalized into dedicated collections like `/app_roles/admin/{userId}` and `/app_roles/inventoryManager/{userId}`. This eliminates the need for `get()` calls to retrieve user roles from a separate `users` collection within security rules. Authorization checks become atomic `exists()` operations, ensuring performance and preventing rule complexity.\n2.  **Path-Based Context for Nested Data:** For hierarchical entities such as `BillOfMaterial` under `Material`, or `BillOfMaterialItem` under `BillOfMaterial`, and `ProductionOrderConsumption` or `ProductionVariance` under `ProductionOrder`, the parent's ID is explicitly embedded in the document's path. This allows security rules to derive all necessary authorization context (e.g., `materialId`, `bomId`, `productionOrderId`) directly from `request.path` without requiring `get()` operations to fetch parent documents. This design ensures that the security context is self-contained within the request and the document's location.\n\n**Query-as-Permission (QAP):**\n1.  **Structural Segregation for Homogeneous Security:** Each top-level collection (`/materials`, `/warehouses`, `/productionOrders`, `/inventoryStocks`, `/inventoryTransactions`, `/wasteReasons`) is designed to contain documents with a homogenous security posture. This means all documents within a given collection are subject to the same set of authorization rules (e.g., only `inventoryManagers` can write to `/materials`). This adherence to homogeneous security posture eliminates the need for rules to act as filters during `list` operations. If a user is authorized to list documents in a collection, they can retrieve all documents in that collection that meet their query criteria, without the rules filtering out individual unauthorized documents.\n2.  **Explicit Role-Based Permissions for List Operations:** For all top-level administrative collections, access (including `list` and `get`) is granted based on the user's role, checked efficiently via the denormalized `/app_roles` collections. For example, an `inventoryManager` role grants permission to `list` all documents in `/materials` or `/warehouses`. This ensures that a client-side query (e.g., `db.collection('materials').get()`) will either succeed and return all accessible data (as the user is authorized for the entire collection) or fail securely, without any partial results or rule-based filtering on document fields.\n3.  **Path-Based Filtering for Subcollections:** For subcollections (e.g., `/materials/{materialId}/billOfMaterials`), a `list` operation implicitly applies a filter based on the parent ID in the path. Authorization for this `list` is determined by the user's role (e.g., `productionManager` access to `BillOfMaterial`s). This combination ensures that `list` operations are both secure and efficient, returning only relevant and authorized data."
+    "reasoning": "The Firestore structure for the 'Cheesy Bites Inventory Control & BOM Variance System' is designed to be highly secure, scalable, and debuggable, adhering strictly to the core design principles. \n\n**Authorization Independence (CRITICAL) and Denormalization Strategy:**\nTo ensure authorization independence and eliminate the need for costly and complex `get()` calls in security rules, crucial authorization context is denormalized directly into the relevant documents. For example:\n*   **Transactional Data:** Documents such as `production_orders`, `stock_transactions`, `consumption_records`, `output_records`, `variances`, and `ai_insights` will contain explicit foreign keys and status fields (e.g., `finishedGoodId`, `warehouseId`, `bomVersionId`, `productionOrderId`, `status`, `createdByUserId`). This means a security rule evaluating access to a `production_order` can check the `status` or `warehouseId` within that document directly, without needing to fetch the parent `finished_good` or `warehouse` document. This also enables atomic writes (e.g., creating a production order and its initial consumption records in a batch) without rule failures due to missing parent data. Similarly, `bom_versions` documents, though subcollections of `finished_goods`, will contain `finishedGoodId` and `status` to provide self-contained authorization context if needed beyond role-based access.\n*   **Role-Based Access:** All access control is managed via dedicated role-based collections (e.g., `/admin_users/{userId}`, `/inventory_manager_users/{userId}`). The presence of a user's UID as a document ID in one of these collections grants the corresponding role. This enables simple, explicit, and atomic role checks in security rules via `exists()` (e.g., `exists(/databases/$(database)/documents/admin_users/$(request.auth.uid))`), completely avoiding `get()` on user profiles for roles.\n\n**QAPs (Rules are not Filters) Support:**\nThis structure robustly supports query-as-proofs (QAPs), ensuring secure `list` operations:\n*   **Structural Segregation for Master Data:** Collections like `/raw_materials`, `/finished_goods`, `/warehouses`, and `/waste_reasons` have a homogeneous security posture. Access to these collections for listing is purely role-based (e.g., `master_data_manager` can `list` all `raw_materials`). The security rule simply verifies the user's role, allowing the client to retrieve the entire collection without needing to filter on document-specific fields.\n*   **Role-Based Access for Transactional Data:** For collections like `/production_orders` or `/warehouses/{warehouseId}/stock_transactions`, `list` operations are secured by checking if the user belongs to the appropriate role (e.g., `production_manager`, `inventory_manager`). If finer-grained list access is later required (e.g., a production operator can only list their own orders), the denormalized `createdByUserId` field in the `production_order` document would facilitate this. The rule could then enforce that any `list` query must include a `.where('createdByUserId', '==', request.auth.uid)` clause, satisfying the QAP. Given the requirements, broad role-based access is assumed for listing, with the structure ready for granular filtering if needed. This design ensures that security rules are clear, maintainable, and prevent unauthorized data leakage during `list` operations."
   }
 }

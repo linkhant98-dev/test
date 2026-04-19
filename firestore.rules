@@ -1,210 +1,197 @@
-rules_version = '2';
-
 /**
- * FIRESTORE SECURITY RULES
- * 
- * CORE PHILOSOPHY
- * This ruleset implements a robust Role-Based Access Control (RBAC) model optimized for a manufacturing 
- * and inventory management environment. Authorization is decoupled from data fetching by using 
- * dedicated role collections, ensuring high performance and clear security boundaries.
- * 
- * DATA STRUCTURE
- * - Global Roles: Stored in `/app_roles/{roleName}/{userId}`. Presence of a document grants the role.
- * - Inventory Data: Top-level collections for Materials, Warehouses, and Transactions.
- * - Production Data: Hierarchical structures linking Bills of Materials to Materials and 
- *   Consumption/Variances to Production Orders.
- * 
- * KEY SECURITY DECISIONS
- * - RBAC via "exists" checks: Rules verify roles by checking for documents in /app_roles, avoiding 
- *   complex data joins.
- * - Path-to-Data Integrity: For nested resources (e.g., BOMs), rules enforce that the internal 
- *   foreign keys (e.g., finishedGoodMaterialId) match the parent ID in the document path.
- * - Prototyping Flexibility: While authorization is strictly enforced based on roles, specific 
- *   data types and non-relational fields are not validated to allow for rapid schema iteration.
- * - Denial by Default: Any request not explicitly permitted by a role check is rejected.
+ * Core Philosophy:
+ * This ruleset implements a robust Role-Based Access Control (RBAC) and Attribute-Based Access Control (ABAC) 
+ * system for the Cheesy Bites Inventory Control & BOM Variance System. It prioritizes "Authorization 
+ * Independence" by utilizing denormalized fields and dedicated role-check collections to minimize 
+ * expensive cross-document lookups.
+ *
+ * Data Structure:
+ * - /users/{userId}: Private user profiles accessible only by the owner.
+ * - /{role}_users/{userId}: Marker collections (Admin, Master Data Manager, etc.) where the presence 
+ *   of a UID-keyed document grants specific system-wide permissions.
+ * - /raw_materials, /finished_goods, /warehouses, /waste_reasons: Master data collections managed 
+ *   by Master Data Managers.
+ * - /production_orders, /stock_transactions: Transactional data trees secured by operational roles.
+ *
+ * Key Security Decisions:
+ * - DBAC (Document-Based Access Control): Roles are verified using `exists()` checks against 
+ *   specialized collections, providing a scalable alternative to custom claims.
+ * - Path-to-Data Consistency: For user-owned data, rules enforce that internal ID fields match 
+ *    the path parameters during creation and remain immutable during updates.
+ * - Prototyping Flexibility: While authorization is strictly enforced based on roles and ownership, 
+ *   specific data field types and non-relational schemas are not validated to allow for rapid iteration.
+ * - Backend-Only Entities: Insights and Variances are marked as read-only for users, as they are 
+ *   intended to be populated by automated backend processes.
  */
 
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- GLOBAL HELPER FUNCTIONS ---
+    // --- HELPER FUNCTIONS ---
 
-    /** Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** Checks if the user has the 'admin' role. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // Role-Based Access Helpers
     function isAdmin() {
-      return exists(/databases/$(database)/documents/app_roles/admin/$(request.auth.uid));
+      return isSignedIn() && exists(/databases/$(database)/documents/admin_users/$(request.auth.uid));
     }
 
-    /** Checks if the user has the 'inventoryManager' role. */
+    function isMasterDataManager() {
+      return isSignedIn() && (exists(/databases/$(database)/documents/master_data_manager_users/$(request.auth.uid)) || isAdmin());
+    }
+
     function isInventoryManager() {
-      return exists(/databases/$(database)/documents/app_roles/inventoryManager/$(request.auth.uid));
+      return isSignedIn() && (exists(/databases/$(database)/documents/inventory_manager_users/$(request.auth.uid)) || isAdmin());
     }
 
-    /** Checks if the user has the 'productionManager' role. */
     function isProductionManager() {
-      return exists(/databases/$(database)/documents/app_roles/productionManager/$(request.auth.uid));
+      return isSignedIn() && (exists(/databases/$(database)/documents/production_manager_users/$(request.auth.uid)) || isAdmin());
     }
 
-    /** Helper for update/delete to ensure the document exists. */
-    function isExisting() {
-      return resource != null;
-    }
-
-    // --- ROLE-BASED ACCESS GROUPS ---
-
-    /** Inventory managers and admins can manage stock and materials. */
-    function hasInventoryAccess() {
-      return isSignedIn() && (isAdmin() || isInventoryManager());
-    }
-
-    /** Production managers and admins can manage BOMs and production runs. */
-    function hasProductionAccess() {
-      return isSignedIn() && (isAdmin() || isProductionManager());
+    function isProductionOperator() {
+      return isSignedIn() && (exists(/databases/$(database)/documents/production_operator_users/$(request.auth.uid)) || isAdmin());
     }
 
     // --- COLLECTION RULES ---
 
     /**
-     * @description Rules for global application roles. Restricted to admins.
-     * @path /app_roles/{role}/{userId}
-     * @allow (get) if authenticated user is checking their own role.
-     * @deny (write) if user is not an admin.
-     * @principle Restricts role management to administrative accounts.
+     * @description Rules for user profiles. Users can only manage their own data.
+     * @path /users/{userId}
+     * @allow get, list, create, update, delete if request.auth.uid == userId
+     * @deny create if request.auth.uid != userId
+     * @principle Ownership-based access control.
      */
-    match /app_roles/{role}/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow list: if isSignedIn() && isAdmin();
-      allow create, update, delete: if isSignedIn() && isAdmin();
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Management of raw materials and finished goods definitions.
-     * @path /materials/{materialId}
-     * @allow (create) if user has inventory access.
-     * @deny (delete) if user is only a production manager.
-     * @principle Authorizes material management based on inventory roles.
+     * @description Role assignment collections. Only Admins can view or modify role assignments.
+     * @path /{role_collection}/{userId}
+     * @allow read, write if isAdmin()
+     * @deny write if !isAdmin()
+     * @principle Restricted administrative access for role management.
      */
-    match /materials/{materialId} {
-      allow get, list: if hasInventoryAccess() || hasProductionAccess();
-      allow create: if hasInventoryAccess();
-      allow update, delete: if hasInventoryAccess() && isExisting();
+    match /admin_users/{userId} {
+      allow get, list, create, update, delete: if isAdmin();
+    }
+    match /master_data_manager_users/{userId} {
+      allow get, list, create, update, delete: if isAdmin();
+    }
+    match /inventory_manager_users/{userId} {
+      allow get, list, create, update, delete: if isAdmin();
+    }
+    match /production_manager_users/{userId} {
+      allow get, list, create, update, delete: if isAdmin();
+    }
+    match /production_operator_users/{userId} {
+      allow get, list, create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Bills of Materials nested under their produced material.
-     * @path /materials/{materialId}/billOfMaterials/{bomId}
-     * @allow (create) if productionOrderId field matches the path materialId.
-     * @deny (list) if user is not authenticated.
-     * @principle Enforces path-based relational integrity for BOMs.
+     * @description Master data (Materials, Goods, Warehouses, Reasons). Readable by all signed-in users, writable only by Master Data Managers.
+     * @path /raw_materials/{id}, /finished_goods/{id}, /warehouses/{id}, /waste_reasons/{id}
+     * @allow get, list if isSignedIn()
+     * @allow create, update, delete if isMasterDataManager()
+     * @deny create if !isMasterDataManager()
+     * @principle Role-based CRUD with public read for internal users.
      */
-    match /materials/{materialId}/billOfMaterials/{bomId} {
-      allow get, list: if hasProductionAccess();
-      allow create: if hasProductionAccess() && request.resource.data.finishedGoodMaterialId == materialId;
-      allow update: if hasProductionAccess() && isExisting() && request.resource.data.finishedGoodMaterialId == resource.data.finishedGoodMaterialId;
-      allow delete: if hasProductionAccess() && isExisting();
+    match /raw_materials/{materialId} {
+      allow get, list: if isSignedIn();
+      allow create: if isMasterDataManager();
+      allow update, delete: if resource != null && isMasterDataManager();
+    }
+
+    match /finished_goods/{finishedGoodId} {
+      allow get, list: if isSignedIn();
+      allow create: if isMasterDataManager();
+      allow update, delete: if resource != null && isMasterDataManager();
 
       /**
-       * @description Individual items within a specific BOM version.
-       * @path /materials/{materialId}/billOfMaterials/{bomId}/items/{itemId}
+       * @description Bill of Materials versions. Linked to finished goods.
+       * @path /finished_goods/{finishedGoodId}/bom_versions/{bomVersionId}
        */
-      match /items/{itemId} {
-        allow get, list: if hasProductionAccess();
-        allow create: if hasProductionAccess() && request.resource.data.billOfMaterialId == bomId;
-        allow update: if hasProductionAccess() && isExisting() && request.resource.data.billOfMaterialId == resource.data.billOfMaterialId;
-        allow delete: if hasProductionAccess() && isExisting();
+      match /bom_versions/{bomVersionId} {
+        allow get, list: if isSignedIn();
+        allow create: if isMasterDataManager();
+        allow update, delete: if resource != null && isMasterDataManager();
       }
     }
 
-    /**
-     * @description Physical warehouse location management.
-     * @path /warehouses/{warehouseId}
-     * @allow (read) for all staff roles.
-     * @deny (write) if user lacks inventory manager role.
-     * @principle Centralizes warehouse configuration to authorized logistics roles.
-     */
     match /warehouses/{warehouseId} {
-      allow get, list: if hasInventoryAccess() || hasProductionAccess();
-      allow create: if hasInventoryAccess();
-      allow update, delete: if hasInventoryAccess() && isExisting();
-    }
-
-    /**
-     * @description Standardized reasons for inventory wastage.
-     * @path /wasteReasons/{wasteReasonId}
-     * @allow (get) for inventory and production managers.
-     * @deny (create) if user is not an admin or inventory manager.
-     * @principle Restricts metadata configuration to core logistics roles.
-     */
-    match /wasteReasons/{wasteReasonId} {
-      allow get, list: if hasInventoryAccess() || hasProductionAccess();
-      allow create: if hasInventoryAccess();
-      allow update, delete: if hasInventoryAccess() && isExisting();
-    }
-
-    /**
-     * @description Current stock levels per material/warehouse.
-     * @path /inventoryStocks/{inventoryStockId}
-     * @allow (update) if user is an inventory manager.
-     * @deny (list) if user is unauthenticated.
-     * @principle Gated access to real-time inventory balances.
-     */
-    match /inventoryStocks/{inventoryStockId} {
-      allow get, list: if hasInventoryAccess() || hasProductionAccess();
-      allow create: if hasInventoryAccess();
-      allow update, delete: if hasInventoryAccess() && isExisting();
-    }
-
-    /**
-     * @description Ledger of all inventory movements.
-     * @path /inventoryTransactions/{transactionId}
-     * @allow (create) for inventory managers to log receipts/issues.
-     * @deny (delete) always (transactions are typically immutable logs).
-     * @principle Ensures auditability of material movements.
-     */
-    match /inventoryTransactions/{transactionId} {
-      allow get, list: if hasInventoryAccess() || hasProductionAccess();
-      allow create: if hasInventoryAccess();
-      allow update: if hasInventoryAccess() && isExisting();
-      allow delete: if false; // Audit logs should generally not be deleted.
-    }
-
-    /**
-     * @description Lifecycle management of production runs.
-     * @path /productionOrders/{productionOrderId}
-     * @allow (update) for production managers to change status.
-     * @deny (create) if user only has inventory manager role.
-     * @principle Segregates production execution from general inventory management.
-     */
-    match /productionOrders/{productionOrderId} {
-      allow get, list: if hasProductionAccess() || hasInventoryAccess();
-      allow create: if hasProductionAccess();
-      allow update, delete: if hasProductionAccess() && isExisting();
+      allow get, list: if isSignedIn();
+      allow create: if isMasterDataManager();
+      allow update, delete: if resource != null && isMasterDataManager();
 
       /**
-       * @description Records of actual materials used in a production run.
-       * @path /productionOrders/{productionOrderId}/consumptionRecords/{consumptionId}
+       * @description Stock transactions within a warehouse. Records movements.
+       * @path /warehouses/{warehouseId}/stock_transactions/{transactionId}
        */
-      match /consumptionRecords/{consumptionId} {
-        allow get, list: if hasProductionAccess();
-        allow create: if hasProductionAccess() && request.resource.data.productionOrderId == productionOrderId;
-        allow update: if hasProductionAccess() && isExisting() && request.resource.data.productionOrderId == resource.data.productionOrderId;
-        allow delete: if hasProductionAccess() && isExisting();
+      match /stock_transactions/{transactionId} {
+        allow get, list: if isInventoryManager() || isProductionOperator();
+        allow create: if (isInventoryManager() || isProductionOperator()) && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if resource != null && isInventoryManager();
+      }
+    }
+
+    match /waste_reasons/{reasonId} {
+      allow get, list: if isSignedIn();
+      allow create: if isMasterDataManager();
+      allow update, delete: if resource != null && isMasterDataManager();
+    }
+
+    /**
+     * @description Production Order lifecycle management.
+     * @path /production_orders/{productionOrderId}
+     * @allow create if isProductionManager()
+     * @allow update if isProductionManager() or isProductionOperator()
+     * @principle Operational role-based access for workflow management.
+     */
+    match /production_orders/{productionOrderId} {
+      allow get, list: if isProductionManager() || isProductionOperator();
+      allow create: if isProductionManager();
+      allow update: if resource != null && (isProductionManager() || isProductionOperator());
+      allow delete: if resource != null && isProductionManager();
+
+      /**
+       * @description Records for consumption and output. Operators log these, Managers view them.
+       */
+      match /consumption_records/{recordId} {
+        allow get, list: if isProductionManager() || isProductionOperator();
+        allow create: if (isProductionOperator() || isProductionManager()) && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if resource != null && isProductionManager();
+      }
+
+      match /output_records/{recordId} {
+        allow get, list: if isProductionManager() || isProductionOperator();
+        allow create: if (isProductionOperator() || isProductionManager()) && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if resource != null && isProductionManager();
       }
 
       /**
-       * @description Financial and quantity variances for a production order.
-       * @path /productionOrders/{productionOrderId}/variance/default
+       * @description System-generated variances and AI insights. Read-only for production staff.
        */
-      match /variance/{docId} {
-        allow get: if hasProductionAccess();
-        allow list: if hasProductionAccess();
-        allow create: if hasProductionAccess() && request.resource.data.productionOrderId == productionOrderId;
-        allow update: if hasProductionAccess() && isExisting() && request.resource.data.productionOrderId == resource.data.productionOrderId;
-        allow delete: if hasProductionAccess() && isExisting();
+      match /variances/{varianceId} {
+        allow get, list: if isProductionManager();
+        allow create, update, delete: if false; // Created by backend logic
+      }
+
+      match /insights/{insightId} {
+        allow get, list: if isProductionManager();
+        allow create, update, delete: if false; // Created by backend logic
       }
     }
   }
