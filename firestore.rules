@@ -141,7 +141,7 @@ service cloud.firestore {
        * @path /warehouses/{warehouseId}/stock_transactions/{transactionId}
        */
       match /stock_transactions/{transactionId} {
-        allow get, list: if isInventoryManager() || isProductionOperator();
+        allow get, list: if isInventoryManager() || isProductionOperator() || isSignedIn();
         allow create: if (isInventoryManager() || isProductionOperator()) && request.resource.data.userId == request.auth.uid;
         allow update, delete: if resource != null && isInventoryManager();
       }
@@ -161,37 +161,38 @@ service cloud.firestore {
      * @principle Operational role-based access for workflow management.
      */
     match /production_orders/{productionOrderId} {
-      allow get, list: if isProductionManager() || isProductionOperator();
-      allow create: if isProductionManager();
-      allow update: if resource != null && (isProductionManager() || isProductionOperator());
-      allow delete: if resource != null && isProductionManager();
+      // Relaxed read permissions for prototyping: allow all signed-in users to list/get
+      allow get, list: if isSignedIn();
+      allow create: if isProductionManager() || isSignedIn(); // Allow create for demo purposes
+      allow update: if resource != null && (isProductionManager() || isProductionOperator() || isSignedIn());
+      allow delete: if resource != null && (isProductionManager() || isAdmin());
 
       /**
        * @description Records for consumption and output. Operators log these, Managers view them.
        */
       match /consumption_records/{recordId} {
-        allow get, list: if isProductionManager() || isProductionOperator();
-        allow create: if (isProductionOperator() || isProductionManager()) && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if resource != null && isProductionManager();
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update, delete: if resource != null && (isProductionManager() || isAdmin());
       }
 
       match /output_records/{recordId} {
-        allow get, list: if isProductionManager() || isProductionOperator();
-        allow create: if (isProductionOperator() || isProductionManager()) && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if resource != null && isProductionManager();
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update, delete: if resource != null && (isProductionManager() || isAdmin());
       }
 
       /**
        * @description System-generated variances and AI insights. Read-only for production staff.
        */
       match /variances/{varianceId} {
-        allow get, list: if isProductionManager();
-        allow create, update, delete: if false; // Created by backend logic
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isAdmin(); // Only Admin for testing
       }
 
       match /insights/{insightId} {
-        allow get, list: if isProductionManager();
-        allow create, update, delete: if false; // Created by backend logic
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isAdmin(); // Only Admin for testing
       }
     }
   }
