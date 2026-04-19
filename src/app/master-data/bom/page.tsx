@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo } from "react"
@@ -11,7 +10,8 @@ import {
   TrendingUp,
   Copy,
   Save,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 
 const CONSISTENT_PRODUCTS = [
@@ -89,11 +89,28 @@ export default function BOMManagementPage() {
   })
 
   const handleAddComponent = () => {
-    if (!newComponent.name || !selectedBOM) return
+    if (!newComponent.name || !selectedBOM || !selectedProductId) return
     
-    // Logic to update components in BOM (simplified for MVP: push to current BOM doc)
-    // In a real app, this would be a more complex field update
+    const bomDocRef = doc(db, "finished_goods", selectedProductId, "bom_versions", selectedBOM.id)
+    const updatedComponents = [...(selectedBOM.components || []), newComponent]
+    
+    updateDocumentNonBlocking(bomDocRef, {
+      components: updatedComponents
+    })
+    
     setIsAddComponentOpen(false)
+    setNewComponent({ name: "", qty: 0, unit: "kg", loss: 0 })
+  }
+
+  const handleDeleteComponent = (index: number) => {
+    if (!selectedBOM || !selectedProductId) return
+    
+    const bomDocRef = doc(db, "finished_goods", selectedProductId, "bom_versions", selectedBOM.id)
+    const updatedComponents = selectedBOM.components.filter((_: any, i: number) => i !== index)
+    
+    updateDocumentNonBlocking(bomDocRef, {
+      components: updatedComponents
+    })
   }
 
   const handleCreateNewBOM = () => {
@@ -222,6 +239,75 @@ export default function BOMManagementPage() {
                       <TabsTrigger value="simulation">Cost Simulation</TabsTrigger>
                     </TabsList>
                     <TabsContent value="components" className="space-y-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">BOM Components</h3>
+                        <Dialog open={isAddComponentOpen} onOpenChange={setIsAddComponentOpen}>
+                          <DialogTrigger asChild>
+                            <Button size="sm" className="bg-secondary text-secondary-foreground">
+                              <Plus className="h-4 w-4 mr-2" /> Add Component
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                              <DialogTitle className="font-headline text-xl">Add BOM Component</DialogTitle>
+                              <DialogDescription>Add a raw material or ingredient to this BOM version.</DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid gap-2">
+                                <Label>Material</Label>
+                                <Select onValueChange={(v) => setNewComponent({...newComponent, name: v})}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select material" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {CONSISTENT_MATERIALS.map(mat => (
+                                      <SelectItem key={mat} value={mat}>{mat}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                  <Label>Standard Quantity</Label>
+                                  <Input 
+                                    type="number" 
+                                    step="0.001"
+                                    value={newComponent.qty}
+                                    onChange={(e) => setNewComponent({...newComponent, qty: Number(e.target.value)})}
+                                  />
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Unit</Label>
+                                  <Select onValueChange={(v) => setNewComponent({...newComponent, unit: v})} defaultValue={newComponent.unit}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Unit" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="kg">kg</SelectItem>
+                                      <SelectItem value="L">L</SelectItem>
+                                      <SelectItem value="units">units</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="grid gap-2">
+                                <Label>Expected Loss (%)</Label>
+                                <Input 
+                                  type="number" 
+                                  value={newComponent.loss}
+                                  onChange={(e) => setNewComponent({...newComponent, loss: Number(e.target.value)})}
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={handleAddComponent} className="w-full bg-primary text-primary-foreground">
+                                <Save className="h-4 w-4 mr-2" /> Save Component
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+
                       <div className="rounded-lg border overflow-hidden">
                         <table className="w-full text-sm">
                           <thead className="bg-muted/50 border-b">
@@ -230,21 +316,32 @@ export default function BOMManagementPage() {
                               <th className="text-right p-3 font-semibold">Quantity</th>
                               <th className="text-left p-3 font-semibold">Unit</th>
                               <th className="text-right p-3 font-semibold">Loss %</th>
+                              <th className="w-[50px]"></th>
                             </tr>
                           </thead>
                           <tbody className="divide-y">
                             {selectedBOM.components?.length > 0 ? (
                               selectedBOM.components.map((comp: any, i: number) => (
-                                <tr key={i} className="hover:bg-muted/20">
+                                <tr key={i} className="hover:bg-muted/20 group">
                                   <td className="p-3 font-medium">{comp.name}</td>
                                   <td className="p-3 text-right">{comp.qty}</td>
                                   <td className="p-3">{comp.unit}</td>
                                   <td className="p-3 text-right text-muted-foreground">{comp.loss}%</td>
+                                  <td className="p-3">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => handleDeleteComponent(i)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </td>
                                 </tr>
                               ))
                             ) : (
                               <tr>
-                                <td colSpan={4} className="p-8 text-center text-muted-foreground italic">
+                                <td colSpan={5} className="p-8 text-center text-muted-foreground italic">
                                   No components defined for this BOM version yet.
                                 </td>
                               </tr>
