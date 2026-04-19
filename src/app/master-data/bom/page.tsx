@@ -11,7 +11,8 @@ import {
   Copy,
   Save,
   Loader2,
-  Trash2
+  Trash2,
+  Calculator
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -75,6 +76,9 @@ export default function BOMManagementPage() {
 
   const selectedBOM = boms?.[0] || null
 
+  // Cost Simulation State
+  const [simulatedPrices, setSimulatedPrices] = useState<Record<string, number>>({})
+
   const [newComponent, setNewComponent] = useState({
     name: "",
     qty: 0,
@@ -89,7 +93,7 @@ export default function BOMManagementPage() {
   })
 
   const handleAddComponent = () => {
-    if (!newComponent.name || !selectedBOM || !selectedProductId) return
+    if (!newComponent.name || !selectedBOM || !selectedProductId || !db) return
     
     const bomDocRef = doc(db, "finished_goods", selectedProductId, "bom_versions", selectedBOM.id)
     const updatedComponents = [...(selectedBOM.components || []), newComponent]
@@ -103,7 +107,7 @@ export default function BOMManagementPage() {
   }
 
   const handleDeleteComponent = (index: number) => {
-    if (!selectedBOM || !selectedProductId) return
+    if (!selectedBOM || !selectedProductId || !db) return
     
     const bomDocRef = doc(db, "finished_goods", selectedProductId, "bom_versions", selectedBOM.id)
     const updatedComponents = selectedBOM.components.filter((_: any, i: number) => i !== index)
@@ -124,6 +128,25 @@ export default function BOMManagementPage() {
     })
     setIsNewBOMOpen(false)
   }
+
+  const simulationResults = useMemo(() => {
+    if (!selectedBOM?.components) return { details: [], total: 0 };
+
+    let total = 0;
+    const details = selectedBOM.components.map((comp: any) => {
+      const price = simulatedPrices[comp.name] || 0;
+      const qtyWithLoss = comp.qty * (1 + comp.loss / 100);
+      const subtotal = qtyWithLoss * price;
+      total += subtotal;
+      return {
+        ...comp,
+        price,
+        subtotal
+      };
+    });
+
+    return { details, total };
+  }, [selectedBOM, simulatedPrices]);
 
   return (
     <div className="space-y-6">
@@ -350,19 +373,70 @@ export default function BOMManagementPage() {
                         </table>
                       </div>
                     </TabsContent>
-                    <TabsContent value="simulation">
-                       <div className="bg-accent/20 rounded-xl p-6 border border-primary/20">
+                    <TabsContent value="simulation" className="space-y-6">
+                       <div className="bg-accent/10 rounded-xl p-6 border border-primary/20">
                          <h4 className="font-headline font-bold mb-4 flex items-center gap-2 text-secondary">
-                           <TrendingUp className="h-4 w-4" />
-                           Market Price Fluctuation Simulation
+                           <Calculator className="h-4 w-4" />
+                           Dynamic Unit Cost Simulation
                          </h4>
                          <p className="text-xs text-muted-foreground mb-6">
-                           Simulate how changes in raw material costs impact the final snack cost roll-up.
+                           Enter market prices for each raw material to estimate the total production cost per unit.
                          </p>
-                         <div className="mt-8 pt-6 border-t border-primary/10 flex items-center justify-between">
-                           <span className="text-sm font-bold text-muted-foreground uppercase">Projected Unit Cost</span>
-                           <span className="text-2xl font-bold text-foreground">$1.45</span>
+
+                         <div className="space-y-4">
+                           {selectedBOM.components?.map((comp: any, i: number) => (
+                             <div key={i} className="flex items-center gap-4 p-3 bg-white rounded-lg border shadow-sm">
+                               <div className="flex-1">
+                                 <span className="text-sm font-bold block">{comp.name}</span>
+                                 <span className="text-[10px] text-muted-foreground">Qty: {comp.qty} {comp.unit} (incl. {comp.loss}% loss)</span>
+                               </div>
+                               <div className="flex items-center gap-2 w-48">
+                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                 <Input 
+                                   type="number"
+                                   placeholder="Price/Unit"
+                                   className="h-8 text-right font-mono"
+                                   value={simulatedPrices[comp.name] || ""}
+                                   onChange={(e) => setSimulatedPrices({
+                                     ...simulatedPrices,
+                                     [comp.name]: Number(e.target.value)
+                                   })}
+                                 />
+                               </div>
+                               <div className="w-24 text-right">
+                                 <span className="text-xs font-bold text-secondary">
+                                   ${((simulatedPrices[comp.name] || 0) * comp.qty * (1 + comp.loss / 100)).toFixed(2)}
+                                 </span>
+                               </div>
+                             </div>
+                           ))}
+
+                           {(!selectedBOM.components || selectedBOM.components.length === 0) && (
+                             <div className="text-center py-8 text-muted-foreground italic">
+                               Add components in the first tab to start simulation.
+                             </div>
+                           )}
                          </div>
+
+                         <div className="mt-8 pt-6 border-t border-primary/20 flex items-center justify-between">
+                           <div className="flex flex-col">
+                             <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Projected BOM Unit Cost</span>
+                             <span className="text-[10px] text-muted-foreground">Standardized for 1 Production Unit</span>
+                           </div>
+                           <div className="flex items-center gap-2">
+                             <Badge className="bg-secondary text-lg h-10 px-4 font-bold font-mono">
+                               ${simulationResults.total.toFixed(2)}
+                             </Badge>
+                             <TrendingUp className="h-5 w-5 text-secondary" />
+                           </div>
+                         </div>
+                       </div>
+
+                       <div className="p-4 rounded-xl bg-muted/20 border border-dashed text-center">
+                          <p className="text-xs text-muted-foreground">
+                            *This simulation uses local state and does not update permanent records. 
+                            Use these figures for seasonal pricing adjustments or material vendor comparisons.
+                          </p>
                        </div>
                     </TabsContent>
                   </Tabs>
