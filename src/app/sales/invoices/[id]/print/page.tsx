@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useParams } from "next/navigation"
@@ -37,7 +38,7 @@ export default function PrintInvoicePage() {
             <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center overflow-hidden">
                {settings?.companyLogoUrl ? (
                  <img src={settings.companyLogoUrl} alt="Logo" className="object-contain h-full w-full" />
-               ) : <span className="font-black text-xl">CB</span>}
+               ) : <span className="font-black text-xl text-primary-foreground">CB</span>}
             </div>
             <h1 className="text-3xl font-black font-headline tracking-tighter uppercase">Cheesy Bites Co.</h1>
           </div>
@@ -59,7 +60,14 @@ export default function PrintInvoicePage() {
       <div className="grid grid-cols-2 gap-12 py-8">
         <div>
           <h3 className="text-[10px] font-black uppercase text-muted-foreground mb-4 tracking-[0.2em] border-b pb-1">Billing Details</h3>
-          <div className="font-black text-xl mb-1">{invoice.customerName}</div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-black text-xl">{invoice.customerName}</span>
+            {invoice.customerCode && (
+              <Badge variant="outline" className="text-[10px] font-black border-primary text-primary">
+                {invoice.customerCode}
+              </Badge>
+            )}
+          </div>
           <div className="text-sm text-muted-foreground space-y-1">
              <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5" /> {invoice.customerAddress || 'Default Customer Address, Yangon, Myanmar'}</p>
              <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> +95 912345678</p>
@@ -92,7 +100,7 @@ export default function PrintInvoicePage() {
         <table className="w-full text-left">
           <thead>
             <tr className="bg-slate-950 text-white text-[10px] font-black uppercase tracking-widest">
-              <th className="p-4 rounded-tl-lg">Description</th>
+              <th className="p-4 rounded-tl-lg">Description / Item Code</th>
               <th className="p-4 text-center">Qty</th>
               <th className="p-4 text-center">Unit</th>
               <th className="p-4 text-right">Unit Price</th>
@@ -104,7 +112,9 @@ export default function PrintInvoicePage() {
               <tr key={i} className="text-sm hover:bg-muted/30 transition-colors">
                 <td className="p-4">
                   <div className="font-black">{item.productName}</div>
-                  <div className="text-[10px] text-muted-foreground uppercase">CB-FG-{i+100}</div>
+                  <div className="text-[10px] text-primary font-black uppercase tracking-widest">
+                    CODE: {item.productCode || 'CB-FG-UNKNOWN'}
+                  </div>
                 </td>
                 <td className="p-4 text-center font-mono">{item.quantity}</td>
                 <td className="p-4 text-center text-xs text-muted-foreground uppercase font-bold">{item.unit || 'Units'}</td>
@@ -127,8 +137,8 @@ export default function PrintInvoicePage() {
             <span className="font-mono">MMK 0</span>
           </div>
           <div className="flex justify-between text-xl font-black bg-primary p-4 rounded-xl shadow-lg shadow-primary/20">
-            <span className="tracking-tighter uppercase">Total:</span> 
-            <span className="font-mono">MMK {invoice.totalAmount.toLocaleString()}</span>
+            <span className="tracking-tighter uppercase text-primary-foreground">Total:</span> 
+            <span className="font-mono text-primary-foreground">MMK {invoice.totalAmount.toLocaleString()}</span>
           </div>
         </div>
       </div>

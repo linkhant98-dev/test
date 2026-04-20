@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo } from "react"
@@ -12,7 +13,8 @@ import {
   Save,
   Loader2,
   Trash2,
-  Calculator
+  Calculator,
+  Hash
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -148,6 +150,10 @@ export default function BOMManagementPage() {
     return { details, total };
   }, [selectedBOM, simulatedPrices]);
 
+  const filteredProducts = products?.filter(p => 
+    p.name.toLowerCase().includes("") // For search filter implementation if needed
+  ) || []
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -214,15 +220,17 @@ export default function BOMManagementPage() {
           <div className="divide-y max-h-[600px] overflow-y-auto">
             {productsLoading ? (
                <div className="p-8 flex justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
-            ) : products?.map((prod) => (
+            ) : filteredProducts?.map((prod) => (
               <div 
                 key={prod.id} 
                 className={`p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between ${selectedProductId === prod.id ? 'bg-accent/40 border-l-4 border-primary' : ''}`}
                 onClick={() => setSelectedProductId(prod.id)}
               >
                 <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold text-primary uppercase tracking-tighter">
+                    {prod.code || 'NO CODE'}
+                  </span>
                   <span className="text-sm font-bold">{prod.name}</span>
-                  <span className="text-[10px] text-muted-foreground uppercase">{prod.id.slice(-5)}</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </div>
@@ -241,7 +249,12 @@ export default function BOMManagementPage() {
             <Card className="border-none shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
                 <div className="flex flex-col gap-1">
-                  <CardTitle className="font-headline text-2xl">{products?.find(p => p.id === selectedProductId)?.name}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20">
+                      {products?.find(p => p.id === selectedProductId)?.code || 'UNCODED'}
+                    </span>
+                    <CardTitle className="font-headline text-2xl">{products?.find(p => p.id === selectedProductId)?.name}</CardTitle>
+                  </div>
                   {selectedBOM ? (
                     <div className="flex items-center gap-4">
                       <Badge className={selectedBOM.status === 'Active' ? 'bg-secondary' : 'bg-muted'}>{selectedBOM.status}</Badge>

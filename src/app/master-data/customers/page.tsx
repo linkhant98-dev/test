@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, User, Mail, Phone, MapPin, Loader2, MoreVertical, Edit2, Trash2, Save, Globe, Landmark, CreditCard, Shield, Clock } from "lucide-react"
+import { Plus, Search, User, Mail, Phone, MapPin, Loader2, MoreVertical, Edit2, Trash2, Save, Globe, Landmark, CreditCard, Shield, Clock, Hash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,6 +38,7 @@ export default function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [newCustomer, setNewCustomer] = useState({
+    code: "",
     name: "",
     email: "",
     phone: "",
@@ -64,7 +66,7 @@ export default function CustomersPage() {
     })
     setIsAddOpen(false)
     setNewCustomer({ 
-      name: "", email: "", phone: "", address: "", 
+      code: "", name: "", email: "", phone: "", address: "", 
       customerType: "Retailer", customerClass: "Grade B",
       taxId: "", creditLimit: 0, paymentTerms: "Net 15", website: ""
     })
@@ -74,6 +76,7 @@ export default function CustomersPage() {
     if (!editingCustomer || !db) return
     const docRef = doc(db, "customers", editingCustomer.id)
     updateDocumentNonBlocking(docRef, {
+      code: editingCustomer.code,
       name: editingCustomer.name,
       email: editingCustomer.email,
       phone: editingCustomer.phone,
@@ -95,7 +98,8 @@ export default function CustomersPage() {
 
   const filtered = customers?.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchTerm.toLowerCase())
+    c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.code && c.code.toLowerCase().includes(searchTerm.toLowerCase()))
   ) || []
 
   return (
@@ -120,12 +124,12 @@ export default function CustomersPage() {
             <div className="grid gap-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Full Name / Company</Label>
-                  <Input value={newCustomer.name} onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})} placeholder="e.g. City Mart Snacks" />
+                  <Label>Customer Code</Label>
+                  <Input value={newCustomer.code} onChange={(e) => setNewCustomer({...newCustomer, code: e.target.value.toUpperCase()})} placeholder="e.g. CUST-001" />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Tax ID / Reg Number</Label>
-                  <Input value={newCustomer.taxId} onChange={(e) => setNewCustomer({...newCustomer, taxId: e.target.value})} placeholder="VAT-123456" />
+                  <Label>Full Name / Company</Label>
+                  <Input value={newCustomer.name} onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})} placeholder="e.g. City Mart Snacks" />
                 </div>
               </div>
               
@@ -197,6 +201,11 @@ export default function CustomersPage() {
               </div>
 
               <div className="grid gap-2">
+                <Label>Tax ID / Reg Number</Label>
+                <Input value={newCustomer.taxId} onChange={(e) => setNewCustomer({...newCustomer, taxId: e.target.value})} placeholder="VAT-123456" />
+              </div>
+
+              <div className="grid gap-2">
                 <Label>Shipping Address</Label>
                 <Input value={newCustomer.address} onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})} placeholder="Full physical address" />
               </div>
@@ -212,7 +221,7 @@ export default function CustomersPage() {
         <CardHeader className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by name, email, or tax ID..." className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <Input placeholder="Search by name, code, email, or tax ID..." className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -222,6 +231,7 @@ export default function CustomersPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
+                  <TableHead>Code</TableHead>
                   <TableHead>Customer / Type</TableHead>
                   <TableHead>Classification</TableHead>
                   <TableHead>Financials</TableHead>
@@ -232,6 +242,9 @@ export default function CustomersPage() {
               <TableBody>
                 {filtered.map((c) => (
                   <TableRow key={c.id}>
+                    <TableCell className="font-mono text-xs font-bold text-secondary">
+                      {c.code || <span className="text-muted-foreground italic">N/A</span>}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
@@ -289,18 +302,18 @@ export default function CustomersPage() {
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl">Edit Customer Profile</DialogTitle>
-            <DialogDescription>Update contact and formal data for {editingCustomer?.name}.</DialogDescription>
+            <DialogDescription>Update identification and formal data for {editingCustomer?.name}.</DialogDescription>
           </DialogHeader>
           {editingCustomer && (
             <div className="grid gap-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Customer Name</Label>
-                  <Input value={editingCustomer.name} onChange={(e) => setEditingCustomer({...editingCustomer, name: e.target.value})} />
+                  <Label>Customer Code</Label>
+                  <Input value={editingCustomer.code} onChange={(e) => setEditingCustomer({...editingCustomer, code: e.target.value.toUpperCase()})} />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Tax ID</Label>
-                  <Input value={editingCustomer.taxId} onChange={(e) => setEditingCustomer({...editingCustomer, taxId: e.target.value})} />
+                  <Label>Customer Name</Label>
+                  <Input value={editingCustomer.name} onChange={(e) => setEditingCustomer({...editingCustomer, name: e.target.value})} />
                 </div>
               </div>
               

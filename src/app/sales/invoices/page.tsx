@@ -79,7 +79,7 @@ export default function InvoicesPage() {
   const [formData, setFormData] = useState({
     customerId: "",
     paymentMethod: "Cash",
-    items: [{ productName: "", quantity: 1, price: 0, unit: "Units" }]
+    items: [{ productName: "", productCode: "", quantity: 1, price: 0, unit: "Units" }]
   })
 
   const calculateTotal = (items: any[]) => {
@@ -87,7 +87,7 @@ export default function InvoicesPage() {
   }
 
   const handleAddLine = (isEdit: boolean = false) => {
-    const newItem = { productName: "", quantity: 1, price: 0, unit: "Units" }
+    const newItem = { productName: "", productCode: "", quantity: 1, price: 0, unit: "Units" }
     if (isEdit) {
       setEditingInvoice({
         ...editingInvoice,
@@ -113,12 +113,10 @@ export default function InvoicesPage() {
     }
   }
 
-  // Enhanced Price Lookup Logic
   const fetchBestPrice = async (productId: string, customerType: string) => {
     const product = products?.find(p => p.id === productId);
     let bestPrice = product?.price || 0;
 
-    // Check for specific price rules for this customer type and current date
     const rulesRef = collection(db, "finished_goods", productId, "price_rules");
     const today = new Date().toISOString().split('T')[0];
     
@@ -135,7 +133,6 @@ export default function InvoicesPage() {
         .filter(r => r.validTo >= today);
 
       if (activeRules.length > 0) {
-        // Use the rule price (if multiple, pick the most recent or lowest, but for MVP just pick first)
         bestPrice = activeRules[0].price;
       }
     } catch (e) {
@@ -152,7 +149,6 @@ export default function InvoicesPage() {
     
     if (!product) return;
 
-    // Async lookup for tiered pricing
     const resolvedPrice = await fetchBestPrice(product.id, customer?.customerType || "Retailer");
 
     if (isEdit) {
@@ -160,6 +156,7 @@ export default function InvoicesPage() {
       newItems[index] = { 
         ...newItems[index], 
         productName: val, 
+        productCode: product.code || "",
         price: resolvedPrice,
         unit: product?.unit || "Units" 
       }
@@ -169,6 +166,7 @@ export default function InvoicesPage() {
       newItems[index] = { 
         ...newItems[index], 
         productName: val, 
+        productCode: product.code || "",
         price: resolvedPrice,
         unit: product?.unit || "Units" 
       }
@@ -203,6 +201,7 @@ export default function InvoicesPage() {
       invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
       customerId: formData.customerId,
       customerName: customer?.name || "Unknown",
+      customerCode: customer?.code || "",
       paymentMethod: formData.paymentMethod,
       items: invoiceItems,
       totalAmount,
@@ -211,7 +210,7 @@ export default function InvoicesPage() {
       createdAt: new Date().toISOString()
     })
     setIsAddOpen(false)
-    setFormData({ customerId: "", paymentMethod: "Cash", items: [{ productName: "", quantity: 1, price: 0, unit: "Units" }] })
+    setFormData({ customerId: "", paymentMethod: "Cash", items: [{ productName: "", productCode: "", quantity: 1, price: 0, unit: "Units" }] })
   }
 
   const handleUpdateInvoice = () => {
@@ -277,7 +276,12 @@ export default function InvoicesPage() {
                       <SelectValue placeholder="Select a customer" />
                     </SelectTrigger>
                     <SelectContent>
-                      {customers?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {customers?.map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <span className="font-bold mr-2">[{c.code || 'N/A'}]</span>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -314,7 +318,12 @@ export default function InvoicesPage() {
                         <Select onValueChange={(v) => handleProductSelect(v, idx, false)}>
                           <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
                           <SelectContent>
-                            {products?.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                            {products?.map(p => (
+                              <SelectItem key={p.id} value={p.name}>
+                                <span className="font-bold mr-2">[{p.code || 'N/A'}]</span>
+                                {p.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -394,7 +403,12 @@ export default function InvoicesPage() {
                 {invoices?.map((inv) => (
                   <TableRow key={inv.id}>
                     <TableCell className="font-mono font-bold">{inv.invoiceNumber}</TableCell>
-                    <TableCell className="font-medium">{inv.customerName}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{inv.customerName}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">{inv.customerCode || 'NO CODE'}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[10px]">{inv.items?.length || 0} Lines</Badge>
                     </TableCell>
@@ -452,7 +466,7 @@ export default function InvoicesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Bill To</Label>
-                  <Input value={editingInvoice.customerName} disabled />
+                  <Input value={`${editingInvoice.customerName} (${editingInvoice.customerCode || 'N/A'})`} disabled />
                 </div>
                 <div className="grid gap-2">
                   <Label>Payment Method</Label>
@@ -487,7 +501,12 @@ export default function InvoicesPage() {
                         <Select value={item.productName} onValueChange={(v) => handleProductSelect(v, idx, true)}>
                           <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
                           <SelectContent>
-                            {products?.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                            {products?.map(p => (
+                              <SelectItem key={p.id} value={p.name}>
+                                <span className="font-bold mr-2">[{p.code || 'N/A'}]</span>
+                                {p.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

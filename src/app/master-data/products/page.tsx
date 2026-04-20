@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Search, MoreVertical, Edit2, Trash2, Loader2, Save } from "lucide-react"
+import { Plus, Search, MoreVertical, Edit2, Trash2, Loader2, Save, Hash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -54,6 +55,7 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<any>(null)
   
   const [newProduct, setNewProduct] = useState({
+    code: "",
     name: "",
     category: "Finished Good",
     price: 0,
@@ -75,13 +77,14 @@ export default function ProductsPage() {
       createdAt: new Date().toISOString()
     })
     setIsAddOpen(false)
-    setNewProduct({ name: "", category: "Finished Good", price: 0, stock: 0 })
+    setNewProduct({ code: "", name: "", category: "Finished Good", price: 0, stock: 0 })
   }
 
   const handleUpdateProduct = () => {
     if (!editingProduct || !db) return
     const docRef = doc(db, "finished_goods", editingProduct.id)
     updateDocumentNonBlocking(docRef, {
+      code: editingProduct.code,
       category: editingProduct.category,
       price: Number(editingProduct.price),
       stock: Number(editingProduct.stock)
@@ -95,7 +98,8 @@ export default function ProductsPage() {
   }
 
   const filteredProducts = products?.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.code && p.code.toLowerCase().includes(searchTerm.toLowerCase()))
   ) || []
 
   if (isAuthLoading || !user) {
@@ -126,6 +130,10 @@ export default function ProductsPage() {
               <DialogDescription>Define a new product for cataloging.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="code">Product Code</Label>
+                <Input id="code" value={newProduct.code} onChange={(e) => setNewProduct({...newProduct, code: e.target.value.toUpperCase()})} placeholder="e.g. FG-1001" />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="name">Product Name</Label>
                 <Select onValueChange={(v) => setNewProduct({...newProduct, name: v})} defaultValue={newProduct.name}>
@@ -159,7 +167,7 @@ export default function ProductsPage() {
         <CardHeader className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search products..." className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <Input placeholder="Search by name or code..." className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -169,7 +177,7 @@ export default function ProductsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead>ID</TableHead>
+                  <TableHead>Code</TableHead>
                   <TableHead>Product Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead className="text-right">Unit Price</TableHead>
@@ -180,7 +188,9 @@ export default function ProductsPage() {
               <TableBody>
                 {filteredProducts.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground font-bold">{p.id.slice(-5)}</TableCell>
+                    <TableCell className="font-mono text-xs font-bold text-primary">
+                      {p.code || <span className="text-muted-foreground italic">N/A</span>}
+                    </TableCell>
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell>{p.category}</TableCell>
                     <TableCell className="text-right">MMK {(p.price || 0).toLocaleString()}</TableCell>
@@ -213,10 +223,14 @@ export default function ProductsPage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="font-headline text-xl">Edit Finished Good</DialogTitle>
-            <DialogDescription>Modify pricing and stock levels for {editingProduct?.name}.</DialogDescription>
+            <DialogDescription>Modify identification, pricing, and stock levels.</DialogDescription>
           </DialogHeader>
           {editingProduct && (
             <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Product Code</Label>
+                <Input value={editingProduct.code} onChange={(e) => setEditingProduct({...editingProduct, code: e.target.value.toUpperCase()})} />
+              </div>
               <div className="grid gap-2">
                 <Label>Product Name</Label>
                 <Input value={editingProduct.name} disabled />
