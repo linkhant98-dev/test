@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo } from "react"
@@ -35,25 +34,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 
-const CONSISTENT_PRODUCTS = [
-  "Original Cheese Stick",
-  "Long Potato",
-  "Chicken PopCorn",
-  "Sausage Cheese Stick"
-];
-
-const CONSISTENT_MATERIALS = [
-  "Mozzarella Cheese",
-  "Potato Starch",
-  "Chicken Breast (Minced)",
-  "Premium Sausage",
-  "Batter Mix",
-  "Breadcrumbs",
-  "Frying Oil",
-  "Seasoning Powder",
-  "Sea Salt"
-];
-
 export default function BOMManagementPage() {
   const db = useFirestore()
   const { user } = useUser()
@@ -63,7 +43,13 @@ export default function BOMManagementPage() {
     return collection(db, "finished_goods");
   }, [db, user]);
 
+  const materialsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "raw_materials");
+  }, [db, user]);
+
   const { data: products, isLoading: productsLoading } = useCollection(productsRef)
+  const { data: rawMaterials } = useCollection(materialsRef)
 
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [isAddComponentOpen, setIsAddComponentOpen] = useState(false)
@@ -83,13 +69,13 @@ export default function BOMManagementPage() {
 
   const [newComponent, setNewComponent] = useState({
     name: "",
+    code: "",
     qty: 0,
     unit: "kg",
     loss: 0
   })
 
   const [newBOMData, setNewBOMData] = useState({
-    product: CONSISTENT_PRODUCTS[0],
     version: "v1.0",
     effDate: new Date().toISOString().split('T')[0]
   })
@@ -105,7 +91,7 @@ export default function BOMManagementPage() {
     })
     
     setIsAddComponentOpen(false)
-    setNewComponent({ name: "", qty: 0, unit: "kg", loss: 0 })
+    setNewComponent({ name: "", code: "", qty: 0, unit: "kg", loss: 0 })
   }
 
   const handleDeleteComponent = (index: number) => {
@@ -149,10 +135,6 @@ export default function BOMManagementPage() {
 
     return { details, total };
   }, [selectedBOM, simulatedPrices]);
-
-  const filteredProducts = products?.filter(p => 
-    p.name.toLowerCase().includes("") // For search filter implementation if needed
-  ) || []
 
   return (
     <div className="space-y-6">
@@ -220,7 +202,7 @@ export default function BOMManagementPage() {
           <div className="divide-y max-h-[600px] overflow-y-auto">
             {productsLoading ? (
                <div className="p-8 flex justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
-            ) : filteredProducts?.map((prod) => (
+            ) : products?.map((prod) => (
               <div 
                 key={prod.id} 
                 className={`p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between ${selectedProductId === prod.id ? 'bg-accent/40 border-l-4 border-primary' : ''}`}
@@ -291,13 +273,19 @@ export default function BOMManagementPage() {
                             <div className="grid gap-4 py-4">
                               <div className="grid gap-2">
                                 <Label>Material</Label>
-                                <Select onValueChange={(v) => setNewComponent({...newComponent, name: v})}>
+                                <Select onValueChange={(v) => {
+                                  const mat = rawMaterials?.find(m => m.id === v);
+                                  setNewComponent({...newComponent, name: mat?.name || "", code: mat?.code || ""});
+                                }}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select material" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {CONSISTENT_MATERIALS.map(mat => (
-                                      <SelectItem key={mat} value={mat}>{mat}</SelectItem>
+                                    {rawMaterials?.map(mat => (
+                                      <SelectItem key={mat.id} value={mat.id}>
+                                        <span className="font-mono font-bold mr-2">[{mat.code || 'N/A'}]</span>
+                                        {mat.name}
+                                      </SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -348,7 +336,8 @@ export default function BOMManagementPage() {
                         <table className="w-full text-sm">
                           <thead className="bg-muted/50 border-b">
                             <tr>
-                              <th className="text-left p-3 font-semibold">Material</th>
+                              <th className="text-left p-3 font-semibold">Material Code</th>
+                              <th className="text-left p-3 font-semibold">Material Name</th>
                               <th className="text-right p-3 font-semibold">Quantity</th>
                               <th className="text-left p-3 font-semibold">Unit</th>
                               <th className="text-right p-3 font-semibold">Loss %</th>
@@ -359,6 +348,7 @@ export default function BOMManagementPage() {
                             {selectedBOM.components?.length > 0 ? (
                               selectedBOM.components.map((comp: any, i: number) => (
                                 <tr key={i} className="hover:bg-muted/20 group">
+                                  <td className="p-3 font-mono text-xs font-bold text-secondary">{comp.code || 'N/A'}</td>
                                   <td className="p-3 font-medium">{comp.name}</td>
                                   <td className="p-3 text-right">{comp.qty}</td>
                                   <td className="p-3">{comp.unit}</td>
@@ -377,7 +367,7 @@ export default function BOMManagementPage() {
                               ))
                             ) : (
                               <tr>
-                                <td colSpan={5} className="p-8 text-center text-muted-foreground italic">
+                                <td colSpan={6} className="p-8 text-center text-muted-foreground italic">
                                   No components defined for this BOM version yet.
                                 </td>
                               </tr>
@@ -401,7 +391,7 @@ export default function BOMManagementPage() {
                              <div key={i} className="flex items-center gap-4 p-3 bg-white rounded-lg border shadow-sm">
                                <div className="flex-1">
                                  <span className="text-sm font-bold block">{comp.name}</span>
-                                 <span className="text-[10px] text-muted-foreground">Qty: {comp.qty} {comp.unit} (incl. {comp.loss}% loss)</span>
+                                 <span className="text-[10px] text-muted-foreground">[{comp.code}] Qty: {comp.qty} {comp.unit} (incl. {comp.loss}% loss)</span>
                                </div>
                                <div className="flex items-center gap-2 w-48">
                                  <span className="text-xs font-bold text-muted-foreground">MMK</span>
@@ -423,12 +413,6 @@ export default function BOMManagementPage() {
                                </div>
                              </div>
                            ))}
-
-                           {(!selectedBOM.components || selectedBOM.components.length === 0) && (
-                             <div className="text-center py-8 text-muted-foreground italic">
-                               Add components in the first tab to start simulation.
-                             </div>
-                           )}
                          </div>
 
                          <div className="mt-8 pt-6 border-t border-primary/20 flex items-center justify-between">
@@ -443,13 +427,6 @@ export default function BOMManagementPage() {
                              <TrendingUp className="h-5 w-5 text-secondary" />
                            </div>
                          </div>
-                       </div>
-
-                       <div className="p-4 rounded-xl bg-muted/20 border border-dashed text-center">
-                          <p className="text-xs text-muted-foreground">
-                            *This simulation uses local state and does not update permanent records. 
-                            Use these figures for seasonal pricing adjustments or material vendor comparisons.
-                          </p>
                        </div>
                     </TabsContent>
                   </Tabs>

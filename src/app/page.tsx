@@ -31,7 +31,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/context/language-context"
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase"
-import { collection } from "firebase/firestore"
+import { collection, getDocs, writeBatch, doc } from "firebase/firestore"
 
 const topProducts = [
   { name: 'Original Cheese Stick', share: 45, color: '#FFD700' },
@@ -137,14 +137,69 @@ export default function Dashboard() {
     if (!db || !user) return;
     setIsSeeding(true);
     try {
-      const outletNames = [
+      // 1. Raw Materials
+      const materials = [
+        { code: "MAT-MOZ-01", name: "Mozzarella Cheese", category: "Raw Material", unit: "kg", stock: 250 },
+        { code: "MAT-POT-02", name: "Potato Starch", category: "Raw Material", unit: "kg", stock: 1200 },
+        { code: "MAT-CHK-03", name: "Chicken Breast (Minced)", category: "Ingredient", unit: "kg", stock: 150 },
+        { code: "MAT-SAU-04", name: "Premium Sausage", category: "Ingredient", unit: "units", stock: 500 },
+        { code: "MAT-OIL-05", name: "Frying Oil", category: "Ingredient", unit: "L", stock: 200 }
+      ];
+      for (const m of materials) {
+        await addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() });
+      }
+
+      // 2. Finished Goods
+      const goods = [
+        { code: "FG-STICK-01", name: "Original Cheese Stick", category: "Finished Good", price: 3500, stock: 450 },
+        { code: "FG-POT-02", name: "Long Potato", category: "Finished Good", price: 2500, stock: 800 },
+        { code: "FG-POPC-03", name: "Chicken PopCorn", category: "Finished Good", price: 4000, stock: 320 }
+      ];
+      for (const g of goods) {
+        await addDocumentNonBlocking(collection(db, "finished_goods"), { ...g, createdAt: new Date().toISOString() });
+      }
+
+      // 3. Customers
+      const customersList = [
+        { code: "CUST-CITY-01", name: "City Mart Supermarket", email: "procurement@citymart.com.mm", customerType: "Wholesaler", customerClass: "VIP", creditLimit: 5000000 },
+        { code: "CUST-SNACK-02", name: "Neighborhood Snack Hub", email: "hello@snackhub.com", customerType: "Retailer", customerClass: "Grade A", creditLimit: 1000000 }
+      ];
+      for (const c of customersList) {
+        await addDocumentNonBlocking(collection(db, "customers"), { ...c, createdAt: new Date().toISOString() });
+      }
+
+      // 4. Outlets
+      const outletsList = [
         { name: "Junction City Outlet", location: "Yangon", manager: "U Kyaw", phone: "091234567" },
-        { name: "Ocean Supercenter Branch", location: "Mandalay", manager: "Daw Yee", phone: "097788990" },
         { name: "Airport Shop", location: "Yangon Int'l", manager: "U Tun", phone: "094455667" }
       ];
-      for (const o of outletNames) {
-        addDocumentNonBlocking(collection(db, "outlets"), { ...o, status: "Active", createdAt: new Date().toISOString() });
+      for (const o of outletsList) {
+        await addDocumentNonBlocking(collection(db, "outlets"), { ...o, status: "Active", createdAt: new Date().toISOString() });
       }
+
+      // 5. Invoices
+      await addDocumentNonBlocking(collection(db, "invoices"), {
+        invoiceNumber: "INV-Demo-01",
+        customerName: "City Mart Supermarket",
+        customerCode: "CUST-CITY-01",
+        totalAmount: 1575000,
+        status: "Paid",
+        createdAt: new Date().toISOString(),
+        items: [
+          { productName: "Original Cheese Stick", quantity: 300, price: 3500, total: 1050000 },
+          { productName: "Long Potato", quantity: 210, price: 2500, total: 525000 }
+        ]
+      });
+
+      // 6. Outlet Sales
+      await addDocumentNonBlocking(collection(db, "outlet_sales"), {
+        outletName: "Junction City Outlet",
+        amount: 245000,
+        date: new Date().toISOString().split('T')[0],
+        transactionsCount: 42,
+        createdAt: new Date().toISOString()
+      });
+
     } catch (e) {
       console.error(e);
     } finally {

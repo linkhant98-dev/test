@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Search, Trash2, Edit2, MoreVertical, Archive, Loader2, Save } from "lucide-react"
+import { Plus, Search, Trash2, Edit2, MoreVertical, Archive, Loader2, Save, Hash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -59,6 +59,7 @@ export default function MaterialsPage() {
   const [editingMaterial, setEditingMaterial] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [newMaterial, setNewMaterial] = useState({
+    code: "",
     name: "",
     unit: "kg",
     category: "Raw Material",
@@ -75,17 +76,19 @@ export default function MaterialsPage() {
     if (!newMaterial.name || !materialsRef) return
     addDocumentNonBlocking(materialsRef, {
       ...newMaterial,
+      code: newMaterial.code.toUpperCase(),
       stock: Number(newMaterial.stock),
       createdAt: new Date().toISOString()
     })
     setIsAddOpen(false)
-    setNewMaterial({ name: "", unit: "kg", category: "Raw Material", stock: 0 })
+    setNewMaterial({ code: "", name: "", unit: "kg", category: "Raw Material", stock: 0 })
   }
 
   const handleUpdateMaterial = () => {
     if (!editingMaterial || !db) return
     const docRef = doc(db, "raw_materials", editingMaterial.id)
     updateDocumentNonBlocking(docRef, {
+      code: editingMaterial.code.toUpperCase(),
       name: editingMaterial.name,
       unit: editingMaterial.unit,
       category: editingMaterial.category,
@@ -102,7 +105,7 @@ export default function MaterialsPage() {
 
   const filteredMaterials = materials?.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    m.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (m.code && m.code.toLowerCase().includes(searchTerm.toLowerCase()))
   ) || []
 
   if (isAuthLoading || !user) {
@@ -133,6 +136,10 @@ export default function MaterialsPage() {
               <DialogDescription>Define a new raw material or ingredient.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Material Code</Label>
+                <Input value={newMaterial.code} onChange={(e) => setNewMaterial({...newMaterial, code: e.target.value})} placeholder="e.g. MAT-MOZ-01" />
+              </div>
               <div className="grid gap-2">
                 <Label>Name</Label>
                 <Select onValueChange={(v) => setNewMaterial({...newMaterial, name: v})}>
@@ -187,7 +194,7 @@ export default function MaterialsPage() {
         <CardHeader className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search materials..." className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <Input placeholder="Search materials by name or code..." className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -197,7 +204,7 @@ export default function MaterialsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="w-[100px]">ID</TableHead>
+                  <TableHead>Code</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
@@ -208,7 +215,7 @@ export default function MaterialsPage() {
               <TableBody>
                 {filteredMaterials.map((m) => (
                   <TableRow key={m.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{m.id.slice(-5)}</TableCell>
+                    <TableCell className="font-mono text-xs font-bold text-secondary">{m.code || 'N/A'}</TableCell>
                     <TableCell className="font-medium">{m.name}</TableCell>
                     <TableCell><Badge variant="outline" className="text-[10px]">{m.category}</Badge></TableCell>
                     <TableCell className="text-right font-bold">{(m.stock || 0).toLocaleString()}</TableCell>
@@ -245,6 +252,10 @@ export default function MaterialsPage() {
           </DialogHeader>
           {editingMaterial && (
             <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Material Code</Label>
+                <Input value={editingMaterial.code} onChange={(e) => setEditingMaterial({...editingMaterial, code: e.target.value})} />
+              </div>
               <div className="grid gap-2">
                 <Label>Name</Label>
                 <Input value={editingMaterial.name} disabled />
