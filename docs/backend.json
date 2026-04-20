@@ -1,116 +1,40 @@
-
 {
   "entities": {
-    "customer": {
-      "title": "Customer",
-      "description": "Represents a business customer or client.",
+    "AppSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AppSettings",
       "type": "object",
+      "description": "Global settings for the application, including company branding elements and theme color configurations.",
       "properties": {
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "phone": { "type": "string" },
-        "address": { "type": "string" },
-        "customerType": { 
-          "type": "string", 
-          "enum": ["Retailer", "Wholesaler", "Distributor", "Corporate"],
-          "description": "The category of business relationship."
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AppSettings entity."
         },
-        "customerClass": { 
-          "type": "string", 
-          "enum": ["Grade A", "Grade B", "Grade C", "VIP"],
-          "description": "The classification of the customer for credit and pricing."
+        "companyLogoUrl": {
+          "type": "string",
+          "description": "URL to the company's logo image, which will be displayed on the system login screen, all invoices, and other relevant system areas.",
+          "format": "uri"
         },
-        "taxId": { "type": "string", "description": "Business registration or Tax ID." },
-        "creditLimit": { "type": "number", "description": "Maximum allowed outstanding balance." },
-        "paymentTerms": { 
-          "type": "string", 
-          "enum": ["COD", "Net 7", "Net 15", "Net 30"],
-          "description": "Standard payment agreement."
+        "primaryColor": {
+          "type": "string",
+          "description": "Hexadecimal color code for the system's primary theme color, influencing key interactive elements and branding accents."
         },
-        "website": { "type": "string", "format": "uri" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["name", "customerType"]
-    },
-    "invoice": {
-      "title": "Invoice",
-      "description": "A sales invoice for a customer.",
-      "type": "object",
-      "properties": {
-        "invoiceNumber": { "type": "string" },
-        "customerId": { "type": "string" },
-        "customerName": { "type": "string" },
-        "paymentMethod": { 
-          "type": "string", 
-          "enum": ["Cash", "Bank", "KPay", "WavePay"],
-          "description": "The selected payment method for this invoice."
+        "backgroundColor": {
+          "type": "string",
+          "description": "Hexadecimal color code for the system's background color, setting the overall visual canvas."
         },
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "productName": { "type": "string" },
-              "quantity": { "type": "number" },
-              "unit": { "type": "string" },
-              "price": { "type": "number" },
-              "total": { "type": "number" }
-            }
-          }
-        },
-        "totalAmount": { "type": "number" },
-        "status": { "type": "string", "enum": ["Draft", "Sent", "Paid", "Overdue"] },
-        "dueDate": { "type": "string", "format": "date" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "accentColor": {
+          "type": "string",
+          "description": "Hexadecimal color code for the system's accent color, used for highlighting important information and interactive states."
+        }
       },
-      "required": ["invoiceNumber", "customerId", "totalAmount", "status"]
-    },
-    "outlet": {
-      "title": "Outlet",
-      "description": "A retail location or branch.",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "location": { "type": "string" },
-        "manager": { "type": "string" },
-        "phone": { "type": "string" },
-        "status": { "type": "string", "enum": ["Active", "Inactive"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["name"]
-    },
-    "outlet_sale": {
-      "title": "Outlet Sale",
-      "description": "Daily total sales amount for an outlet.",
-      "type": "object",
-      "properties": {
-        "outletId": { "type": "string" },
-        "outletName": { "type": "string" },
-        "date": { "type": "string", "format": "date" },
-        "amount": { "type": "number" },
-        "transactionsCount": { "type": "number" },
-        "recordedBy": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["outletId", "date", "amount"]
-    },
-    "expense": {
-      "title": "Expense",
-      "description": "A business expenditure record, often linked to material procurement.",
-      "type": "object",
-      "properties": {
-        "materialId": { "type": "string" },
-        "materialName": { "type": "string" },
-        "quantity": { "type": "number" },
-        "unitPrice": { "type": "number" },
-        "totalAmount": { "type": "number" },
-        "date": { "type": "string", "format": "date" },
-        "vendor": { "type": "string" },
-        "paymentMethod": { "type": "string", "enum": ["Cash", "Bank", "KPay", "WavePay"] },
-        "description": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["materialName", "totalAmount", "date"]
+      "required": [
+        "id",
+        "companyLogoUrl",
+        "primaryColor",
+        "backgroundColor",
+        "accentColor"
+      ]
     }
   },
   "auth": {
@@ -122,45 +46,32 @@
   "firestore": {
     "structure": [
       {
-        "path": "/customers/{customerId}",
+        "path": "/appSettings/global",
         "definition": {
-          "entityName": "customer",
-          "schema": { "$ref": "#/backend/entities/customer" },
-          "description": "Stores customer master data."
+          "entityName": "AppSettings",
+          "schema": {
+            "$ref": "#/backend/entities/AppSettings"
+          },
+          "description": "A single document containing global application settings, such as the company logo URL and theme colors. This document is intended to be universally readable by all users and writable only by administrators."
         }
       },
       {
-        "path": "/invoices/{invoiceId}",
+        "path": "/roles_admin/{uid}",
         "definition": {
-          "entityName": "invoice",
-          "schema": { "$ref": "#/backend/entities/invoice" },
-          "description": "Stores sales invoices and payment status."
-        }
-      },
-      {
-        "path": "/outlets/{outletId}",
-        "definition": {
-          "entityName": "outlet",
-          "schema": { "$ref": "#/backend/entities/outlet" },
-          "description": "Stores outlet/branch locations."
-        }
-      },
-      {
-        "path": "/outlet_sales/{saleId}",
-        "definition": {
-          "entityName": "outlet_sale",
-          "schema": { "$ref": "#/backend/entities/outlet_sale" },
-          "description": "Stores daily sales summaries for outlets."
-        }
-      },
-      {
-        "path": "/expenses/{expenseId}",
-        "definition": {
-          "entityName": "expense",
-          "schema": { "$ref": "#/backend/entities/expense" },
-          "description": "Stores business expense records."
+          "entityName": "adminRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection for explicit administrator roles. The existence of a document at `/roles_admin/{uid}` signifies that the corresponding user is an administrator. Used for DBAC (Database-Backed Access Control) to grant write permissions to global settings and other admin-only functions.",
+          "params": [
+            {
+              "name": "uid",
+              "description": "The unique user ID of an administrator."
+            }
+          ]
         }
       }
-    ]
+    ],
+    "reasoning": "The application global settings, including the company logo URL and theme colors, will be stored in a single document at `/appSettings/global`. This top-level collection with a singular document adheres to the **Structural Segregation** principle by dedicating a distinct location for application-wide configurations with a homogeneous security posture.\n\n**Authorization Independence** is naturally achieved for this global settings document because its access permissions are entirely self-contained. Read access will be granted broadly to all users (and potentially unauthenticated users if the login screen requires it), as these settings dictate the application's overall look and feel. Write access will be strictly limited to administrators. This is implemented without hierarchical dependencies; instead, write authorization leverages the **Global Roles (DBAC) - Existence over Content** strategy by checking for the existence of the `request.auth.uid` in a dedicated admin roles collection (e.g., `/roles_admin/{uid}`). This approach eliminates the need for `get()` calls in security rules for authorization, enabling robust atomic operations and simplifying debugging.\n\n**QAPs (Rules are not Filters)** are inherently supported. Since there is only one global settings document, clients will directly fetch `/appSettings/global`. There are no 'list' operations on this collection that would require server-side filtering by security rules; the document is either accessible or not, ensuring that all retrieved data is explicitly authorized."
   }
 }
