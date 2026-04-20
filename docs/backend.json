@@ -93,6 +93,24 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["outletId", "date", "amount"]
+    },
+    "expense": {
+      "title": "Expense",
+      "description": "A business expenditure record, often linked to material procurement.",
+      "type": "object",
+      "properties": {
+        "materialId": { "type": "string" },
+        "materialName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "date": { "type": "string", "format": "date" },
+        "vendor": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["Cash", "Bank", "KPay", "WavePay"] },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["materialName", "totalAmount", "date"]
     }
   },
   "auth": {
@@ -133,6 +151,14 @@
           "entityName": "outlet_sale",
           "schema": { "$ref": "#/backend/entities/outlet_sale" },
           "description": "Stores daily sales summaries for outlets."
+        }
+      },
+      {
+        "path": "/expenses/{expenseId}",
+        "definition": {
+          "entityName": "expense",
+          "schema": { "$ref": "#/backend/entities/expense" },
+          "description": "Stores business expense records."
         }
       }
     ]
