@@ -81,7 +81,7 @@ export default function RecordConsumptionPage() {
     if (!order) return []
     return activeBOM.map(item => {
       const standard = item.stdQtyPerUnit * order.quantity
-      const actual = actualValues[item.material] || 0
+      const actual = actualValues[item.material] ?? standard
       const variance = actual - standard
       const variancePercent = standard > 0 ? (variance / standard) * 100 : 0
       
@@ -181,7 +181,7 @@ export default function RecordConsumptionPage() {
                         <Input 
                           type="number" 
                           className="text-right font-bold focus:ring-secondary"
-                          value={actualValues[item.material]}
+                          value={actualValues[item.material] ?? ""}
                           onChange={(e) => setActualValues({...actualValues, [item.material]: Number(e.target.value)})}
                         />
                       </TableCell>
