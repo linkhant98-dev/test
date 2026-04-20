@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -12,12 +11,14 @@ import { Label } from "@/components/ui/label"
 import { useAuth, useUser } from "@/firebase"
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login"
 import { useTranslation } from "@/context/language-context"
+import { useAppSettings } from "@/components/theme-provider"
 
 export default function LoginPage() {
   const router = useRouter()
   const auth = useAuth()
   const { user, isUserLoading } = useUser()
   const { t } = useTranslation()
+  const settings = useAppSettings()
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -62,15 +63,18 @@ export default function LoginPage() {
             <div className="flex items-center gap-3 mb-12">
               <div 
                 className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg overflow-hidden p-1"
-                data-ai-hint="cheese logo"
               >
-                <Image 
-                  src="https://picsum.photos/seed/cheese-logo/200/200"
-                  alt="Logo"
-                  width={48}
-                  height={48}
-                  className="rounded-lg object-contain"
-                />
+                {settings?.companyLogoUrl ? (
+                   <img src={settings.companyLogoUrl} alt="Logo" className="rounded-lg object-contain h-10 w-10" />
+                ) : (
+                  <Image 
+                    src="https://picsum.photos/seed/cheese-logo/200/200"
+                    alt="Logo"
+                    width={48}
+                    height={48}
+                    className="rounded-lg object-contain"
+                  />
+                )}
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-black leading-none font-headline tracking-tighter">CHEESY</span>
@@ -97,15 +101,18 @@ export default function LoginPage() {
           <div className="mb-8 md:hidden flex justify-center">
              <div 
                 className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl overflow-hidden p-1"
-                data-ai-hint="cheese logo"
               >
-                <Image 
-                  src="https://picsum.photos/seed/cheese-logo/200/200"
-                  alt="Logo"
-                  width={64}
-                  height={64}
-                  className="rounded-lg object-contain"
-                />
+                {settings?.companyLogoUrl ? (
+                   <img src={settings.companyLogoUrl} alt="Logo" className="rounded-lg object-contain h-14 w-14" />
+                ) : (
+                  <Image 
+                    src="https://picsum.photos/seed/cheese-logo/200/200"
+                    alt="Logo"
+                    width={64}
+                    height={64}
+                    className="rounded-lg object-contain"
+                  />
+                )}
               </div>
           </div>
 

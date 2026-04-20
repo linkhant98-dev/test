@@ -1,23 +1,16 @@
-
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
-  Package, 
   ShoppingCart, 
-  CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
-  ClipboardList,
   Loader2,
   Sparkles,
   RefreshCcw,
   Users,
-  Tag,
-  TrendingUp,
-  AlertTriangle,
   Store,
   DollarSign
 } from "lucide-react"
@@ -27,8 +20,6 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  LineChart,
-  Line,
   Cell,
   PieChart,
   Pie,
@@ -126,7 +117,6 @@ export default function Dashboard() {
 
   const outletPerformanceData = useMemo(() => {
     if (!outletSales) return [];
-    // Aggregate by outlet
     const agg: Record<string, number> = {};
     outletSales.forEach(s => {
       agg[s.outletName] = (agg[s.outletName] || 0) + (s.amount || 0);
@@ -146,21 +136,15 @@ export default function Dashboard() {
   const seedDemoData = async () => {
     if (!db || !user) return;
     setIsSeeding(true);
-    
     try {
-      // Outlets
       const outletNames = [
         { name: "Junction City Outlet", location: "Yangon", manager: "U Kyaw", phone: "091234567" },
         { name: "Ocean Supercenter Branch", location: "Mandalay", manager: "Daw Yee", phone: "097788990" },
         { name: "Airport Shop", location: "Yangon Int'l", manager: "U Tun", phone: "094455667" }
       ];
-
       for (const o of outletNames) {
-        await addDocumentNonBlocking(collection(db, "outlets"), { ...o, status: "Active", createdAt: new Date().toISOString() });
+        addDocumentNonBlocking(collection(db, "outlets"), { ...o, status: "Active", createdAt: new Date().toISOString() });
       }
-
-      // Materials, Products, Customers already exist in standard seeding logic
-      alert("Demo ecosystem seeded successfully!");
     } catch (e) {
       console.error(e);
     } finally {

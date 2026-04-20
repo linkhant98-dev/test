@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -16,6 +15,7 @@ import {
   Globe,
   LogOut,
   Tag,
+  Settings,
   Store,
   Receipt,
   ArrowRightLeft
@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button"
 import { useUser, useAuth } from "@/firebase"
 import { signOut } from "firebase/auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useAppSettings } from "@/components/theme-provider"
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -47,6 +48,7 @@ export function AppSidebar() {
   const { t, setLanguage, language } = useTranslation()
   const { user, isUserLoading } = useUser()
   const auth = useAuth()
+  const settings = useAppSettings()
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
@@ -119,6 +121,7 @@ export function AppSidebar() {
       title: t("administration"),
       icon: ShieldCheck,
       items: [
+        { title: "Global Settings", url: "/admin/settings" },
         { title: t("userManagement"), url: "/admin/users" },
         { title: t("rolePermissions"), url: "/admin/roles" },
         { title: t("systemLogs"), url: "/admin/logs" },
@@ -131,16 +134,19 @@ export function AppSidebar() {
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-3">
           <div 
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 overflow-hidden p-1"
-            data-ai-hint="cheese logo"
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 overflow-hidden"
           >
-            <Image 
-              src="https://picsum.photos/seed/cheese-logo/200/200"
-              alt="Cheesy Bites Logo"
-              width={48}
-              height={48}
-              className="rounded-lg object-contain"
-            />
+            {settings?.companyLogoUrl ? (
+               <img src={settings.companyLogoUrl} alt="Logo" className="object-contain h-10 w-10" />
+            ) : (
+              <Image 
+                src="https://picsum.photos/seed/cheese-logo/200/200"
+                alt="Cheesy Bites Logo"
+                width={48}
+                height={48}
+                className="rounded-lg object-contain"
+              />
+            )}
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-black leading-none font-headline text-foreground tracking-tighter">CHEESY</span>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useParams } from "next/navigation"
@@ -8,10 +7,12 @@ import { Badge } from "@/components/ui/badge"
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase"
 import { doc } from "firebase/firestore"
 import Link from "next/link"
+import { useAppSettings } from "@/components/theme-provider"
 
 export default function PrintInvoicePage() {
   const { id } = useParams()
   const db = useFirestore()
+  const settings = useAppSettings()
   
   const invRef = useMemoFirebase(() => doc(db, "invoices", id as string), [db, id])
   const { data: invoice, isLoading } = useDoc(invRef)
@@ -33,7 +34,11 @@ export default function PrintInvoicePage() {
       <div className="border-b-4 border-primary pb-8 flex justify-between items-end">
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center font-black text-xl">CB</div>
+            <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center overflow-hidden">
+               {settings?.companyLogoUrl ? (
+                 <img src={settings.companyLogoUrl} alt="Logo" className="object-contain h-full w-full" />
+               ) : <span className="font-black text-xl">CB</span>}
+            </div>
             <h1 className="text-3xl font-black font-headline tracking-tighter uppercase">Cheesy Bites Co.</h1>
           </div>
           <div className="space-y-1 text-xs text-muted-foreground uppercase font-bold tracking-widest">
