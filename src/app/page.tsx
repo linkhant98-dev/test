@@ -37,6 +37,7 @@ import {
   Legend
 } from "recharts"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/context/language-context"
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase"
 import { collection } from "firebase/firestore"
