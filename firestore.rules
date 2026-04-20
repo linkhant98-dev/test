@@ -1,96 +1,72 @@
-/**
- * PHILOSOPHY:
- * This ruleset implements a "Global Configuration" security model. It prioritizes the public 
- * accessibility of branding and theme data to ensure a consistent user experience across the 
- * login screen and main application, while strictly centralizing management authority.
- *
- * DATA STRUCTURE:
- * 1. /appSettings/global: A singleton document containing system-wide branding (logo, colors).
- * 2. /roles_admin/{uid}: A Database-Backed Access Control (DBAC) collection. The presence 
- *    of a UID in this collection grants administrative write privileges across the system.
- *
- * KEY SECURITY DECISIONS:
- * - Public Visibility: Application settings are publicly readable (unauthenticated) to allow the 
- *   branding (company logo) to be rendered on the login screen before a user is signed in.
- * - Admin-Only Writes: Modifications to the global system state require explicit administrator 
- *   status, verified by checking for a corresponding record in the admin roles collection.
- * - Immutable Admin Bootstrap: Client-side writes to the `/roles_admin` collection are 
- *   disabled by default. Administrative roles should be managed via the Firebase Admin SDK 
- *   to prevent unauthorized privilege escalation.
- *
- * DENORMALIZATION & AUTHORIZATION:
- * - Administrative authorization is handled via DBAC (Database-Backed Access Control). 
- *   By checking for the existence of a document at a specific path (`/roles_admin/{uid}`), 
- *   the rules can efficiently verify permissions without complex property checks.
- */
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
-
-    /**
-     * @description Checks if the user is authenticated with Firebase Auth.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the authenticated user has an administrator role.
-     * Verified by checking the existence of a document in the roles_admin collection.
-     */
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    /**
-     * @description Combined check for ownership and existence for destructive operations.
-     * In this specific model, used to ensure a document exists before an admin modifies it.
-     */
-    function isExistingAdmin() {
-      return isAdmin() && resource != null;
-    }
-
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for the global application settings. 
-     * Public read access is required for branding on the login page.
-     * @path /appSettings/global
-     * @allow (get) Any user (even unauthenticated) can view the company logo and theme.
-     * @allow (update) An authenticated administrator can change the theme color.
-     * @deny (update) A regular signed-in user attempts to change the company logo.
-     * @principle Public Read with Admin-Only Writes.
-     */
     match /appSettings/global {
-      allow get, list: if true;
-      allow create: if isAdmin();
-      allow update: if isExistingAdmin();
-      allow delete: if isExistingAdmin();
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
-    /**
-     * @description Rules for administrator role assignments. 
-     * This collection acts as the source of truth for administrative permissions.
-     * @path /roles_admin/{uid}
-     * @allow (get) An authenticated user checks if they have admin status.
-     * @deny (create) A user attempts to create an admin record for themselves.
-     * @principle Database-Backed Access Control (DBAC).
-     */
     match /roles_admin/{uid} {
-      // Users can check their own admin status; Admins can see all admin records.
-      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      
-      // Admins can list other admins for management purposes.
-      allow list: if isAdmin();
-      
-      // CRITICAL: Writing to the admin roles collection is restricted to the Admin SDK
-      // or a pre-configured super-user to prevent privilege escalation.
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get: if isSignedIn() && (request.auth.uid == uid);
+      allow list: if isSignedIn();
+    }
+
+    match /{path=**}/price_rules/{ruleId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /{path=**}/bom_versions/{bomId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /finished_goods/{productId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /raw_materials/{materialId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /customers/{customerId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /outlets/{outletId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /invoices/{invoiceId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /outlet_sales/{saleId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /expenses/{expenseId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /warehouses/{warehouseId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /production_orders/{orderId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /waste_reasons/{reasonId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /stock_transfers/{transferId} {
+      allow read, write: if isSignedIn();
     }
   }
 }

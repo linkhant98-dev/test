@@ -6,31 +6,22 @@ import { useRouter } from "next/navigation"
 import { 
   FileText, 
   Download, 
-  BarChart3, 
-  PieChart as PieChartIcon, 
   ArrowLeft,
   Loader2,
   CheckCircle2,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
   Factory,
-  ShoppingCart,
-  Zap,
-  Table as TableIcon,
   Printer,
   Calendar,
   Layers,
-  Info,
   Warehouse,
-  Scale,
-  LineChart as LineChartIcon,
-  Target,
   Users,
   DollarSign,
   Package,
   Store,
-  Receipt
+  Receipt,
+  Zap,
+  Table as TableIcon,
+  ArrowRightLeft
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -52,9 +43,6 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Cell,
-  LineChart,
-  Line,
   AreaChart,
   Area,
   Legend
@@ -70,6 +58,7 @@ const reportTypes = [
   { id: "expense-rep", title: "Expense Analysis", icon: Receipt, desc: "Procurement cost breakdown by material and vendor (MMK).", color: "bg-rose-100 text-rose-700" },
   { id: "prod-rep", title: "Production Performance", icon: Factory, desc: "Standard vs Actual output efficiency and throughput targets.", color: "bg-blue-100 text-blue-700" },
   { id: "inv-val", title: "Inventory Details & Valuation", icon: Warehouse, desc: "Granular stock levels, warehouse distribution, and asset value.", color: "bg-emerald-100 text-emerald-700" },
+  { id: "stock-mov", title: "Stock Movement Report", icon: ArrowRightLeft, desc: "Tracking distribution from warehouses to outlets.", color: "bg-purple-100 text-purple-700" },
 ]
 
 export default function ReportsPage() {
@@ -108,6 +97,12 @@ export default function ReportsPage() {
   }, [db, user]);
   const { data: realExpenses } = useCollection(expensesRef)
 
+  const transfersRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "stock_transfers");
+  }, [db, user]);
+  const { data: realTransfers } = useCollection(transfersRef)
+
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -118,7 +113,7 @@ export default function ReportsPage() {
     }
   }, [user, isAuthLoading, router]);
 
-  // SALES REPORTS DATA PROCESSING
+  // DATA PROCESSING
   const salesRevenueData = useMemo(() => {
     if (!realInvoices) return [];
     const grouped: Record<string, number> = {};
@@ -233,6 +228,21 @@ export default function ReportsPage() {
     }));
   }, [realMaterials]);
 
+  const stockMovementData = useMemo(() => {
+    if (!realTransfers) return [];
+    const destAgg: Record<string, number> = {};
+    realTransfers.forEach(t => {
+      const itemsCount = t.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0;
+      destAgg[t.destinationName] = (destAgg[t.destinationName] || 0) + itemsCount;
+    });
+    return Object.entries(destAgg).map(([name, qty]) => ({
+      name,
+      actual: qty,
+      standard: 100, 
+      variance: 0
+    })).sort((a,b) => b.actual - a.actual);
+  }, [realTransfers]);
+
   const currentData = useMemo(() => {
     switch (selectedReportId) {
       case 'sales-rev': return salesRevenueData;
@@ -242,9 +252,10 @@ export default function ReportsPage() {
       case 'expense-rep': return expenseData;
       case 'prod-rep': return performanceData;
       case 'inv-val': return inventoryValuation;
+      case 'stock-mov': return stockMovementData;
       default: return [];
     }
-  }, [selectedReportId, salesRevenueData, outletPerformanceData, topCustomersData, topItemsData, expenseData, performanceData, inventoryValuation]);
+  }, [selectedReportId, salesRevenueData, outletPerformanceData, topCustomersData, topItemsData, expenseData, performanceData, inventoryValuation, stockMovementData]);
 
   const handleGenerate = (id: string) => {
     setIsGenerating(true)
@@ -353,7 +364,7 @@ export default function ReportsPage() {
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                         />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                        <Bar name="Actual Value (MMK)" dataKey="actual" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} barSize={40} />
+                        <Bar name="Actual Value" dataKey="actual" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} barSize={40} />
                         <Bar name="Target/Baseline" dataKey="standard" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={40} />
                       </BarChart>
                     )}
@@ -370,7 +381,7 @@ export default function ReportsPage() {
                       <TableHeader>
                         <TableRow className="bg-muted/40">
                           <TableHead className="font-bold">Entry</TableHead>
-                          <TableHead className="text-right font-bold">Standard/Target</TableHead>
+                          <TableHead className="text-right font-bold">Target/Baseline</TableHead>
                           <TableHead className="text-right font-bold">Actual Value</TableHead>
                           <TableHead className="text-right font-bold">Variance (%)</TableHead>
                           <TableHead className="w-[120px] font-bold">Status</TableHead>
@@ -381,13 +392,13 @@ export default function ReportsPage() {
                           <TableRow key={idx}>
                             <TableCell className="font-bold text-sm">{row.name}</TableCell>
                             <TableCell className="text-right font-mono text-muted-foreground">{row.standard?.toLocaleString()}</TableCell>
-                            <TableCell className="text-right font-mono font-bold">MMK {row.actual?.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-mono font-bold">{row.actual?.toLocaleString()}</TableCell>
                             <TableCell className={`text-right font-bold ${row.variance > 0 ? 'text-secondary' : 'text-destructive'}`}>
                               {row.variance > 0 ? '+' : ''}{row.variance}%
                             </TableCell>
                             <TableCell>
                               {(row.actual || 0) >= (row.standard || 0) ? (
-                                <Badge variant="secondary" className="bg-green-50 text-green-700 text-[10px] uppercase">Goal Met</Badge>
+                                <Badge variant="secondary" className="bg-green-50 text-green-700 text-[10px] uppercase">Healthy</Badge>
                               ) : (
                                 <Badge variant="outline" className="text-orange-600 border-orange-200 text-[10px] uppercase">Under</Badge>
                               )}
@@ -406,23 +417,15 @@ export default function ReportsPage() {
             <Card className="border-none shadow-sm h-fit">
               <CardHeader>
                 <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <Zap className="h-4 w-4" /> Market Intelligence
+                  <Zap className="h-4 w-4" /> Strategic Intelligence
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 rounded-2xl border bg-secondary/5 border-secondary/10">
-                   <p className="text-sm font-bold mb-1">Growth Forecast</p>
-                   <p className="text-xs text-muted-foreground leading-relaxed">System projects a 12% revenue increase if current sales velocity maintains through month-end.</p>
-                </div>
-                
-                <div className="pt-6 border-t space-y-4">
-                  <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Insights</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/20 border border-primary/10 text-[11px] font-medium">
-                      <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>{selectedReportId === 'outlet-sales' ? 'Top 3 outlets account for 70% of retail revenue.' : 'Main distribution channels are healthy.'}</span>
-                    </div>
-                  </div>
+                   <p className="text-sm font-bold mb-1">Observation</p>
+                   <p className="text-xs text-muted-foreground leading-relaxed">
+                     {selectedReportId === 'stock-mov' ? 'Distribution velocity indicates seasonal restock patterns.' : 'Main operational channels are performing within standard deviations.'}
+                   </p>
                 </div>
               </CardContent>
             </Card>

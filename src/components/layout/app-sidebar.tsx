@@ -17,7 +17,8 @@ import {
   LogOut,
   Tag,
   Store,
-  Receipt
+  Receipt,
+  ArrowRightLeft
 } from "lucide-react"
 
 import {
@@ -98,6 +99,7 @@ export function AppSidebar() {
         { title: t("productionIssues"), url: "/inventory/issue" },
         { title: t("adjustments"), url: "/inventory/adjust" },
         { title: t("expenseEntry"), url: "/inventory/expense" },
+        { title: t("stockTransfer"), url: "/inventory/transfer" },
       ]
     },
     {
