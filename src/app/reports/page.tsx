@@ -29,7 +29,8 @@ import {
   Users,
   DollarSign,
   Package,
-  Store
+  Store,
+  Receipt
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -66,6 +67,7 @@ const reportTypes = [
   { id: "outlet-sales", title: "Outlet Performance", icon: Store, desc: "Revenue breakdown and rankings for all retail branch locations.", color: "bg-orange-100 text-orange-700" },
   { id: "top-customers", title: "Customer Revenue Analysis", icon: Users, desc: "Ranking of clients by total purchase volume and payment reliability.", color: "bg-indigo-100 text-indigo-700" },
   { id: "top-items", title: "Top Performing Items", icon: Package, desc: "Volume and value breakdown for all snack varieties.", color: "bg-emerald-100 text-emerald-700" },
+  { id: "expense-rep", title: "Expense Analysis", icon: Receipt, desc: "Procurement cost breakdown by material and vendor (MMK).", color: "bg-rose-100 text-rose-700" },
   { id: "prod-rep", title: "Production Performance", icon: Factory, desc: "Standard vs Actual output efficiency and throughput targets.", color: "bg-blue-100 text-blue-700" },
   { id: "inv-val", title: "Inventory Details & Valuation", icon: Warehouse, desc: "Granular stock levels, warehouse distribution, and asset value.", color: "bg-emerald-100 text-emerald-700" },
 ]
@@ -99,6 +101,12 @@ export default function ReportsPage() {
     return collection(db, "outlet_sales");
   }, [db, user]);
   const { data: realOutletSales } = useCollection(outletSalesRef)
+
+  const expensesRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "expenses");
+  }, [db, user]);
+  const { data: realExpenses } = useCollection(expensesRef)
 
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -138,7 +146,7 @@ export default function ReportsPage() {
       .map(([name, revenue]) => ({
         name,
         actual: revenue,
-        standard: 300000, // Monthly target baseline per outlet
+        standard: 300000, 
         variance: Number(((revenue - 300000) / 300000 * 100).toFixed(1))
       }))
       .sort((a, b) => b.actual - a.actual);
@@ -184,6 +192,22 @@ export default function ReportsPage() {
       .sort((a, b) => b.actual - a.actual);
   }, [realInvoices]);
 
+  const expenseData = useMemo(() => {
+    if (!realExpenses) return [];
+    const materialAgg: Record<string, number> = {};
+    realExpenses.forEach(exp => {
+      materialAgg[exp.materialName] = (materialAgg[exp.materialName] || 0) + (exp.totalAmount || 0);
+    });
+    return Object.entries(materialAgg)
+      .map(([name, revenue]) => ({
+        name,
+        actual: revenue,
+        standard: 200000, 
+        variance: Number(((revenue - 200000) / 200000 * 100).toFixed(1))
+      }))
+      .sort((a, b) => b.actual - a.actual);
+  }, [realExpenses]);
+
   const performanceData = useMemo(() => {
     if (!realOrders) return [];
     return realOrders
@@ -215,11 +239,12 @@ export default function ReportsPage() {
       case 'outlet-sales': return outletPerformanceData;
       case 'top-customers': return topCustomersData;
       case 'top-items': return topItemsData;
+      case 'expense-rep': return expenseData;
       case 'prod-rep': return performanceData;
       case 'inv-val': return inventoryValuation;
       default: return [];
     }
-  }, [selectedReportId, salesRevenueData, outletPerformanceData, topCustomersData, topItemsData, performanceData, inventoryValuation]);
+  }, [selectedReportId, salesRevenueData, outletPerformanceData, topCustomersData, topItemsData, expenseData, performanceData, inventoryValuation]);
 
   const handleGenerate = (id: string) => {
     setIsGenerating(true)
@@ -235,6 +260,30 @@ export default function ReportsPage() {
         return prev + 10
       })
     }, 100)
+  }
+
+  const exportToExcel = () => {
+    if (!currentData.length) return;
+    const reportName = reportTypes.find(r => r.id === selectedReportId)?.title || "Report";
+    const headers = ["Entry", "Standard/Target", "Actual Value", "Variance (%)"];
+    const rows = currentData.map(row => [
+      row.name,
+      row.standard?.toString() || "0",
+      row.actual?.toString() || "0",
+      row.variance?.toString() || "0"
+    ]);
+
+    let csvContent = "data:text/csv;charset=utf-8," 
+      + headers.join(",") + "\n"
+      + rows.map(e => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${reportName.replace(/\s+/g, '_')}_${new Date().toLocaleDateString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   if (isAuthLoading || !user) {
@@ -255,8 +304,8 @@ export default function ReportsPage() {
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Printer className="h-4 w-4 mr-2" /> Print PDF
             </Button>
-            <Button size="sm" className="bg-secondary text-secondary-foreground">
-              <Download className="h-4 w-4 mr-2" /> Export CSV
+            <Button size="sm" className="bg-secondary text-secondary-foreground" onClick={exportToExcel}>
+              <Download className="h-4 w-4 mr-2" /> Export Excel (CSV)
             </Button>
           </div>
         </div>
@@ -279,7 +328,7 @@ export default function ReportsPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-8">
-                <div className="h-[400px] w-full mb-8">
+                <div className="h-[400px] w-full mb-8 print:hidden">
                   <ResponsiveContainer width="100%" height="100%">
                     {selectedReportId === 'sales-rev' ? (
                       <AreaChart data={data}>
