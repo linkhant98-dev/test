@@ -17,7 +17,9 @@ import {
   Users,
   Tag,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Store,
+  DollarSign
 } from "lucide-react"
 import { 
   XAxis, 
@@ -29,22 +31,15 @@ import {
   Line,
   Cell,
   PieChart,
-  Pie
+  Pie,
+  BarChart,
+  Bar,
+  Legend
 } from "recharts"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/context/language-context"
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase"
 import { collection } from "firebase/firestore"
-
-const varianceData = [
-  { name: 'Mon', variance: 12 },
-  { name: 'Tue', variance: 8 },
-  { name: 'Wed', variance: 18 },
-  { name: 'Thu', variance: 14 },
-  { name: 'Fri', variance: 5 },
-  { name: 'Sat', variance: 2 },
-  { name: 'Sun', variance: 3 },
-]
 
 const topProducts = [
   { name: 'Original Cheese Stick', share: 45, color: '#FFD700' },
@@ -71,55 +66,75 @@ export default function Dashboard() {
     return collection(db, "customers");
   }, [db, user]);
 
-  const productsRef = useMemoFirebase(() => {
+  const outletsRef = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(db, "finished_goods");
+    return collection(db, "outlets");
+  }, [db, user]);
+
+  const outletSalesRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "outlet_sales");
   }, [db, user]);
 
   const { data: invoices } = useCollection(invoicesRef);
   const { data: customers } = useCollection(customersRef);
-  const { data: products } = useCollection(productsRef);
+  const { data: outlets } = useCollection(outletsRef);
+  const { data: outletSales } = useCollection(outletSalesRef);
 
   const stats = useMemo(() => {
     const totalSales = invoices?.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0) || 0;
+    const outletSalesTotal = outletSales?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
     const customerCount = customers?.length || 0;
-    const productCount = products?.length || 0;
+    const outletCount = outlets?.length || 0;
     
     return [
       { 
-        title: "Total Revenue", 
-        value: `MMK ${totalSales.toLocaleString()}`, 
+        title: "B2B Sales", 
+        value: `MMK ${(totalSales / 1000000).toFixed(1)}M`, 
         description: `${invoices?.length || 0} Invoices issued`, 
         icon: ShoppingCart, 
         trend: "+12.5%", 
         trendType: "up" 
       },
       { 
-        title: "Customer Base", 
-        value: customerCount.toString(), 
-        description: "Active business partners", 
-        icon: Users, 
-        trend: "+2 new", 
+        title: "Outlet Revenue", 
+        value: `MMK ${(outletSalesTotal / 1000000).toFixed(1)}M`, 
+        description: `Daily summaries recorded`, 
+        icon: DollarSign, 
+        trend: "+8.2%", 
         trendType: "up" 
       },
       { 
-        title: "Product Catalog", 
-        value: productCount.toString(), 
-        description: "Items in Master Data", 
-        icon: Tag, 
+        title: "Active Outlets", 
+        value: outletCount.toString(), 
+        description: "Retail locations", 
+        icon: Store, 
         trend: "Stable", 
         trendType: "up" 
       },
       { 
-        title: "Yield Efficiency", 
-        value: "94.2%", 
-        description: "Avg. Production Output", 
-        icon: TrendingUp, 
-        trend: "-0.8%", 
-        trendType: "down" 
+        title: "Customer Base", 
+        value: customerCount.toString(), 
+        description: "Business partners", 
+        icon: Users, 
+        trend: "+2 new", 
+        trendType: "up" 
       }
     ];
-  }, [invoices, customers, products]);
+  }, [invoices, customers, outlets, outletSales]);
+
+  const outletPerformanceData = useMemo(() => {
+    if (!outletSales) return [];
+    // Aggregate by outlet
+    const agg: Record<string, number> = {};
+    outletSales.forEach(s => {
+      agg[s.outletName] = (agg[s.outletName] || 0) + (s.amount || 0);
+    });
+    return Object.entries(agg).map(([name, value]) => ({
+      name,
+      amount: value
+    })).sort((a,b) => b.amount - a.amount);
+  }, [outletSales]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -132,74 +147,18 @@ export default function Dashboard() {
     setIsSeeding(true);
     
     try {
-      // 1. Materials
-      const materials = [
-        { name: "Mozzarella Cheese", unit: "kg", category: "Raw Material", stock: 150, cost: 12000 },
-        { name: "Potato Starch", unit: "kg", category: "Raw Material", stock: 200, cost: 5000 },
-        { name: "Chicken Breast (Minced)", unit: "kg", category: "Raw Material", stock: 80, cost: 15000 },
-        { name: "Premium Sausage", unit: "units", category: "Raw Material", stock: 500, cost: 1200 },
-        { name: "Batter Mix", unit: "kg", category: "Ingredient", stock: 100, cost: 8000 },
-        { name: "Breadcrumbs", unit: "kg", category: "Ingredient", stock: 120, cost: 4000 },
-        { name: "Frying Oil", unit: "L", category: "Ingredient", stock: 300, cost: 6500 },
+      // Outlets
+      const outletNames = [
+        { name: "Junction City Outlet", location: "Yangon", manager: "U Kyaw", phone: "091234567" },
+        { name: "Ocean Supercenter Branch", location: "Mandalay", manager: "Daw Yee", phone: "097788990" },
+        { name: "Airport Shop", location: "Yangon Int'l", manager: "U Tun", phone: "094455667" }
       ];
 
-      for (const m of materials) {
-        await addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() });
+      for (const o of outletNames) {
+        await addDocumentNonBlocking(collection(db, "outlets"), { ...o, status: "Active", createdAt: new Date().toISOString() });
       }
 
-      // 2. Finished Goods & BOMs & Tiered Prices
-      const productNames = [
-        { name: "Original Cheese Stick", category: "Finished Good", price: 3500, stock: 45 },
-        { name: "Long Potato", category: "Finished Good", price: 2500, stock: 120 },
-        { name: "Chicken PopCorn", category: "Finished Good", price: 4500, stock: 30 },
-        { name: "Sausage Cheese Stick", category: "Finished Good", price: 4000, stock: 25 },
-      ];
-
-      for (const p of productNames) {
-        const productRef = await addDocumentNonBlocking(collection(db, "finished_goods"), { ...p, createdAt: new Date().toISOString() });
-        if (productRef) {
-          await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "bom_versions"), {
-            version: "v1.0",
-            status: "Active",
-            effDate: "2024-01-01",
-            finishedGoodId: productRef.id,
-            components: [
-              { name: 'Mozzarella Cheese', qty: 0.05, unit: 'kg', loss: 2.0 },
-              { name: 'Batter Mix', qty: 0.02, unit: 'kg', loss: 5.0 },
-            ]
-          });
-
-          await addDocumentNonBlocking(collection(db, "finished_goods", productRef.id, "price_rules"), {
-            customerType: "Distributor",
-            price: p.price * 0.8,
-            validFrom: "2024-01-01",
-            validTo: "2025-12-31",
-            createdAt: new Date().toISOString()
-          });
-        }
-      }
-
-      // 3. Customers
-      const customersData = [
-        { 
-          name: "City Mart Supermarket", 
-          email: "procurement@citymart.com", 
-          phone: "+95 912345678", 
-          address: "Pyay Road, Yangon", 
-          customerType: "Corporate",
-          customerClass: "VIP",
-          taxId: "MM-778899",
-          creditLimit: 5000000,
-          paymentTerms: "Net 30",
-          website: "https://www.citymart.com.mm",
-          createdAt: new Date().toISOString() 
-        },
-      ];
-
-      for (const c of customersData) {
-        await addDocumentNonBlocking(collection(db, "customers"), c);
-      }
-
+      // Materials, Products, Customers already exist in standard seeding logic
       alert("Demo ecosystem seeded successfully!");
     } catch (e) {
       console.error(e);
@@ -217,7 +176,7 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
           <h1 className="text-4xl font-bold tracking-tight font-headline text-foreground">Operational Intelligence</h1>
-          <p className="text-muted-foreground">Live monitoring of Sales, Customers, and Production metrics.</p>
+          <p className="text-muted-foreground">Live monitoring of Sales, Outlets, and Production metrics.</p>
         </div>
         <Button 
           variant="outline" 
@@ -251,16 +210,24 @@ export default function Dashboard() {
 
       <div className="grid gap-6 md:grid-cols-7">
         <Card className="md:col-span-4 border-none shadow-sm">
-          <CardHeader><CardTitle className="font-headline">Production Variance Trend</CardTitle></CardHeader>
+          <CardHeader>
+             <CardTitle className="font-headline flex items-center justify-between">
+                <span>Daily Sales by Outlet</span>
+                <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px]">Real-time Aggregate</Badge>
+             </CardTitle>
+          </CardHeader>
           <CardContent className="pl-2 h-[300px]">
              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={varianceData}>
+                <BarChart data={outletPerformanceData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} />
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                  <Line type="monotone" dataKey="variance" stroke="#FFD700" strokeWidth={3} dot={{ fill: '#FFD700', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} />
-                </LineChart>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 10}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 10}} />
+                  <Tooltip 
+                    formatter={(val: number) => [`MMK ${val.toLocaleString()}`, "Revenue"]}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+                  />
+                  <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -274,6 +241,7 @@ export default function Dashboard() {
                   {topProducts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip />
+                <Legend verticalAlign="bottom" />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>

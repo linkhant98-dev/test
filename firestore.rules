@@ -14,6 +14,8 @@ service cloud.firestore {
     
     match /finished_goods/{id} { 
       allow read, write: if isSignedIn(); 
+      match /price_rules/{ruleId} { allow read, write: if isSignedIn(); }
+      match /bom_versions/{bomId} { allow read, write: if isSignedIn(); }
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
@@ -34,5 +36,7 @@ service cloud.firestore {
     
     match /customers/{id} { allow read, write: if isSignedIn(); }
     match /invoices/{id} { allow read, write: if isSignedIn(); }
+    match /outlets/{id} { allow read, write: if isSignedIn(); }
+    match /outlet_sales/{id} { allow read, write: if isSignedIn(); }
   }
 }

@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Globe,
   LogOut,
-  Tag
+  Tag,
+  Store
 } from "lucide-react"
 
 import {
@@ -76,6 +77,7 @@ export function AppSidebar() {
         { title: t("warehouses"), url: "/master-data/warehouses" },
         { title: t("wasteReasons"), url: "/master-data/waste-reasons" },
         { title: t("customers"), url: "/master-data/customers" },
+        { title: t("outlets"), url: "/master-data/outlets" },
       ]
     },
     {
@@ -83,6 +85,7 @@ export function AppSidebar() {
       icon: Tag,
       items: [
         { title: t("invoices"), url: "/sales/invoices" },
+        { title: t("outletSales"), url: "/sales/outlet-sales" },
       ]
     },
     {

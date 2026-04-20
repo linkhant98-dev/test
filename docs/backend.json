@@ -64,6 +64,35 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["invoiceNumber", "customerId", "totalAmount", "status"]
+    },
+    "outlet": {
+      "title": "Outlet",
+      "description": "A retail location or branch.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "manager": { "type": "string" },
+        "phone": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "outlet_sale": {
+      "title": "Outlet Sale",
+      "description": "Daily total sales amount for an outlet.",
+      "type": "object",
+      "properties": {
+        "outletId": { "type": "string" },
+        "outletName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "amount": { "type": "number" },
+        "transactionsCount": { "type": "number" },
+        "recordedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["outletId", "date", "amount"]
     }
   },
   "auth": {
@@ -88,6 +117,22 @@
           "entityName": "invoice",
           "schema": { "$ref": "#/backend/entities/invoice" },
           "description": "Stores sales invoices and payment status."
+        }
+      },
+      {
+        "path": "/outlets/{outletId}",
+        "definition": {
+          "entityName": "outlet",
+          "schema": { "$ref": "#/backend/entities/outlet" },
+          "description": "Stores outlet/branch locations."
+        }
+      },
+      {
+        "path": "/outlet_sales/{saleId}",
+        "definition": {
+          "entityName": "outlet_sale",
+          "schema": { "$ref": "#/backend/entities/outlet_sale" },
+          "description": "Stores daily sales summaries for outlets."
         }
       }
     ]

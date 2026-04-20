@@ -28,7 +28,8 @@ import {
   Target,
   Users,
   DollarSign,
-  Package
+  Package,
+  Store
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -62,10 +63,10 @@ import { collection } from "firebase/firestore"
 
 const reportTypes = [
   { id: "sales-rev", title: "Sales Revenue Trend", icon: DollarSign, desc: "Time-series analysis of cumulative revenue from snack sales (MMK).", color: "bg-amber-100 text-amber-700" },
+  { id: "outlet-sales", title: "Outlet Performance", icon: Store, desc: "Revenue breakdown and rankings for all retail branch locations.", color: "bg-orange-100 text-orange-700" },
   { id: "top-customers", title: "Customer Revenue Analysis", icon: Users, desc: "Ranking of clients by total purchase volume and payment reliability.", color: "bg-indigo-100 text-indigo-700" },
   { id: "top-items", title: "Top Performing Items", icon: Package, desc: "Volume and value breakdown for all snack varieties.", color: "bg-emerald-100 text-emerald-700" },
   { id: "prod-rep", title: "Production Performance", icon: Factory, desc: "Standard vs Actual output efficiency and throughput targets.", color: "bg-blue-100 text-blue-700" },
-  { id: "inv-cons", title: "Raw Consumption & Variance", icon: Scale, desc: "Detailed breakdown of Actual raw material usage vs. Theoretical BOM standards.", color: "bg-amber-100 text-amber-700" },
   { id: "inv-val", title: "Inventory Details & Valuation", icon: Warehouse, desc: "Granular stock levels, warehouse distribution, and asset value.", color: "bg-emerald-100 text-emerald-700" },
 ]
 
@@ -79,19 +80,25 @@ export default function ReportsPage() {
     if (!user) return null;
     return collection(db, "production_orders");
   }, [db, user]);
-  const { data: realOrders, isLoading: ordersLoading } = useCollection(ordersRef)
+  const { data: realOrders } = useCollection(ordersRef)
   
   const materialsRef = useMemoFirebase(() => {
     if (!user) return null;
     return collection(db, "raw_materials");
   }, [db, user]);
-  const { data: realMaterials, isLoading: materialsLoading } = useCollection(materialsRef)
+  const { data: realMaterials } = useCollection(materialsRef)
 
   const invoicesRef = useMemoFirebase(() => {
     if (!user) return null;
     return collection(db, "invoices");
   }, [db, user]);
-  const { data: realInvoices, isLoading: invoicesLoading } = useCollection(invoicesRef)
+  const { data: realInvoices } = useCollection(invoicesRef)
+
+  const outletSalesRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "outlet_sales");
+  }, [db, user]);
+  const { data: realOutletSales } = useCollection(outletSalesRef)
 
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -106,7 +113,6 @@ export default function ReportsPage() {
   // SALES REPORTS DATA PROCESSING
   const salesRevenueData = useMemo(() => {
     if (!realInvoices) return [];
-    // Group by Date
     const grouped: Record<string, number> = {};
     realInvoices.forEach(inv => {
       const date = inv.createdAt?.split('T')[0] || 'Unknown';
@@ -117,10 +123,26 @@ export default function ReportsPage() {
       .map(([date, revenue]) => ({
         name: date,
         actual: revenue,
-        standard: 500000, // Monthly target baseline
+        standard: 500000, 
         variance: Number(((revenue - 500000) / 500000 * 100).toFixed(1))
       }));
   }, [realInvoices]);
+
+  const outletPerformanceData = useMemo(() => {
+    if (!realOutletSales) return [];
+    const agg: Record<string, number> = {};
+    realOutletSales.forEach(s => {
+      agg[s.outletName] = (agg[s.outletName] || 0) + (s.amount || 0);
+    });
+    return Object.entries(agg)
+      .map(([name, revenue]) => ({
+        name,
+        actual: revenue,
+        standard: 300000, // Monthly target baseline per outlet
+        variance: Number(((revenue - 300000) / 300000 * 100).toFixed(1))
+      }))
+      .sort((a, b) => b.actual - a.actual);
+  }, [realOutletSales]);
 
   const topCustomersData = useMemo(() => {
     if (!realInvoices) return [];
@@ -133,11 +155,10 @@ export default function ReportsPage() {
       .map(([name, revenue]) => ({
         name,
         actual: revenue,
-        standard: 1000000, // Target spend
+        standard: 1000000, 
         variance: Number(((revenue - 1000000) / 1000000 * 100).toFixed(1))
       }))
-      .sort((a, b) => b.actual - a.actual)
-      .slice(0, 10);
+      .sort((a, b) => b.actual - a.actual);
   }, [realInvoices]);
 
   const topItemsData = useMemo(() => {
@@ -156,14 +177,13 @@ export default function ReportsPage() {
       .map(([name, data]) => ({
         name,
         actual: data.revenue,
-        standard: 500000, // Sales quota
+        standard: 500000, 
         qty: data.qty,
         variance: Number(((data.revenue - 500000) / 500000 * 100).toFixed(1))
       }))
       .sort((a, b) => b.actual - a.actual);
   }, [realInvoices]);
 
-  // PRODUCTION REPORTS DATA PROCESSING
   const performanceData = useMemo(() => {
     if (!realOrders) return [];
     return realOrders
@@ -177,31 +197,11 @@ export default function ReportsPage() {
       })).slice(-8);
   }, [realOrders]);
 
-  const consumptionSummary = useMemo(() => {
-    if (!realOrders) return [];
-    const productAggregates: Record<string, { standard: number, actual: number, count: number }> = {};
-    realOrders.forEach(o => {
-      if (!productAggregates[o.product]) {
-        productAggregates[o.product] = { standard: 0, actual: 0, count: 0 };
-      }
-      const yieldFactor = (o.yield || 100) / 100;
-      productAggregates[o.product].standard += o.quantity || 0;
-      productAggregates[o.product].actual += (o.quantity || 0) * yieldFactor;
-      productAggregates[o.product].count += 1;
-    });
-    return Object.entries(productAggregates).map(([name, data]) => ({
-      name,
-      standard: data.standard,
-      actual: data.actual,
-      variance: Number(((data.actual - data.standard) / data.standard * 100).toFixed(1)) || 0
-    }));
-  }, [realOrders]);
-
   const inventoryValuation = useMemo(() => {
     if (!realMaterials) return [];
     return realMaterials.map(m => ({
       name: m.name,
-      standard: 100, // Dummy capacity for chart scaling
+      standard: 100, 
       actual: m.stock || 0,
       unit: m.unit,
       value: (m.stock || 0) * (m.cost || 0),
@@ -212,14 +212,14 @@ export default function ReportsPage() {
   const currentData = useMemo(() => {
     switch (selectedReportId) {
       case 'sales-rev': return salesRevenueData;
+      case 'outlet-sales': return outletPerformanceData;
       case 'top-customers': return topCustomersData;
       case 'top-items': return topItemsData;
       case 'prod-rep': return performanceData;
-      case 'inv-cons': return consumptionSummary;
       case 'inv-val': return inventoryValuation;
       default: return [];
     }
-  }, [selectedReportId, salesRevenueData, topCustomersData, topItemsData, performanceData, consumptionSummary, inventoryValuation]);
+  }, [selectedReportId, salesRevenueData, outletPerformanceData, topCustomersData, topItemsData, performanceData, inventoryValuation]);
 
   const handleGenerate = (id: string) => {
     setIsGenerating(true)
@@ -304,7 +304,7 @@ export default function ReportsPage() {
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                         />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                        <Bar name={selectedReportId?.includes('sales') || selectedReportId?.includes('top') ? 'MMK Revenue' : 'Actual Qty'} dataKey="actual" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} barSize={40} />
+                        <Bar name="Actual Value (MMK)" dataKey="actual" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} barSize={40} />
                         <Bar name="Target/Baseline" dataKey="standard" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={40} />
                       </BarChart>
                     )}
@@ -331,13 +331,13 @@ export default function ReportsPage() {
                         {data.map((row, idx) => (
                           <TableRow key={idx}>
                             <TableCell className="font-bold text-sm">{row.name}</TableCell>
-                            <TableCell className="text-right font-mono text-muted-foreground">{row.standard.toLocaleString()}</TableCell>
-                            <TableCell className="text-right font-mono font-bold">MMK {row.actual.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-mono text-muted-foreground">{row.standard?.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-mono font-bold">MMK {row.actual?.toLocaleString()}</TableCell>
                             <TableCell className={`text-right font-bold ${row.variance > 0 ? 'text-secondary' : 'text-destructive'}`}>
                               {row.variance > 0 ? '+' : ''}{row.variance}%
                             </TableCell>
                             <TableCell>
-                              {row.actual >= row.standard ? (
+                              {(row.actual || 0) >= (row.standard || 0) ? (
                                 <Badge variant="secondary" className="bg-green-50 text-green-700 text-[10px] uppercase">Goal Met</Badge>
                               ) : (
                                 <Badge variant="outline" className="text-orange-600 border-orange-200 text-[10px] uppercase">Under</Badge>
@@ -363,7 +363,7 @@ export default function ReportsPage() {
               <CardContent className="space-y-4">
                 <div className="p-4 rounded-2xl border bg-secondary/5 border-secondary/10">
                    <p className="text-sm font-bold mb-1">Growth Forecast</p>
-                   <p className="text-xs text-muted-foreground leading-relaxed">System projects a 12% revenue increase if current sales velocity for top items maintains through month-end.</p>
+                   <p className="text-xs text-muted-foreground leading-relaxed">System projects a 12% revenue increase if current sales velocity maintains through month-end.</p>
                 </div>
                 
                 <div className="pt-6 border-t space-y-4">
@@ -371,7 +371,7 @@ export default function ReportsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/20 border border-primary/10 text-[11px] font-medium">
                       <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>{selectedReportId === 'top-customers' ? 'VIP customers account for 65% of revenue.' : 'Main distribution channels are healthy.'}</span>
+                      <span>{selectedReportId === 'outlet-sales' ? 'Top 3 outlets account for 70% of retail revenue.' : 'Main distribution channels are healthy.'}</span>
                     </div>
                   </div>
                 </div>
@@ -388,7 +388,7 @@ export default function ReportsPage() {
       <div className="flex flex-col gap-3">
         <h1 className="text-5xl font-bold font-headline text-foreground tracking-tighter">Operational Intelligence</h1>
         <p className="text-muted-foreground text-xl max-w-2xl leading-relaxed">
-          Strategic data synthesis across sales, production, and inventory to drive business optimization.
+          Strategic data synthesis across sales, outlets, and inventory to drive business optimization.
         </p>
       </div>
 
@@ -403,7 +403,7 @@ export default function ReportsPage() {
             </div>
             <div className="space-y-4 w-full">
               <h3 className="font-bold text-3xl font-headline tracking-tight">Processing Analytics</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">Querying invoice records and aggregating tiered pricing data for synthesis...</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Querying records and aggregating tiered pricing data for synthesis...</p>
               <div className="pt-6">
                 <Progress value={progress} className="h-2 mt-4 bg-muted/50" />
                 <p className="text-[10px] font-black text-muted-foreground mt-3 uppercase tracking-[0.2em]">{progress}% Synthesized</p>

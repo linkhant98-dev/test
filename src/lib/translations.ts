@@ -11,9 +11,11 @@ export const translations = {
     warehouses: "Warehouses",
     wasteReasons: "Waste Reasons",
     customers: "Customers",
+    outlets: "Outlets",
     priceMaster: "Price Master",
     sales: "Sales",
     invoices: "Invoices",
+    outletSales: "Outlet Sales",
     inventory: "Inventory",
     stockOverview: "Stock Overview",
     goodsReceipt: "Goods Receipt",
@@ -40,7 +42,8 @@ export const translations = {
     recordConsumption: "Record Consumption",
     language: "Language",
     english: "English",
-    myanmar: "Myanmar"
+    myanmar: "Myanmar",
+    dailyOutletSales: "Daily Outlet Sales"
   },
   my: {
     dashboard: "ဒက်ရှ်ဘုတ်",
@@ -51,9 +54,11 @@ export const translations = {
     warehouses: "ဂိုဒေါင်များ",
     wasteReasons: "အလေအလွင့်အကြောင်းပြချက်များ",
     customers: "ဝယ်ယူသူများ",
+    outlets: "အရောင်းဆိုင်များ",
     priceMaster: "ဈေးနှုန်းစီမံခန့်ခွဲမှု",
     sales: "ရောင်းအား",
     invoices: "အင်ဗွိုက်များ",
+    outletSales: "ဆိုင်အရောင်းမှတ်တမ်း",
     inventory: "စာရင်းအင်း",
     stockOverview: "လက်ကျန်ခြုံငုံသုံးသပ်ချက်",
     goodsReceipt: "ကုန်ပစ္စည်းလက်ခံခြင်း",
@@ -80,6 +85,7 @@ export const translations = {
     recordConsumption: "ကုန်ကြမ်းသုံးစွဲမှုမှတ်တမ်း",
     language: "ဘာသာစကား",
     english: "အင်္ဂလိပ်",
-    myanmar: "မြန်မာ"
+    myanmar: "မြန်မာ",
+    dailyOutletSales: "နေ့စဉ်ဆိုင်အရောင်းမှတ်တမ်း"
   }
 };
