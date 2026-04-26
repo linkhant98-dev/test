@@ -14,7 +14,7 @@ import { useAuth, useUser, useFirestore } from "@/firebase"
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login"
 import { useTranslation } from "@/context/language-context"
 import { useAppSettings } from "@/components/theme-provider"
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 
@@ -29,7 +29,6 @@ export default function LoginPage() {
   
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -50,24 +49,13 @@ export default function LoginPage() {
     
     setIsLoggingIn(true)
     try {
-      if (authMode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password)
-      } else {
-        const cred = await createUserWithEmailAndPassword(auth, email, password)
-        await setDoc(doc(db, "users", cred.user.uid), {
-          name: email.split('@')[0],
-          email: email,
-          role: "Viewer",
-          status: "Active",
-          createdAt: new Date().toISOString()
-        })
-      }
+      await signInWithEmailAndPassword(auth, email, password)
       router.push("/")
     } catch (err: any) {
       toast({
         variant: "destructive",
         title: "Authentication Failed",
-        description: err.message || "Invalid credentials. Please try again."
+        description: "Invalid credentials or unauthorized access. Please contact your system administrator."
       })
     } finally {
       setIsLoggingIn(false)
@@ -250,19 +238,15 @@ export default function LoginPage() {
                     </div>
                     <Button type="submit" className="w-full h-16 text-sm font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-secondary/20 bg-secondary hover:bg-secondary/90" disabled={isLoggingIn}>
                       {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <LogIn className="h-5 w-5 mr-2" />}
-                      {authMode === 'login' ? 'Authenticate' : 'Register Account'}
+                      Authenticate
                     </Button>
-                    <div className="flex flex-col gap-4 pt-4">
-                      <Button variant="link" type="button" className="text-xs font-bold text-slate-500 hover:text-primary" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>
-                        {authMode === 'login' ? "New to the platform? Create credentials" : "Back to authentication"}
+                    
+                    <div className="flex items-center gap-4 pt-8">
+                      <div className="h-px flex-1 bg-slate-100" />
+                      <Button variant="ghost" type="button" onClick={handleInitializeAdmin} className="text-[9px] text-slate-400 uppercase font-black tracking-widest hover:text-primary hover:bg-transparent">
+                        <Key className="h-3 w-3 mr-2" /> Initial Setup Mode
                       </Button>
-                      <div className="flex items-center gap-4">
-                        <div className="h-px flex-1 bg-slate-100" />
-                        <Button variant="ghost" type="button" onClick={handleInitializeAdmin} className="text-[9px] text-slate-400 uppercase font-black tracking-widest hover:text-primary hover:bg-transparent">
-                          <Key className="h-3 w-3 mr-2" /> Initial Setup Mode
-                        </Button>
-                        <div className="h-px flex-1 bg-slate-100" />
-                      </div>
+                      <div className="h-px flex-1 bg-slate-100" />
                     </div>
                   </form>
                 </div>
