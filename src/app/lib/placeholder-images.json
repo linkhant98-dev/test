@@ -12,6 +12,12 @@
       "description": "Shelves of aging cheese in a warehouse",
       "imageUrl": "https://picsum.photos/seed/cheese2/800/600",
       "imageHint": "cheese warehouse"
+    },
+    {
+      "id": "official-logo",
+      "description": "Cheesy Bites Official Logo",
+      "imageUrl": "https://picsum.photos/seed/cheesy-official/400/400",
+      "imageHint": "cheese logo"
     }
   ]
 }

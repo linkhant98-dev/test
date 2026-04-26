@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -31,7 +32,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/context/language-context"
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase"
-import { collection, getDocs, writeBatch, doc } from "firebase/firestore"
+import { collection, setDoc, doc } from "firebase/firestore"
 
 const topProducts = [
   { name: 'Original Cheese Stick', share: 45, color: '#FFD700' },
@@ -137,13 +138,22 @@ export default function Dashboard() {
     if (!db || !user) return;
     setIsSeeding(true);
     try {
+      // 0. Global Settings (Branding)
+      await setDoc(doc(db, "appSettings", "global"), {
+        id: "global",
+        companyLogoUrl: "https://picsum.photos/seed/cheesy-official/400/400",
+        primaryColor: "#FFD700",
+        backgroundColor: "#F7F4F0",
+        accentColor: "#4F7736"
+      });
+
       // 1. Raw Materials
       const materials = [
-        { code: "MAT-MOZ-01", name: "Mozzarella Cheese", category: "Raw Material", unit: "kg", stock: 250 },
-        { code: "MAT-POT-02", name: "Potato Starch", category: "Raw Material", unit: "kg", stock: 1200 },
-        { code: "MAT-CHK-03", name: "Chicken Breast (Minced)", category: "Ingredient", unit: "kg", stock: 150 },
-        { code: "MAT-SAU-04", name: "Premium Sausage", category: "Ingredient", unit: "units", stock: 500 },
-        { code: "MAT-OIL-05", name: "Frying Oil", category: "Ingredient", unit: "L", stock: 200 }
+        { code: "MAT-MOZ-01", name: "Mozzarella Cheese", category: "Raw Material", unit: "kg", stock: 250, cost: 15000 },
+        { code: "MAT-POT-02", name: "Potato Starch", category: "Raw Material", unit: "kg", stock: 1200, cost: 4500 },
+        { code: "MAT-CHK-03", name: "Chicken Breast (Minced)", category: "Ingredient", unit: "kg", stock: 150, cost: 8500 },
+        { code: "MAT-SAU-04", name: "Premium Sausage", category: "Ingredient", unit: "units", stock: 500, cost: 1200 },
+        { code: "MAT-OIL-05", name: "Frying Oil", category: "Ingredient", unit: "L", stock: 200, cost: 3800 }
       ];
       for (const m of materials) {
         await addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() });
@@ -161,8 +171,8 @@ export default function Dashboard() {
 
       // 3. Customers
       const customersList = [
-        { code: "CUST-CITY-01", name: "City Mart Supermarket", email: "procurement@citymart.com.mm", customerType: "Wholesaler", customerClass: "VIP", creditLimit: 5000000 },
-        { code: "CUST-SNACK-02", name: "Neighborhood Snack Hub", email: "hello@snackhub.com", customerType: "Retailer", customerClass: "Grade A", creditLimit: 1000000 }
+        { code: "CUST-CITY-01", name: "City Mart Supermarket", email: "procurement@citymart.com.mm", customerType: "Wholesaler", customerClass: "VIP", creditLimit: 5000000, address: "Yangon, Myanmar" },
+        { code: "CUST-SNACK-02", name: "Neighborhood Snack Hub", email: "hello@snackhub.com", customerType: "Retailer", customerClass: "Grade A", creditLimit: 1000000, address: "Mandalay, Myanmar" }
       ];
       for (const c of customersList) {
         await addDocumentNonBlocking(collection(db, "customers"), { ...c, createdAt: new Date().toISOString() });
@@ -184,10 +194,12 @@ export default function Dashboard() {
         customerCode: "CUST-CITY-01",
         totalAmount: 1575000,
         status: "Paid",
+        paymentMethod: "Bank",
         createdAt: new Date().toISOString(),
+        dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
         items: [
-          { productName: "Original Cheese Stick", quantity: 300, price: 3500, total: 1050000 },
-          { productName: "Long Potato", quantity: 210, price: 2500, total: 525000 }
+          { productName: "Original Cheese Stick", productCode: "FG-STICK-01", quantity: 300, price: 3500, total: 1050000, unit: "Units" },
+          { productName: "Long Potato", productCode: "FG-POT-02", quantity: 210, price: 2500, total: 525000, unit: "Units" }
         ]
       });
 
@@ -197,6 +209,7 @@ export default function Dashboard() {
         amount: 245000,
         date: new Date().toISOString().split('T')[0],
         transactionsCount: 42,
+        recordedBy: "Demo Admin",
         createdAt: new Date().toISOString()
       });
 

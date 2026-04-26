@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -69,17 +70,14 @@ export default function LoginPage() {
     if (!auth) return
     setIsLoggingIn(true)
     initiateAnonymousSignIn(auth)
-    // Redirection handled by useEffect
   }
 
   const handleInitializeAdmin = async () => {
     if (!auth || !db) return
     setIsLoggingIn(true)
     try {
-      // Firebase requires at least 6 characters, using admin123
       const cred = await createUserWithEmailAndPassword(auth, "admin@gmail.com", "admin123")
       
-      // Signify admin role by creating doc in roles_admin
       await setDoc(doc(db, "roles_admin", cred.user.uid), {
         email: "admin@gmail.com",
         role: "Administrator",
@@ -135,14 +133,15 @@ export default function LoginPage() {
                 className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg overflow-hidden p-1"
               >
                 {settings?.companyLogoUrl ? (
-                   <img src={settings.companyLogoUrl} alt="Logo" className="rounded-lg object-contain h-10 w-10" />
+                   <img src={settings.companyLogoUrl} alt="Logo" className="rounded-lg object-contain h-10 w-10" data-ai-hint="cheese logo" />
                 ) : (
                   <Image 
-                    src="https://picsum.photos/seed/cheese-logo/200/200"
+                    src="https://picsum.photos/seed/cheesy-official/200/200"
                     alt="Logo"
                     width={48}
                     height={48}
                     className="rounded-lg object-contain"
+                    data-ai-hint="cheese logo"
                   />
                 )}
               </div>
@@ -173,14 +172,15 @@ export default function LoginPage() {
                 className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl overflow-hidden p-1"
               >
                 {settings?.companyLogoUrl ? (
-                   <img src={settings.companyLogoUrl} alt="Logo" className="rounded-lg object-contain h-14 w-14" />
+                   <img src={settings.companyLogoUrl} alt="Logo" className="rounded-lg object-contain h-14 w-14" data-ai-hint="cheese logo" />
                 ) : (
                   <Image 
-                    src="https://picsum.photos/seed/cheese-logo/200/200"
+                    src="https://picsum.photos/seed/cheesy-official/200/200"
                     alt="Logo"
                     width={64}
                     height={64}
                     className="rounded-lg object-contain"
+                    data-ai-hint="cheese logo"
                   />
                 )}
               </div>
