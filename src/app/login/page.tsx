@@ -3,22 +3,27 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Lock, Mail, Loader2, ShieldCheck, ArrowRight, UserPlus, LogIn } from "lucide-react"
+import { Lock, Mail, Loader2, ShieldCheck, ArrowRight, UserPlus, LogIn, Key } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { useAuth, useUser } from "@/firebase"
+import { useAuth, useUser, useFirestore } from "@/firebase"
 import { initiateAnonymousSignIn, initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login"
 import { useTranslation } from "@/context/language-context"
 import { useAppSettings } from "@/components/theme-provider"
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
+import { doc, setDoc } from "firebase/firestore"
+import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
   const router = useRouter()
   const auth = useAuth()
+  const db = useFirestore()
   const { user, isUserLoading } = useUser()
   const { t } = useTranslation()
   const settings = useAppSettings()
+  const { toast } = useToast()
   
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -48,8 +53,6 @@ export default function LoginPage() {
       initiateEmailSignUp(auth, email, password)
     }
     
-    // We don't await, but we reset loading after a short delay if no user is found
-    // Usually onAuthStateChanged handles the transition
     setTimeout(() => setIsLoggingIn(false), 3000)
   }
 
@@ -58,6 +61,41 @@ export default function LoginPage() {
     setIsLoggingIn(true)
     initiateAnonymousSignIn(auth)
     setTimeout(() => setIsLoggingIn(false), 3000)
+  }
+
+  const handleInitializeAdmin = async () => {
+    if (!auth || !db) return
+    setIsLoggingIn(true)
+    try {
+      // Firebase requires at least 6 characters, using admin123
+      const cred = await createUserWithEmailAndPassword(auth, "admin@gmail.com", "admin123")
+      
+      // Signify admin role by creating doc in roles_admin
+      await setDoc(doc(db, "roles_admin", cred.user.uid), {
+        email: "admin@gmail.com",
+        role: "Administrator",
+        initializedAt: new Date().toISOString()
+      })
+      
+      toast({
+        title: "Admin Account Created",
+        description: "Credentials: admin@gmail.com / admin123"
+      })
+      router.push("/")
+    } catch (e: any) {
+      if (e.code === 'auth/email-already-in-use') {
+        try {
+          await signInWithEmailAndPassword(auth, "admin@gmail.com", "admin123")
+          router.push("/")
+        } catch (loginErr: any) {
+          toast({ variant: "destructive", title: "Login Failed", description: loginErr.message })
+        }
+      } else {
+        toast({ variant: "destructive", title: "Setup Failed", description: e.message })
+      }
+    } finally {
+      setIsLoggingIn(false)
+    }
   }
 
   if (isUserLoading || !mounted) {
@@ -70,8 +108,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] p-4">
-      <div className="w-full max-w-[1000px] grid grid-cols-1 md:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden border">
-        <div className="hidden md:flex flex-col justify-between p-12 bg-secondary text-secondary-foreground relative overflow-hidden">
+      <div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden border">
+        <div className="hidden lg:flex flex-col justify-between p-12 bg-secondary text-secondary-foreground relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <Image 
               src="https://picsum.photos/seed/cheese-pattern/1200/1200"
@@ -120,8 +158,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="p-8 md:p-16 flex flex-col justify-center">
-          <div className="mb-8 md:hidden flex justify-center">
+        <div className="p-8 md:p-16 flex flex-col justify-center bg-white">
+          <div className="mb-8 lg:hidden flex justify-center">
              <div 
                 className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl overflow-hidden p-1"
               >
@@ -139,7 +177,7 @@ export default function LoginPage() {
               </div>
           </div>
 
-          <div className="mb-8 text-center md:text-left">
+          <div className="mb-8 text-center lg:text-left">
             <h2 className="text-3xl font-bold font-headline mb-2 text-foreground">
               {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
@@ -157,7 +195,7 @@ export default function LoginPage() {
                   id="email" 
                   type="email" 
                   placeholder="admin@cheesybites.com" 
-                  className="pl-10" 
+                  className="pl-10 h-12" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -178,7 +216,7 @@ export default function LoginPage() {
                   id="password" 
                   type="password" 
                   placeholder="••••••••" 
-                  className="pl-10" 
+                  className="pl-10 h-12" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -213,36 +251,35 @@ export default function LoginPage() {
                 <span className="w-full border-t border-muted" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground font-bold">Or continue with</span>
+                <span className="bg-white px-2 text-muted-foreground font-black tracking-widest">System Access Utilities</span>
               </div>
             </div>
 
-            <Card className="border-primary/20 bg-primary/5 shadow-none">
-              <CardContent className="p-4 space-y-4">
-                <div className="flex items-start gap-3">
-                  <ShieldCheck className="h-5 w-5 text-secondary mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-bold text-secondary">Instant Demo Access</h4>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                      Skip registration and enter as a demo administrator with full access to all modules.
-                    </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="border-primary/20 bg-primary/5 shadow-none group hover:bg-primary/10 transition-colors cursor-pointer" onClick={handleInitializeAdmin}>
+                <CardContent className="p-4 flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-black uppercase text-primary">Initialize Admin</span>
                   </div>
-                </div>
-                <Button 
-                  type="button"
-                  onClick={handleDemoLogin} 
-                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10 font-bold"
-                  disabled={isLoggingIn}
-                >
-                  {isLoggingIn ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <ArrowRight className="h-4 w-4 mr-2" />
-                  )}
-                  Launch Demo Mode
-                </Button>
-              </CardContent>
-            </Card>
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    Create <strong>admin@gmail.com</strong> with full role permissions.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-secondary/20 bg-secondary/5 shadow-none group hover:bg-secondary/10 transition-colors cursor-pointer" onClick={handleDemoLogin}>
+                <CardContent className="p-4 flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-secondary" />
+                    <span className="text-xs font-black uppercase text-secondary">Demo Mode</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    Launch anonymous session for instant exploration.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           </form>
         </div>
       </div>
