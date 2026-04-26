@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,7 +23,7 @@
     --border: 34 20% 85%;
     --input: 34 20% 85%;
     --ring: 45 100% 50%;
-    --radius: 0.75rem;
+    --radius: 0.85rem;
     --sidebar-background: 34 33% 96%;
     --sidebar-foreground: 20 10% 20%;
     --sidebar-primary: 45 100% 50%;
@@ -41,9 +40,15 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground font-body antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-headline;
+    @apply font-headline tracking-tight;
+  }
+}
+
+@layer utilities {
+  .cheese-shadow {
+    box-shadow: 0 10px 15px -3px rgba(255, 215, 0, 0.1), 0 4px 6px -2px rgba(255, 215, 0, 0.05);
   }
 }
