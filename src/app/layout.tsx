@@ -1,6 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import {SidebarProvider} from '@/components/ui/sidebar';
+import {SidebarProvider, SidebarTrigger} from '@/components/ui/sidebar';
 import {AppSidebar} from '@/components/layout/app-sidebar';
 import {LanguageProvider} from '@/context/language-context';
 import {FirebaseClientProvider} from '@/firebase/client-provider';
@@ -31,9 +31,17 @@ export default function RootLayout({
               <SidebarProvider>
                 <div className="flex min-h-screen w-full">
                   <AppSidebar />
-                  <main className="flex-1 overflow-y-auto bg-background p-4 md:p-8">
-                    {children}
-                  </main>
+                  <div className="flex flex-1 flex-col overflow-hidden">
+                    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-6">
+                      <SidebarTrigger />
+                      <div className="flex flex-1 items-center justify-end gap-4">
+                        {/* Space for future header notifications/search */}
+                      </div>
+                    </header>
+                    <main className="flex-1 overflow-y-auto bg-background p-4 md:p-8">
+                      {children}
+                    </main>
+                  </div>
                 </div>
               </SidebarProvider>
             </LanguageProvider>
