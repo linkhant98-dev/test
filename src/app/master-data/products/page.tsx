@@ -169,7 +169,7 @@ export default function ProductsPage() {
 
               <div className="p-4 bg-muted/20 rounded-xl space-y-4 border border-dashed">
                 <h4 className="text-xs font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-                  <Calculator className="h-3 w-3" /> Standard Recipe Cost Components
+                  <Calculator className="h-3 w-3" /> Production Cost Components
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
@@ -207,7 +207,7 @@ export default function ProductsPage() {
                   <TableHead>{t("code")}</TableHead>
                   <TableHead>{t("name")}</TableHead>
                   <TableHead className="text-right">{t("sellingPrice")}</TableHead>
-                  <TableHead className="text-right">Op. Cost (L+O)</TableHead>
+                  <TableHead className="text-right">Labor + Overhead</TableHead>
                   <TableHead className="text-right">{t("stock")}</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
@@ -286,7 +286,7 @@ export default function ProductsPage() {
 
               <div className="p-4 bg-muted/20 rounded-xl space-y-4 border border-dashed">
                 <h4 className="text-xs font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-                  <Calculator className="h-3 w-3" /> Standard Recipe Cost Components
+                  <Calculator className="h-3 w-3" /> Production Cost Components
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
