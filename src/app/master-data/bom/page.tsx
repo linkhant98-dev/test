@@ -18,7 +18,8 @@ import {
   Package,
   Boxes,
   User,
-  Zap
+  Zap,
+  Tag
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -72,7 +73,7 @@ export default function BOMManagementPage() {
   const selectedBOM = boms?.[0] || null
   const selectedProduct = products?.find(p => p.id === selectedProductId)
 
-  // Cost Simulation State (initialized with material standard costs)
+  // Cost Simulation State (temporary overrides for specific analysis)
   const [simulatedPrices, setSimulatedPrices] = useState<Record<string, number>>({})
 
   const [newComponent, setNewComponent] = useState({
@@ -80,6 +81,7 @@ export default function BOMManagementPage() {
     code: "",
     qty: 0,
     unit: "kg",
+    unitCost: 0,
     loss: 0,
     category: "Raw Material"
   })
@@ -100,7 +102,7 @@ export default function BOMManagementPage() {
     })
     
     setIsAddComponentOpen(false)
-    setNewComponent({ name: "", code: "", qty: 0, unit: "kg", loss: 0, category: "Raw Material" })
+    setNewComponent({ name: "", code: "", qty: 0, unit: "kg", unitCost: 0, loss: 0, category: "Raw Material" })
   }
 
   const handleDeleteComponent = (index: number) => {
@@ -127,21 +129,28 @@ export default function BOMManagementPage() {
   }
 
   const simulationResults = useMemo(() => {
-    if (!selectedBOM?.components) return { details: [], total: 0, materialTotal: 0, packagingTotal: 0 };
+    if (!selectedBOM?.components) return { details: [], total: 0, materialTotal: 0, packagingTotal: 0, overheadTotal: 0 };
 
     let materialTotal = 0;
     let packagingTotal = 0;
+    let overheadTotal = 0;
 
     const details = selectedBOM.components.map((comp: any) => {
-      // Pull price from simulation state OR from the raw materials master data
+      // Priority: 1. Simulation override, 2. Stored component unitCost, 3. Master material cost
       const masterMaterial = rawMaterials?.find(m => m.name === comp.name || m.code === comp.code);
-      const price = simulatedPrices[comp.name] !== undefined ? simulatedPrices[comp.name] : (masterMaterial?.cost || 0);
+      let price = comp.unitCost || (masterMaterial?.cost || 0);
+      
+      if (simulatedPrices[comp.name] !== undefined) {
+        price = simulatedPrices[comp.name];
+      }
       
       const qtyWithLoss = comp.qty * (1 + (comp.loss || 0) / 100);
       const subtotal = qtyWithLoss * price;
       
       if (comp.category === 'Packaging') {
         packagingTotal += subtotal;
+      } else if (comp.category === 'Overhead') {
+        overheadTotal += subtotal;
       } else {
         materialTotal += subtotal;
       }
@@ -155,9 +164,9 @@ export default function BOMManagementPage() {
 
     const labor = selectedProduct?.laborCost || 0;
     const overhead = selectedProduct?.overhead || 0;
-    const productionTotal = materialTotal + packagingTotal + labor + overhead;
+    const productionTotal = materialTotal + packagingTotal + overheadTotal + labor + overhead;
 
-    return { details, total: productionTotal, materialTotal, packagingTotal, labor, overhead };
+    return { details, total: productionTotal, materialTotal, packagingTotal, overheadTotal, labor, overhead };
   }, [selectedBOM, simulatedPrices, selectedProduct, rawMaterials]);
 
   return (
@@ -292,17 +301,24 @@ export default function BOMManagementPage() {
                           <DialogContent className="sm:max-w-[425px]">
                             <DialogHeader>
                               <DialogTitle className="font-headline text-xl">Add BOM Component</DialogTitle>
-                              <DialogDescription>Add a raw material or ingredient to this BOM version.</DialogDescription>
+                              <DialogDescription>Add a raw material, packaging, or overhead to this BOM version.</DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
                               <div className="grid gap-2">
-                                <Label>Material</Label>
+                                <Label>Item Name</Label>
                                 <Select onValueChange={(v) => {
                                   const mat = rawMaterials?.find(m => m.id === v);
-                                  setNewComponent({...newComponent, name: mat?.name || "", code: mat?.code || "", category: mat?.category === 'Packaging' ? 'Packaging' : 'Raw Material'});
+                                  setNewComponent({
+                                    ...newComponent, 
+                                    name: mat?.name || "", 
+                                    code: mat?.code || "", 
+                                    category: mat?.category || "Raw Material",
+                                    unit: mat?.unit || "kg",
+                                    unitCost: mat?.cost || 0
+                                  });
                                 }}>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select material" />
+                                    <SelectValue placeholder="Select from master data..." />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {rawMaterials?.map(mat => (
@@ -313,6 +329,34 @@ export default function BOMManagementPage() {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                              </div>
+                              <div className="grid gap-2">
+                                <Label>Manual Name (if not in master)</Label>
+                                <Input 
+                                  value={newComponent.name}
+                                  onChange={(e) => setNewComponent({...newComponent, name: e.target.value})}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                  <Label>Category</Label>
+                                  <Select value={newComponent.category} onValueChange={(v) => setNewComponent({...newComponent, category: v})}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Raw Material">Raw Material</SelectItem>
+                                      <SelectItem value="Packaging">Packaging</SelectItem>
+                                      <SelectItem value="Overhead">Overhead</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Unit Cost (MMK)</Label>
+                                  <Input 
+                                    type="number"
+                                    value={newComponent.unitCost}
+                                    onChange={(e) => setNewComponent({...newComponent, unitCost: Number(e.target.value)})}
+                                  />
+                                </div>
                               </div>
                               <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
@@ -326,10 +370,8 @@ export default function BOMManagementPage() {
                                 </div>
                                 <div className="grid gap-2">
                                   <Label>Unit</Label>
-                                  <Select onValueChange={(v) => setNewComponent({...newComponent, unit: v})} defaultValue={newComponent.unit}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Unit" />
-                                    </SelectTrigger>
+                                  <Select onValueChange={(v) => setNewComponent({...newComponent, unit: v})} value={newComponent.unit}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="kg">kg</SelectItem>
                                       <SelectItem value="L">L</SelectItem>
@@ -371,8 +413,14 @@ export default function BOMManagementPage() {
                               simulationResults.details.map((comp: any, i: number) => (
                                 <tr key={i} className="hover:bg-muted/20 group">
                                   <td className="p-3">
-                                    <Badge variant="outline" className={`text-[9px] ${comp.category === 'Packaging' ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'}`}>
-                                      {comp.category === 'Packaging' ? <Boxes className="h-2 w-2 mr-1" /> : <Package className="h-2 w-2 mr-1" />}
+                                    <Badge variant="outline" className={`text-[9px] ${
+                                      comp.category === 'Packaging' ? 'text-blue-600 bg-blue-50' : 
+                                      comp.category === 'Overhead' ? 'text-indigo-600 bg-indigo-50' : 
+                                      'text-amber-600 bg-amber-50'
+                                    }`}>
+                                      {comp.category === 'Packaging' ? <Boxes className="h-2 w-2 mr-1" /> : 
+                                       comp.category === 'Overhead' ? <Tag className="h-2 w-2 mr-1" /> : 
+                                       <Package className="h-2 w-2 mr-1" />}
                                       {comp.category}
                                     </Badge>
                                   </td>
@@ -453,7 +501,7 @@ export default function BOMManagementPage() {
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                             <div className="space-y-4">
                                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">
-                                  <span>Material Component Cost</span>
+                                  <span>Component Cost Simulator</span>
                                   <span>Price / Unit</span>
                                </div>
                                <div className="space-y-3">
@@ -496,19 +544,17 @@ export default function BOMManagementPage() {
                                      </div>
                                      <div className="text-lg font-black font-mono">MMK {simulationResults.packagingTotal.toLocaleString()}</div>
                                   </Card>
-                                  <Card className="bg-white border-none shadow-sm p-4 ring-2 ring-primary/20">
+                                  <Card className="bg-white border-none shadow-sm p-4">
                                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-600 mb-2">
-                                        <User className="h-3 w-3" /> Labor Cost
+                                        <Tag className="h-3 w-3" /> Overheads
                                      </div>
-                                     <div className="text-lg font-black font-mono">MMK {(selectedProduct?.laborCost || 0).toLocaleString()}</div>
-                                     <p className="text-[8px] text-muted-foreground mt-1">* Persisted in Product Master</p>
+                                     <div className="text-lg font-black font-mono">MMK {simulationResults.overheadTotal.toLocaleString()}</div>
                                   </Card>
                                   <Card className="bg-white border-none shadow-sm p-4 ring-2 ring-primary/20">
                                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-rose-600 mb-2">
-                                        <Zap className="h-3 w-3" /> Overhead
+                                        <User className="h-3 w-3" /> Labor Cost
                                      </div>
-                                     <div className="text-lg font-black font-mono">MMK {(selectedProduct?.overhead || 0).toLocaleString()}</div>
-                                     <p className="text-[8px] text-muted-foreground mt-1">* Persisted in Product Master</p>
+                                     <div className="text-lg font-black font-mono">MMK {(selectedProduct?.laborCost || 0).toLocaleString()}</div>
                                   </Card>
                                </div>
 
@@ -529,7 +575,7 @@ export default function BOMManagementPage() {
                                   </div>
                                </div>
                                <p className="text-[10px] text-muted-foreground bg-white/50 p-3 rounded-lg border border-dashed text-center">
-                                  Landed cost is dynamically calculated based on current material costs + defined labor and overhead components.
+                                  Landed cost is dynamically calculated based on manual component costs + defined labor and fixed overheads.
                                </p>
                             </div>
                          </div>
