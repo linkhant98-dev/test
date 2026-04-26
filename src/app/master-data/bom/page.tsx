@@ -137,7 +137,7 @@ export default function BOMManagementPage() {
       const masterMaterial = rawMaterials?.find(m => m.name === comp.name || m.code === comp.code);
       const price = simulatedPrices[comp.name] !== undefined ? simulatedPrices[comp.name] : (masterMaterial?.cost || 0);
       
-      const qtyWithLoss = comp.qty * (1 + comp.loss / 100);
+      const qtyWithLoss = comp.qty * (1 + (comp.loss || 0) / 100);
       const subtotal = qtyWithLoss * price;
       
       if (comp.category === 'Packaging') {
@@ -280,8 +280,8 @@ export default function BOMManagementPage() {
                       <TabsTrigger value="components">Recipe Components</TabsTrigger>
                       <TabsTrigger value="simulation">Production Cost Synthesis</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="components" className="space-y-4">
-                      <div className="flex justify-between items-center mb-4">
+                    <TabsContent value="components" className="space-y-6">
+                      <div className="flex justify-between items-center mb-2">
                         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">BOM Components</h3>
                         <Dialog open={isAddComponentOpen} onOpenChange={setIsAddComponentOpen}>
                           <DialogTrigger asChild>
@@ -360,15 +360,15 @@ export default function BOMManagementPage() {
                             <tr>
                               <th className="text-left p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Type</th>
                               <th className="text-left p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Material Name</th>
-                              <th className="text-right p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Quantity</th>
-                              <th className="text-left p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Unit</th>
-                              <th className="text-right p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Loss %</th>
+                              <th className="text-right p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Qty (Gross)</th>
+                              <th className="text-right p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Unit Cost</th>
+                              <th className="text-right p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Line Total</th>
                               <th className="w-[50px]"></th>
                             </tr>
                           </thead>
                           <tbody className="divide-y">
-                            {selectedBOM.components?.length > 0 ? (
-                              selectedBOM.components.map((comp: any, i: number) => (
+                            {simulationResults.details?.length > 0 ? (
+                              simulationResults.details.map((comp: any, i: number) => (
                                 <tr key={i} className="hover:bg-muted/20 group">
                                   <td className="p-3">
                                     <Badge variant="outline" className={`text-[9px] ${comp.category === 'Packaging' ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'}`}>
@@ -380,9 +380,18 @@ export default function BOMManagementPage() {
                                     <span className="font-medium block">{comp.name}</span>
                                     <span className="text-[10px] text-muted-foreground font-mono">{comp.code || 'N/A'}</span>
                                   </td>
-                                  <td className="p-3 text-right font-bold">{comp.qty}</td>
-                                  <td className="p-3 uppercase text-[10px] font-bold text-muted-foreground">{comp.unit}</td>
-                                  <td className="p-3 text-right text-muted-foreground">{comp.loss}%</td>
+                                  <td className="p-3 text-right">
+                                    <div className="flex flex-col items-end">
+                                      <span className="font-bold">{comp.qty} {comp.unit}</span>
+                                      {comp.loss > 0 && <span className="text-[8px] text-muted-foreground">+{comp.loss}% loss</span>}
+                                    </div>
+                                  </td>
+                                  <td className="p-3 text-right font-mono text-xs text-muted-foreground">
+                                    MMK {comp.price.toLocaleString()}
+                                  </td>
+                                  <td className="p-3 text-right font-black font-mono text-primary">
+                                    MMK {comp.subtotal.toLocaleString()}
+                                  </td>
                                   <td className="p-3">
                                     <Button 
                                       variant="ghost" 
@@ -405,6 +414,23 @@ export default function BOMManagementPage() {
                           </tbody>
                         </table>
                       </div>
+
+                      {simulationResults.details.length > 0 && (
+                        <div className="flex justify-end p-6 bg-secondary/5 rounded-2xl border-2 border-dashed border-secondary/10">
+                          <div className="text-right">
+                            <span className="text-[10px] font-black uppercase text-secondary tracking-[0.2em] block mb-1">Total Raw Material Cost</span>
+                            <div className="flex items-baseline justify-end gap-2">
+                               <span className="text-[10px] font-bold text-muted-foreground uppercase">MMK</span>
+                               <span className="text-3xl font-black font-headline text-secondary tracking-tighter">
+                                 {(simulationResults.materialTotal + simulationResults.packagingTotal).toLocaleString()}
+                               </span>
+                            </div>
+                            <p className="text-[9px] text-muted-foreground mt-2 font-medium italic">
+                              * Sum of all material and packaging components adjusted for yield loss.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </TabsContent>
                     <TabsContent value="simulation" className="space-y-6">
                        <div className="bg-accent/10 rounded-2xl p-8 border border-primary/20">
