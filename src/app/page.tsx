@@ -246,7 +246,7 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "system_roles"), { ...r, createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 3. Raw Materials
+      // 3. Raw Materials (Master Data)
       const rawMaterials = [
         { code: "MAT-MOZ-01", name: "Mozzarella Cheese", category: "Raw Material", unit: "kg", stock: 250, cost: 15000 },
         { code: "MAT-POT-02", name: "Potato Starch", category: "Raw Material", unit: "kg", stock: 1200, cost: 4500 },
