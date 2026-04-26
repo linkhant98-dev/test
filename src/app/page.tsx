@@ -48,11 +48,11 @@ const topProducts = [
   { name: 'Sausage Cheese Stick', share: 10, color: '#E5E7EB' },  
 ]
 
-const CustomPieTooltip = ({ active, payload }: any) => {
+const CustomPieTooltip = ({ active, payload, t }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white p-3 shadow-2xl rounded-xl border border-slate-100 flex flex-col gap-1 ring-4 ring-black/5">
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Product Mix</p>
+        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t("productMix")}</p>
         <p className="text-sm font-bold text-slate-800">{payload[0].name}</p>
         <p className="text-sm font-black text-primary leading-none mt-1">{payload[0].value}% Share</p>
       </div>
@@ -129,79 +129,79 @@ export default function Dashboard() {
 
     return [
       { 
-        title: "B2B Revenue", 
+        title: t("b2bRevenue"), 
         value: `MMK ${(totalSales / 1000000).toFixed(1)}M`, 
-        description: `${invoices?.length || 0} Invoices issued`, 
+        description: `${invoices?.length || 0} ${t("invoices")}`, 
         icon: ShoppingCart, 
         trend: "+0%", 
         trendType: "up",
         href: "/sales/invoices"
       },
       { 
-        title: "Outlet Sales", 
+        title: t("outletSalesTotal"), 
         value: `MMK ${(outletSalesTotal / 1000000).toFixed(1)}M`, 
-        description: `Retail branch revenue`, 
+        description: t("outletSales"), 
         icon: DollarSign, 
         trend: "+0%", 
         trendType: "up",
         href: "/sales/outlet-sales"
       },
       { 
-        title: "Avg Yield %", 
+        title: t("avgYield"), 
         value: `${avgYield}%`, 
-        description: "Production Efficiency", 
+        description: t("production"), 
         icon: TrendingUp, 
         trend: "Steady", 
         trendType: "up",
         href: "/production"
       },
       { 
-        title: "Stock Alerts", 
+        title: t("stockAlerts"), 
         value: lowStockCount.toString(), 
-        description: "Items below threshold", 
+        description: t("inventory"), 
         icon: AlertTriangle, 
         trend: lowStockCount > 0 ? "Critical" : "Stable", 
         trendType: lowStockCount > 0 ? "down" : "up",
         href: "/inventory"
       },
       { 
-        title: "Active Runs", 
+        title: t("activeRuns"), 
         value: activeProduction.toString(), 
-        description: "In Progress Orders", 
+        description: t("inProgress"), 
         icon: Factory, 
         trend: "Steady", 
         trendType: "up",
         href: "/production"
       },
       { 
-        title: "Fleet Runs", 
+        title: t("fleetRuns"), 
         value: monthlyTransfers.toString(), 
-        description: "Logistics Restocks", 
+        description: t("stockTransfer"), 
         icon: Truck, 
         trend: "On Schedule", 
         trendType: "up",
         href: "/inventory/transfer"
       },
       { 
-        title: "Customers", 
+        title: t("customers"), 
         value: customerCount.toString(), 
-        description: "Business partners", 
+        description: t("masterData"), 
         icon: Users, 
         trend: "Active", 
         trendType: "up",
         href: "/master-data/customers"
       },
       { 
-        title: "Retails", 
+        title: t("outlets"), 
         value: outletCount.toString(), 
-        description: "Active Locations", 
+        description: t("masterData"), 
         icon: Store, 
         trend: "Operational", 
         trendType: "up",
         href: "/master-data/outlets"
       }
     ];
-  }, [invoices, customers, outlets, outletSales, orders, materials, transfers]);
+  }, [invoices, customers, outlets, outletSales, orders, materials, transfers, t]);
 
   const outletPerformanceData = useMemo(() => {
     if (!outletSales || outletSales.length === 0) return [];
@@ -359,9 +359,9 @@ export default function Dashboard() {
     <div className="space-y-10 pb-12 animate-in fade-in duration-1000">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter font-headline text-foreground leading-tight">Operational Intelligence</h1>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter font-headline text-foreground leading-tight">{t("operationalIntelligence")}</h1>
           <p className="text-muted-foreground text-lg max-w-2xl leading-relaxed">
-            {isDemoUser ? "Welcome to the Demo Sandbox. Populating this environment with training data will enable all charts and reports." : "Operational summary for Cheesy Bites Production Console."}
+            {isDemoUser ? t("welcomeDemo") : t("operationalSummary")}
           </p>
         </div>
         
@@ -406,7 +406,7 @@ export default function Dashboard() {
                   <span className={`text-[10px] font-bold ${stat.trendType === 'up' ? 'text-secondary' : 'text-destructive'}`}>{stat.trend}</span>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
-                  <span className="text-[9px] font-black uppercase text-primary">Drill Down</span>
+                  <span className="text-[9px] font-black uppercase text-primary">{t("drillDown")}</span>
                   <ChevronRight className="h-3 w-3 text-primary" />
                 </div>
               </div>
@@ -420,11 +420,11 @@ export default function Dashboard() {
           <CardHeader className="flex flex-row items-center justify-between border-b border-muted/50 pb-6">
              <div className="flex flex-col gap-1">
                 <CardTitle className="font-headline text-2xl flex items-center gap-2">
-                  Daily Sales Volume
+                  {t("dailySalesVolume")}
                 </CardTitle>
                 <CardDescription className="text-xs">Aggregate revenue across all active retail branches.</CardDescription>
              </div>
-             <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase font-black tracking-widest py-1 px-3">Live Feed</Badge>
+             <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase font-black tracking-widest py-1 px-3">{t("liveFeed")}</Badge>
           </CardHeader>
           <CardContent className="pt-8 pl-2 h-[450px]">
              {outletPerformanceData.length > 0 ? (
@@ -473,7 +473,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-1">
               <CardTitle className="font-headline text-2xl flex items-center gap-2">
                 <PieChartIcon className="h-5 w-5 text-primary" />
-                Production Mix
+                {t("productionMix")}
               </CardTitle>
               <CardDescription className="text-xs">Strategic distribution of output volume.</CardDescription>
             </div>
@@ -498,13 +498,13 @@ export default function Dashboard() {
                           <Cell key={`cell-${index}`} fill={entry.color} style={{ outline: 'none' }} />
                         ))}
                       </Pie>
-                      <Tooltip content={<CustomPieTooltip />} />
+                      <Tooltip content={<CustomPieTooltip t={t} />} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Total</span>
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">{t("total")}</span>
                     <span className="text-3xl font-black font-headline tracking-tighter">100%</span>
-                    <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">Output</span>
+                    <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">{t("totalOutput")}</span>
                   </div>
                 </div>
 
@@ -535,7 +535,7 @@ export default function Dashboard() {
                 className="w-full text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
                 onClick={() => router.push('/production')}
              >
-                Analyze Work Orders <ChevronRight className="h-3 w-3 ml-1" />
+                {t("view")} {t("productionOrders")} <ChevronRight className="h-3 w-3 ml-1" />
              </Button>
           </div>
         </Card>
@@ -543,4 +543,3 @@ export default function Dashboard() {
     </div>
   )
 }
-

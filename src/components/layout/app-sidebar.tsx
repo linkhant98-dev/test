@@ -126,7 +126,7 @@ export function AppSidebar() {
       title: t("administration"),
       icon: ShieldCheck,
       items: [
-        { title: "Global Settings", url: "/admin/settings" },
+        { title: t("globalSettings"), url: "/admin/settings" },
         { title: t("userManagement"), url: "/admin/users" },
         { title: t("rolePermissions"), url: "/admin/roles" },
         { title: t("systemLogs"), url: "/admin/logs" },
@@ -240,7 +240,7 @@ export function AppSidebar() {
                   onClick={handleLogout}
                 >
                   <LogOut className="h-3 w-3 mr-2" />
-                  Sign Out
+                  {t("signOut")}
                 </Button>
               </div>
             )}

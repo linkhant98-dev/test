@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
+import { useTranslation } from "@/context/language-context"
 
 const CONSISTENT_MATERIALS = [
   "Mozzarella Cheese",
@@ -46,6 +47,7 @@ const CONSISTENT_MATERIALS = [
 export default function MaterialsPage() {
   const router = useRouter();
   const db = useFirestore()
+  const { t } = useTranslation()
   const { user, isUserLoading: isAuthLoading } = useUser()
   
   const materialsRef = useMemoFirebase(() => {
@@ -122,31 +124,31 @@ export default function MaterialsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-foreground">Raw Materials</h1>
+          <h1 className="text-3xl font-bold font-headline text-foreground">{t("materials")}</h1>
           <p className="text-muted-foreground">Manage ingredients and base materials for snacks.</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm">
-              <Plus className="h-4 w-4 mr-2" /> Add Material
+              <Plus className="h-4 w-4 mr-2" /> {t("add")} {t("unit")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle className="font-headline text-xl">Add New Material</DialogTitle>
+              <DialogTitle className="font-headline text-xl">{t("add")} {t("materials")}</DialogTitle>
               <DialogDescription>Define a new raw material or ingredient.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Material Code</Label>
+                <Label>{t("code")}</Label>
                 <Input value={newMaterial.code} onChange={(e) => setNewMaterial({...newMaterial, code: e.target.value})} placeholder="e.g. MAT-MOZ-01" />
               </div>
               <div className="grid gap-2">
-                <Label>Name</Label>
+                <Label>{t("name")}</Label>
                 <Select onValueChange={(v) => setNewMaterial({...newMaterial, name: v})}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select material" />
+                    <SelectValue placeholder={t("search")} />
                   </SelectTrigger>
                   <SelectContent>
                     {CONSISTENT_MATERIALS.map(mat => <SelectItem key={mat} value={mat}>{mat}</SelectItem>)}
@@ -155,10 +157,10 @@ export default function MaterialsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Category</Label>
+                  <Label>{t("category")}</Label>
                   <Select onValueChange={(v) => setNewMaterial({...newMaterial, category: v})} defaultValue={newMaterial.category}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Category" />
+                      <SelectValue placeholder={t("category")} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Raw Material">Raw Material</SelectItem>
@@ -167,10 +169,10 @@ export default function MaterialsPage() {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label>Unit</Label>
+                  <Label>{t("unit")}</Label>
                   <Select onValueChange={(v) => setNewMaterial({...newMaterial, unit: v})} defaultValue={newMaterial.unit}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Unit" />
+                      <SelectValue placeholder={t("unit")} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="kg">kg</SelectItem>
@@ -181,12 +183,12 @@ export default function MaterialsPage() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Initial Stock</Label>
+                <Label>{t("stock")}</Label>
                 <Input type="number" value={newMaterial.stock} onChange={(e) => setNewMaterial({...newMaterial, stock: Number(e.target.value)})} />
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleAddMaterial} className="w-full bg-secondary text-secondary-foreground">Save Material</Button>
+              <Button onClick={handleAddMaterial} className="w-full bg-secondary text-secondary-foreground">{t("save")}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -196,7 +198,7 @@ export default function MaterialsPage() {
         <CardHeader className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search materials by name or code..." className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <Input placeholder={`${t("search")}...`} className="pl-9 bg-muted/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -206,11 +208,11 @@ export default function MaterialsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead>Code</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Stock</TableHead>
-                  <TableHead>Unit</TableHead>
+                  <TableHead>{t("code")}</TableHead>
+                  <TableHead>{t("name")}</TableHead>
+                  <TableHead>{t("category")}</TableHead>
+                  <TableHead className="text-right">{t("stock")}</TableHead>
+                  <TableHead>{t("unit")}</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -229,11 +231,11 @@ export default function MaterialsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => { setEditingMaterial(m); setIsEditOpen(true); }}>
-                            <Edit2 className="h-4 w-4 mr-2" /> Edit Info
+                            <Edit2 className="h-4 w-4 mr-2" /> {t("edit")}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteMaterial(m.id)}>
-                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            <Trash2 className="h-4 w-4 mr-2" /> {t("delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -249,22 +251,22 @@ export default function MaterialsPage() {
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="font-headline text-xl">Edit Material</DialogTitle>
+            <DialogTitle className="font-headline text-xl">{t("edit")} {t("unit")}</DialogTitle>
             <DialogDescription>Modify raw material details and stock levels.</DialogDescription>
           </DialogHeader>
           {editingMaterial && (
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Material Code</Label>
+                <Label>{t("code")}</Label>
                 <Input value={editingMaterial.code} onChange={(e) => setEditingMaterial({...editingMaterial, code: e.target.value})} />
               </div>
               <div className="grid gap-2">
-                <Label>Name</Label>
+                <Label>{t("name")}</Label>
                 <Input value={editingMaterial.name} disabled />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Category</Label>
+                  <Label>{t("category")}</Label>
                   <Select value={editingMaterial.category} onValueChange={(v) => setEditingMaterial({...editingMaterial, category: v})}>
                     <SelectTrigger>
                       <SelectValue />
@@ -276,7 +278,7 @@ export default function MaterialsPage() {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label>Unit</Label>
+                  <Label>{t("unit")}</Label>
                   <Select value={editingMaterial.unit} onValueChange={(v) => setEditingMaterial({...editingMaterial, unit: v})}>
                     <SelectTrigger>
                       <SelectValue />
@@ -290,14 +292,14 @@ export default function MaterialsPage() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Current Stock</Label>
+                <Label>{t("stock")}</Label>
                 <Input type="number" value={editingMaterial.stock} onChange={(e) => setEditingMaterial({...editingMaterial, stock: Number(e.target.value)})} />
               </div>
             </div>
           )}
           <DialogFooter>
             <Button onClick={handleUpdateMaterial} className="w-full bg-secondary text-secondary-foreground">
-              <Save className="h-4 w-4 mr-2" /> Update Material
+              <Save className="h-4 w-4 mr-2" /> {t("update")}
             </Button>
           </DialogFooter>
         </DialogContent>
