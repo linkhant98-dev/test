@@ -135,29 +135,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
-      <SidebarHeader className="p-6">
-        <div className="flex items-center gap-3">
-          <div 
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 overflow-hidden"
-          >
-            {settings?.companyLogoUrl ? (
-               <img src={settings.companyLogoUrl} alt="Logo" className="object-contain h-10 w-10" />
-            ) : (
-              <Image 
-                src="https://picsum.photos/seed/cheese-logo/200/200"
-                alt="Cheesy Bites Logo"
-                width={48}
-                height={48}
-                className="rounded-lg object-contain"
-              />
-            )}
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-black leading-none font-headline text-foreground tracking-tighter">CHEESY</span>
-            <span className="text-sm font-bold text-primary -mt-1">BITES</span>
-          </div>
-        </div>
-      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
