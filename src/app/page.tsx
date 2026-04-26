@@ -87,7 +87,8 @@ export default function Dashboard() {
         description: `${invoices?.length || 0} Invoices issued`, 
         icon: ShoppingCart, 
         trend: "+12.5%", 
-        trendType: "up" 
+        trendType: "up",
+        href: "/sales/invoices"
       },
       { 
         title: "Outlet Revenue", 
@@ -95,7 +96,8 @@ export default function Dashboard() {
         description: `Daily summaries recorded`, 
         icon: DollarSign, 
         trend: "+8.2%", 
-        trendType: "up" 
+        trendType: "up",
+        href: "/sales/outlet-sales"
       },
       { 
         title: "Active Outlets", 
@@ -103,7 +105,8 @@ export default function Dashboard() {
         description: "Retail locations", 
         icon: Store, 
         trend: "Stable", 
-        trendType: "up" 
+        trendType: "up",
+        href: "/master-data/outlets"
       },
       { 
         title: "Customer Base", 
@@ -111,7 +114,8 @@ export default function Dashboard() {
         description: "Business partners", 
         icon: Users, 
         trend: "+2 new", 
-        trendType: "up" 
+        trendType: "up",
+        href: "/master-data/customers"
       }
     ];
   }, [invoices, customers, outlets, outletSales]);
@@ -244,17 +248,24 @@ export default function Dashboard() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title} className="border-none shadow-sm hover:shadow-md transition-shadow">
+          <Card 
+            key={stat.title} 
+            className="border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+            onClick={() => router.push(stat.href)}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">{stat.title}</CardTitle>
               <stat.icon className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground truncate">{stat.value}</div>
               <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-              <div className="mt-3 flex items-center gap-1">
-                {stat.trendType === 'up' ? <ArrowUpRight className="h-3 w-3 text-secondary" /> : <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                <span className={`text-[10px] font-bold ${stat.trendType === 'up' ? 'text-secondary' : 'text-destructive'}`}>{stat.trend}</span>
+              <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {stat.trendType === 'up' ? <ArrowUpRight className="h-3 w-3 text-secondary" /> : <ArrowDownRight className="h-3 w-3 text-destructive" />}
+                  <span className={`text-[10px] font-bold ${stat.trendType === 'up' ? 'text-secondary' : 'text-destructive'}`}>{stat.trend}</span>
+                </div>
+                <span className="text-[8px] font-black uppercase text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">Drill Down &rarr;</span>
               </div>
             </CardContent>
           </Card>
@@ -262,7 +273,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-7">
-        <Card className="md:col-span-4 border-none shadow-sm">
+        <Card className="md:col-span-4 border-none shadow-sm hover:shadow-md transition-shadow">
           <CardHeader>
              <CardTitle className="font-headline flex items-center justify-between">
                 <span>Daily Sales by Outlet</span>
@@ -279,18 +290,32 @@ export default function Dashboard() {
                     formatter={(val: number) => [`MMK ${val.toLocaleString()}`, "Revenue"]}
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
                   />
-                  <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar 
+                    dataKey="amount" 
+                    fill="hsl(var(--primary))" 
+                    radius={[4, 4, 0, 0]} 
+                    className="cursor-pointer"
+                    onClick={() => router.push('/sales/outlet-sales')}
+                  />
                 </BarChart>
               </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-3 border-none shadow-sm">
+        <Card className="md:col-span-3 border-none shadow-sm hover:shadow-md transition-shadow">
           <CardHeader><CardTitle className="font-headline">Production Mix</CardTitle></CardHeader>
           <CardContent className="h-[300px] flex flex-col items-center justify-center">
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={topProducts} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="share">
+                <Pie 
+                  data={topProducts} 
+                  innerRadius={60} 
+                  outerRadius={80} 
+                  paddingAngle={5} 
+                  dataKey="share"
+                  className="cursor-pointer"
+                  onClick={() => router.push('/production')}
+                >
                   {topProducts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip />
