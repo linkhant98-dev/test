@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -21,7 +20,8 @@ import {
   Receipt,
   ArrowRightLeft,
   User as UserIcon,
-  CircleUser
+  CircleUser,
+  Loader2
 } from "lucide-react"
 
 import {
@@ -214,58 +214,66 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4 space-y-4">
-        {mounted && !isUserLoading && user && (
-          <div className="flex flex-col gap-2 p-2 rounded-xl bg-muted/40 border">
-            <Link href="/profile" className="flex items-center gap-3 p-1 rounded-lg hover:bg-muted/60 transition-colors">
-              <Avatar className="h-8 w-8 border-2 border-primary">
-                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                  {user.isAnonymous ? "DA" : (user.email?.[0].toUpperCase() || "U")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold truncate">
-                  {user.isAnonymous ? "Demo Admin" : (user.displayName || "Standard User")}
-                </span>
-                <span className="text-[10px] text-muted-foreground truncate opacity-70">
-                  {t("profile")}
-                </span>
-              </div>
-            </Link>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full h-8 text-[10px] font-bold text-destructive hover:text-destructive hover:bg-destructive/5"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-3 w-3 mr-2" />
-              Sign Out
-            </Button>
+        {!mounted ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
-        )}
+        ) : (
+          <>
+            {user && (
+              <div className="flex flex-col gap-2 p-2 rounded-xl bg-muted/40 border">
+                <Link href="/profile" className="flex items-center gap-3 p-1 rounded-lg hover:bg-muted/60 transition-colors">
+                  <Avatar className="h-8 w-8 border-2 border-primary">
+                    <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                      {user.isAnonymous ? "DA" : (user.email?.[0].toUpperCase() || "U")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold truncate">
+                      {user.isAnonymous ? "Demo Admin" : (user.displayName || "Standard User")}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground truncate opacity-70">
+                      {t("profile")}
+                    </span>
+                  </div>
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full h-8 text-[10px] font-bold text-destructive hover:text-destructive hover:bg-destructive/5"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-3 w-3 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            )}
 
-        <div className="flex flex-col gap-2">
-           <div className="flex items-center gap-2 px-2 text-xs font-bold text-muted-foreground uppercase mb-1">
-             <Globe className="h-3 w-3" /> {t("language")}
-           </div>
-           <div className="flex gap-1 p-1 bg-muted rounded-md">
-             <Button 
-               variant={language === 'en' ? 'secondary' : 'ghost'} 
-               size="sm" 
-               className="flex-1 h-7 text-[10px]"
-               onClick={() => setLanguage('en')}
-             >
-               {t("english")}
-             </Button>
-             <Button 
-               variant={language === 'my' ? 'secondary' : 'ghost'} 
-               size="sm" 
-               className="flex-1 h-7 text-[10px]"
-               onClick={() => setLanguage('my')}
-             >
-               {t("myanmar")}
-             </Button>
-           </div>
-        </div>
+            <div className="flex flex-col gap-2">
+               <div className="flex items-center gap-2 px-2 text-xs font-bold text-muted-foreground uppercase mb-1">
+                 <Globe className="h-3 w-3" /> {t("language")}
+               </div>
+               <div className="flex gap-1 p-1 bg-muted rounded-md">
+                 <Button 
+                   variant={language === 'en' ? 'secondary' : 'ghost'} 
+                   size="sm" 
+                   className="flex-1 h-7 text-[10px]"
+                   onClick={() => setLanguage('en')}
+                 >
+                   {t("english")}
+                 </Button>
+                 <Button 
+                   variant={language === 'my' ? 'secondary' : 'ghost'} 
+                   size="sm" 
+                   className="flex-1 h-7 text-[10px]"
+                   onClick={() => setLanguage('my')}
+                 >
+                   {t("myanmar")}
+                 </Button>
+               </div>
+            </div>
+          </>
+        )}
       </SidebarFooter>
     </Sidebar>
   )
