@@ -66,6 +66,27 @@
           "description": "Human-readable details about the change."
         }
       }
+    },
+    "SystemRole": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SystemRole",
+      "type": "object",
+      "description": "Defines a user role and its associated permissions.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the role (e.g., Production Manager)."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief explanation of what users with this role can do."
+        },
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of permission keys assigned to this role."
+        }
+      }
     }
   },
   "auth": {
@@ -94,6 +115,16 @@
             "$ref": "#/backend/entities/SystemLog"
           },
           "description": "Central audit trail collection."
+        }
+      },
+      {
+        "path": "/system_roles/{roleId}",
+        "definition": {
+          "entityName": "SystemRole",
+          "schema": {
+            "$ref": "#/backend/entities/SystemRole"
+          },
+          "description": "System access roles and permissions."
         }
       }
     ]

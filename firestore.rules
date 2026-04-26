@@ -30,6 +30,11 @@ service cloud.firestore {
       allow read, create: if isSignedIn();
     }
 
+    // Roles and Permissions: Read/Write for authenticated staff
+    match /system_roles/{id} {
+      allow read, write: if isSignedIn();
+    }
+
     // Master Data Collections
     match /raw_materials/{id} {
       allow read, write: if isSignedIn();
