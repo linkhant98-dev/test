@@ -80,6 +80,16 @@ export const translations = {
     waste: "Waste",
     stockBalanceEngine: "Stock Balance Engine",
     
+    // Profitability Report
+    productProfitability: "Product Profitability",
+    sellingPrice: "Selling Price",
+    materialCost: "Material Cost",
+    packagingCost: "Packaging Cost",
+    productionCost: "Production Cost",
+    grossProfit: "Gross Profit",
+    margin: "Margin %",
+    landedCost: "Total Landed Cost",
+
     // Fields
     name: "Name",
     code: "Code",
@@ -208,6 +218,16 @@ export const translations = {
     transferOut: "အထွက်လွှဲပြောင်းမှု",
     waste: "အလေအလွင့်",
     stockBalanceEngine: "လက်ကျန်တွက်ချက်မှုစနစ်",
+
+    // Profitability Report
+    productProfitability: "ထုတ်ကုန်အကျိုးအမြတ်",
+    sellingPrice: "ရောင်းဈေး",
+    materialCost: "ကုန်ကြမ်းစရိတ်",
+    packagingCost: "ထုပ်ပိုးမှုစရိတ်",
+    productionCost: "ထုတ်လုပ်မှုစရိတ်",
+    grossProfit: "အသားတင်အမြတ်",
+    margin: "အမြတ်ရာခိုင်နှုန်း",
+    landedCost: "စုစုပေါင်းကုန်ကျစရိတ်",
     
     // Fields
     name: "အမည်",

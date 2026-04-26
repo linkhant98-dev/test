@@ -41,7 +41,18 @@ const CONSISTENT_MATERIALS = [
   "Breadcrumbs",
   "Frying Oil",
   "Seasoning Powder",
-  "Sea Salt"
+  "Sea Salt",
+  "Plastic Pouch (L)",
+  "Cardboard Box (M)",
+  "Sticker Label",
+  "Electricity/Utility"
+];
+
+const MATERIAL_CATEGORIES = [
+  "Raw Material",
+  "Ingredient",
+  "Packaging",
+  "Operational Cost"
 ];
 
 export default function MaterialsPage() {
@@ -66,7 +77,8 @@ export default function MaterialsPage() {
     name: "",
     unit: "kg",
     category: "Raw Material",
-    stock: 0
+    stock: 0,
+    cost: 0
   })
 
   useEffect(() => {
@@ -81,10 +93,11 @@ export default function MaterialsPage() {
       ...newMaterial,
       code: newMaterial.code.toUpperCase(),
       stock: Number(newMaterial.stock),
+      cost: Number(newMaterial.cost),
       createdAt: new Date().toISOString()
     }, { email: user.email, uid: user.uid })
     setIsAddOpen(false)
-    setNewMaterial({ code: "", name: "", unit: "kg", category: "Raw Material", stock: 0 })
+    setNewMaterial({ code: "", name: "", unit: "kg", category: "Raw Material", stock: 0, cost: 0 })
   }
 
   const handleUpdateMaterial = () => {
@@ -95,7 +108,8 @@ export default function MaterialsPage() {
       name: editingMaterial.name,
       unit: editingMaterial.unit,
       category: editingMaterial.category,
-      stock: Number(editingMaterial.stock)
+      stock: Number(editingMaterial.stock),
+      cost: Number(editingMaterial.cost)
     }, { email: user.email, uid: user.uid })
     setIsEditOpen(false)
     setEditingMaterial(null)
@@ -125,7 +139,7 @@ export default function MaterialsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold font-headline text-foreground">{t("materials")}</h1>
-          <p className="text-muted-foreground">Manage ingredients and base materials for snacks.</p>
+          <p className="text-muted-foreground">Manage ingredients, packaging, and base materials for snacks.</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -163,8 +177,7 @@ export default function MaterialsPage() {
                       <SelectValue placeholder={t("category")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Raw Material">Raw Material</SelectItem>
-                      <SelectItem value="Ingredient">Ingredient</SelectItem>
+                      {MATERIAL_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -182,9 +195,15 @@ export default function MaterialsPage() {
                   </Select>
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label>{t("stock")}</Label>
-                <Input type="number" value={newMaterial.stock} onChange={(e) => setNewMaterial({...newMaterial, stock: Number(e.target.value)})} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>{t("stock")}</Label>
+                  <Input type="number" value={newMaterial.stock} onChange={(e) => setNewMaterial({...newMaterial, stock: Number(e.target.value)})} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>{t("cost")} (MMK)</Label>
+                  <Input type="number" value={newMaterial.cost} onChange={(e) => setNewMaterial({...newMaterial, cost: Number(e.target.value)})} />
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -211,6 +230,7 @@ export default function MaterialsPage() {
                   <TableHead>{t("code")}</TableHead>
                   <TableHead>{t("name")}</TableHead>
                   <TableHead>{t("category")}</TableHead>
+                  <TableHead className="text-right">{t("cost")}</TableHead>
                   <TableHead className="text-right">{t("stock")}</TableHead>
                   <TableHead>{t("unit")}</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
@@ -222,6 +242,7 @@ export default function MaterialsPage() {
                     <TableCell className="font-mono text-xs font-bold text-secondary">{m.code || 'N/A'}</TableCell>
                     <TableCell className="font-medium">{m.name}</TableCell>
                     <TableCell><Badge variant="outline" className="text-[10px]">{m.category}</Badge></TableCell>
+                    <TableCell className="text-right font-mono text-xs">MMK {(m.cost || 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right font-bold">{(m.stock || 0).toLocaleString()}</TableCell>
                     <TableCell className="text-muted-foreground">{m.unit}</TableCell>
                     <TableCell>
@@ -252,7 +273,7 @@ export default function MaterialsPage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="font-headline text-xl">{t("edit")} {t("unit")}</DialogTitle>
-            <DialogDescription>Modify raw material details and stock levels.</DialogDescription>
+            <DialogDescription>Modify raw material details, cost, and stock levels.</DialogDescription>
           </DialogHeader>
           {editingMaterial && (
             <div className="grid gap-4 py-4">
@@ -272,8 +293,7 @@ export default function MaterialsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Raw Material">Raw Material</SelectItem>
-                      <SelectItem value="Ingredient">Ingredient</SelectItem>
+                      {MATERIAL_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -291,9 +311,15 @@ export default function MaterialsPage() {
                   </Select>
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label>{t("stock")}</Label>
-                <Input type="number" value={editingMaterial.stock} onChange={(e) => setEditingMaterial({...editingMaterial, stock: Number(e.target.value)})} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>{t("stock")}</Label>
+                  <Input type="number" value={editingMaterial.stock} onChange={(e) => setEditingMaterial({...editingMaterial, stock: Number(e.target.value)})} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>{t("cost")} (MMK)</Label>
+                  <Input type="number" value={editingMaterial.cost} onChange={(e) => setEditingMaterial({...editingMaterial, cost: Number(e.target.value)})} />
+                </div>
               </div>
             </div>
           )}
