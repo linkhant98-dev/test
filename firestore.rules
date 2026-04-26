@@ -17,6 +17,10 @@ service cloud.firestore {
       allow list: if isSignedIn();
     }
 
+    match /users/{id} {
+      allow read, write: if isSignedIn();
+    }
+
     match /system_logs/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
