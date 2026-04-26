@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -135,6 +136,24 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
+      <SidebarHeader className="h-16 flex items-center px-6 border-b shrink-0">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center p-1 shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
+             {settings?.companyLogoUrl ? (
+               <img src={settings.companyLogoUrl} alt="Logo" className="object-contain h-full w-full" />
+             ) : (
+                <Image 
+                  src="https://picsum.photos/seed/cheese-logo/100/100"
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                />
+             )}
+          </div>
+          <span className="text-xl font-black font-headline tracking-tighter uppercase leading-none">Cheesy Bites</span>
+        </Link>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
