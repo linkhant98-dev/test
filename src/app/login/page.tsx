@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Lock, Mail, Loader2, ShieldCheck, ArrowRight, UserPlus, LogIn, Key } from "lucide-react"
+import { Lock, Mail, Loader2, ShieldCheck, UserPlus, LogIn, Key } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { useAuth, useUser, useFirestore } from "@/firebase"
-import { initiateAnonymousSignIn, initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login"
+import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login"
 import { useTranslation } from "@/context/language-context"
 import { useAppSettings } from "@/components/theme-provider"
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
@@ -42,25 +42,34 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!auth || !email || !password) return
     
     setIsLoggingIn(true)
-    if (mode === 'login') {
-      initiateEmailSignIn(auth, email, password)
-    } else {
-      initiateEmailSignUp(auth, email, password)
+    try {
+      if (mode === 'login') {
+        await signInWithEmailAndPassword(auth, email, password)
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password)
+      }
+      router.push("/")
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Failed",
+        description: err.message || "Invalid credentials. Please try again."
+      })
+    } finally {
+      setIsLoggingIn(false)
     }
-    
-    setTimeout(() => setIsLoggingIn(false), 3000)
   }
 
   const handleDemoLogin = () => {
     if (!auth) return
     setIsLoggingIn(true)
     initiateAnonymousSignIn(auth)
-    setTimeout(() => setIsLoggingIn(false), 3000)
+    // Redirection handled by useEffect
   }
 
   const handleInitializeAdmin = async () => {
