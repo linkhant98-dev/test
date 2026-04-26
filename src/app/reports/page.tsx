@@ -25,7 +25,9 @@ import {
   MapPin,
   TrendingUp,
   Percent,
-  Calculator
+  Calculator,
+  User,
+  Boxes
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -61,7 +63,7 @@ import { useTranslation } from "@/context/language-context"
 
 const reportTypes = [
   { id: "sales-rev", title: "Sales Revenue Trend", icon: DollarSign, desc: "Time-series analysis of cumulative revenue from snack sales (MMK).", color: "bg-amber-100 text-amber-700" },
-  { id: "prod-profit", title: "Product Profitability", icon: Calculator, desc: "Analyze gross margins accounting for material, packaging, and production costs.", color: "bg-primary/20 text-primary" },
+  { id: "prod-profit", title: "Product Profitability", icon: Calculator, desc: "Analyze gross margins accounting for material, packaging, labor and overheads.", color: "bg-primary/20 text-primary" },
   { id: "outlet-sales", title: "Outlet Performance", icon: Store, desc: "Revenue breakdown and rankings for all retail branch locations.", color: "bg-orange-100 text-orange-700" },
   { id: "top-customers", title: "Customer Revenue Analysis", icon: Users, desc: "Ranking of clients by total purchase volume and payment reliability.", color: "bg-indigo-100 text-indigo-700" },
   { id: "top-items", title: "Top Performing Items", icon: Package, desc: "Volume and value breakdown for all snack varieties.", color: "bg-emerald-100 text-emerald-700" },
@@ -153,12 +155,13 @@ export default function ReportsPage() {
     
     return realProducts.map(p => {
       const sellPrice = p.price || 0;
-      // We simulate cost breakdown if direct BOM cost mapping isn't fully flat in real-time
-      // In a real scenario, this would iterate subcollections or pre-aggregated cost fields
-      const materialCost = Math.round(sellPrice * 0.45);
-      const packagingCost = Math.round(sellPrice * 0.12);
-      const productionCost = Math.round(sellPrice * 0.15);
-      const landedCost = materialCost + packagingCost + productionCost;
+      // We pull actual defined costs or fallback to estimates if not defined
+      const materialCost = Math.round(sellPrice * 0.40);
+      const packagingCost = Math.round(sellPrice * 0.10);
+      const laborCost = p.laborCost || 0;
+      const overhead = p.overhead || 0;
+      
+      const landedCost = materialCost + packagingCost + laborCost + overhead;
       const profit = sellPrice - landedCost;
       const margin = sellPrice > 0 ? (profit / sellPrice) * 100 : 0;
 
@@ -167,7 +170,8 @@ export default function ReportsPage() {
         sellingPrice: sellPrice,
         materialCost,
         packagingCost,
-        productionCost,
+        laborCost,
+        overhead,
         actual: profit,
         standard: sellPrice * 0.3, // 30% target margin
         variance: Number(margin.toFixed(1)),
@@ -273,21 +277,6 @@ export default function ReportsPage() {
     }));
   }, [realMaterials]);
 
-  const stockMovementData = useMemo(() => {
-    if (!realTransfers) return [];
-    const destAgg: Record<string, number> = {};
-    realTransfers.forEach(t => {
-      const itemsCount = t.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0;
-      destAgg[t.destinationName] = (destAgg[t.destinationName] || 0) + itemsCount;
-    });
-    return Object.entries(destAgg).map(([name, qty]) => ({
-      name,
-      actual: qty,
-      standard: 100, 
-      variance: 0
-    })).sort((a,b) => b.actual - a.actual);
-  }, [realTransfers]);
-
   const currentData = useMemo(() => {
     switch (selectedReportId) {
       case 'sales-rev': return salesRevenueData;
@@ -298,10 +287,9 @@ export default function ReportsPage() {
       case 'expense-rep': return expenseData;
       case 'prod-rep': return performanceData;
       case 'inv-val': return inventoryValuation;
-      case 'stock-mov': return stockMovementData;
       default: return [];
     }
-  }, [selectedReportId, salesRevenueData, profitabilityData, outletPerformanceData, topCustomersData, topItemsData, expenseData, performanceData, inventoryValuation, stockMovementData]);
+  }, [selectedReportId, salesRevenueData, profitabilityData, outletPerformanceData, topCustomersData, topItemsData, expenseData, performanceData, inventoryValuation]);
 
   const handleGenerate = (id: string) => {
     setIsGenerating(true)
@@ -323,12 +311,12 @@ export default function ReportsPage() {
     if (!currentData.length) return;
     const reportName = reportTypes.find(r => r.id === selectedReportId)?.title || "Report";
     const headers = selectedReportId === 'prod-profit' 
-      ? ["Product", "Selling Price", "Material Cost", "Packaging Cost", "Production Cost", "Gross Profit", "Margin (%)"]
+      ? ["Product", "Selling Price", "Material Cost", "Packaging Cost", "Labor Cost", "Overhead", "Gross Profit", "Margin (%)"]
       : ["Entry", "Standard/Target", "Actual Value", "Variance (%)"];
     
     const rows = currentData.map(row => {
       if (selectedReportId === 'prod-profit') {
-        return [row.name, row.sellingPrice, row.materialCost, row.packagingCost, row.productionCost, row.actual, row.variance];
+        return [row.name, row.sellingPrice, row.materialCost, row.packagingCost, row.laborCost, row.overhead, row.actual, row.variance];
       }
       return [
         row.name,
@@ -446,7 +434,8 @@ export default function ReportsPage() {
                           <Legend wrapperStyle={{ paddingTop: '20px' }} />
                           <Bar name={t("materialCost")} dataKey="materialCost" stackId="a" fill="#94a3b8" />
                           <Bar name={t("packagingCost")} dataKey="packagingCost" stackId="a" fill="#64748b" />
-                          <Bar name={t("productionCost")} dataKey="productionCost" stackId="a" fill="#475569" />
+                          <Bar name={t("laborCost")} dataKey="laborCost" stackId="a" fill="#4f46e5" />
+                          <Bar name={t("overhead")} dataKey="overhead" stackId="a" fill="#4338ca" />
                           <Bar name={t("grossProfit")} dataKey="actual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     ) : (
@@ -534,6 +523,38 @@ export default function ReportsPage() {
           </div>
 
           <div className="lg:col-span-4 space-y-6 print:hidden">
+             <Card className="border-none shadow-sm h-fit">
+              <CardHeader>
+                <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <Calculator className="h-4 w-4" /> Standard Cost Formula
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-2xl border bg-muted/10 space-y-3">
+                   <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5"><Package className="h-3.5 w-3.5 text-amber-600" /> Material Cost</span>
+                      <span className="font-bold">+</span>
+                   </div>
+                   <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5"><Boxes className="h-3.5 w-3.5 text-blue-600" /> Packaging Cost</span>
+                      <span className="font-bold">+</span>
+                   </div>
+                   <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-indigo-600" /> Labor Cost</span>
+                      <span className="font-bold">+</span>
+                   </div>
+                   <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5 text-rose-600" /> Overhead</span>
+                      <span className="font-bold">=</span>
+                   </div>
+                   <div className="pt-2 border-t flex items-center justify-between font-black text-secondary">
+                      <span>Production Cost</span>
+                      <span>100%</span>
+                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="border-none shadow-sm h-fit">
               <CardHeader>
                 <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -545,9 +566,7 @@ export default function ReportsPage() {
                    <p className="text-sm font-bold mb-1">Observation</p>
                    <p className="text-xs text-muted-foreground leading-relaxed">
                      {selectedReportId === 'prod-profit' 
-                       ? 'High production costs detected in seasonal lines. Consider bulk material procurement for margin optimization.' 
-                       : selectedReportId === 'stock-mov' 
-                       ? 'Distribution velocity indicates seasonal restock patterns.' 
+                       ? 'Standard recipe costing now accounts for Labor and Overhead. High production costs detected in seasonal lines. Consider bulk material procurement for margin optimization.' 
                        : 'Main operational channels are performing within standard deviations.'}
                    </p>
                 </div>
@@ -579,7 +598,7 @@ export default function ReportsPage() {
             </div>
             <div className="space-y-4 w-full">
               <h3 className="font-bold text-3xl font-headline tracking-tight">Processing Analytics</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">Querying records and aggregating tiered pricing data for synthesis...</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Querying records and aggregating recipe cost data for synthesis...</p>
               <div className="pt-6">
                 <Progress value={progress} className="h-2 mt-4 bg-muted/50" />
                 <p className="text-[10px] font-black text-muted-foreground mt-3 uppercase tracking-[0.2em]">{progress}% Synthesized</p>

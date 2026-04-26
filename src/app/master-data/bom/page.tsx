@@ -14,7 +14,11 @@ import {
   Loader2,
   Trash2,
   Calculator,
-  Hash
+  Hash,
+  Package,
+  Boxes,
+  User,
+  Zap
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,8 +38,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
+import { useTranslation } from "@/context/language-context"
 
 export default function BOMManagementPage() {
+  const { t } = useTranslation();
   const db = useFirestore()
   const { user } = useUser()
 
@@ -64,6 +70,7 @@ export default function BOMManagementPage() {
   const { data: boms, isLoading: bomsLoading } = useCollection(bomsRef)
 
   const selectedBOM = boms?.[0] || null
+  const selectedProduct = products?.find(p => p.id === selectedProductId)
 
   // Cost Simulation State
   const [simulatedPrices, setSimulatedPrices] = useState<Record<string, number>>({})
@@ -73,7 +80,8 @@ export default function BOMManagementPage() {
     code: "",
     qty: 0,
     unit: "kg",
-    loss: 0
+    loss: 0,
+    category: "Raw Material"
   })
 
   const [newBOMData, setNewBOMData] = useState({
@@ -92,7 +100,7 @@ export default function BOMManagementPage() {
     })
     
     setIsAddComponentOpen(false)
-    setNewComponent({ name: "", code: "", qty: 0, unit: "kg", loss: 0 })
+    setNewComponent({ name: "", code: "", qty: 0, unit: "kg", loss: 0, category: "Raw Material" })
   }
 
   const handleDeleteComponent = (index: number) => {
@@ -119,14 +127,22 @@ export default function BOMManagementPage() {
   }
 
   const simulationResults = useMemo(() => {
-    if (!selectedBOM?.components) return { details: [], total: 0 };
+    if (!selectedBOM?.components) return { details: [], total: 0, materialTotal: 0, packagingTotal: 0 };
 
-    let total = 0;
+    let materialTotal = 0;
+    let packagingTotal = 0;
+
     const details = selectedBOM.components.map((comp: any) => {
       const price = simulatedPrices[comp.name] || 0;
       const qtyWithLoss = comp.qty * (1 + comp.loss / 100);
       const subtotal = qtyWithLoss * price;
-      total += subtotal;
+      
+      if (comp.category === 'Packaging') {
+        packagingTotal += subtotal;
+      } else {
+        materialTotal += subtotal;
+      }
+
       return {
         ...comp,
         price,
@@ -134,15 +150,19 @@ export default function BOMManagementPage() {
       };
     });
 
-    return { details, total };
-  }, [selectedBOM, simulatedPrices]);
+    const labor = selectedProduct?.laborCost || 0;
+    const overhead = selectedProduct?.overhead || 0;
+    const productionTotal = materialTotal + packagingTotal + labor + overhead;
+
+    return { details, total: productionTotal, materialTotal, packagingTotal, labor, overhead };
+  }, [selectedBOM, simulatedPrices, selectedProduct]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-foreground">BOM Management</h1>
-          <p className="text-muted-foreground">Manage multi-version Bill of Materials and simulate production costs.</p>
+          <h1 className="text-3xl font-bold font-headline text-foreground">{t("bomManagement")}</h1>
+          <p className="text-muted-foreground">Manage multi-version Bill of Materials and calculate Standard Recipe Cost.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
@@ -255,7 +275,7 @@ export default function BOMManagementPage() {
                   <Tabs defaultValue="components">
                     <TabsList className="grid w-full grid-cols-2 mb-6">
                       <TabsTrigger value="components">Components</TabsTrigger>
-                      <TabsTrigger value="simulation">Cost Simulation</TabsTrigger>
+                      <TabsTrigger value="simulation">Standard Recipe Cost</TabsTrigger>
                     </TabsList>
                     <TabsContent value="components" className="space-y-4">
                       <div className="flex justify-between items-center mb-4">
@@ -276,7 +296,7 @@ export default function BOMManagementPage() {
                                 <Label>Material</Label>
                                 <Select onValueChange={(v) => {
                                   const mat = rawMaterials?.find(m => m.id === v);
-                                  setNewComponent({...newComponent, name: mat?.name || "", code: mat?.code || ""});
+                                  setNewComponent({...newComponent, name: mat?.name || "", code: mat?.code || "", category: mat?.category === 'Packaging' ? 'Packaging' : 'Raw Material'});
                                 }}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select material" />
@@ -325,23 +345,21 @@ export default function BOMManagementPage() {
                               </div>
                             </div>
                             <DialogFooter>
-                              <Button onClick={handleAddComponent} className="w-full bg-primary text-primary-foreground">
-                                <Save className="h-4 w-4 mr-2" /> Save Component
-                              </Button>
+                              <Button onClick={handleAddComponent} className="w-full bg-primary text-primary-foreground font-bold h-12">Save Component</Button>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
                       </div>
 
-                      <div className="rounded-lg border overflow-hidden">
+                      <div className="rounded-xl border overflow-hidden">
                         <table className="w-full text-sm">
                           <thead className="bg-muted/50 border-b">
                             <tr>
-                              <th className="text-left p-3 font-semibold">Material Code</th>
-                              <th className="text-left p-3 font-semibold">Material Name</th>
-                              <th className="text-right p-3 font-semibold">Quantity</th>
-                              <th className="text-left p-3 font-semibold">Unit</th>
-                              <th className="text-right p-3 font-semibold">Loss %</th>
+                              <th className="text-left p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Type</th>
+                              <th className="text-left p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Material Name</th>
+                              <th className="text-right p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Quantity</th>
+                              <th className="text-left p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Unit</th>
+                              <th className="text-right p-3 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Loss %</th>
                               <th className="w-[50px]"></th>
                             </tr>
                           </thead>
@@ -349,10 +367,18 @@ export default function BOMManagementPage() {
                             {selectedBOM.components?.length > 0 ? (
                               selectedBOM.components.map((comp: any, i: number) => (
                                 <tr key={i} className="hover:bg-muted/20 group">
-                                  <td className="p-3 font-mono text-xs font-bold text-secondary">{comp.code || 'N/A'}</td>
-                                  <td className="p-3 font-medium">{comp.name}</td>
-                                  <td className="p-3 text-right">{comp.qty}</td>
-                                  <td className="p-3">{comp.unit}</td>
+                                  <td className="p-3">
+                                    <Badge variant="outline" className={`text-[9px] ${comp.category === 'Packaging' ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'}`}>
+                                      {comp.category === 'Packaging' ? <Boxes className="h-2 w-2 mr-1" /> : <Package className="h-2 w-2 mr-1" />}
+                                      {comp.category}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3">
+                                    <span className="font-medium block">{comp.name}</span>
+                                    <span className="text-[10px] text-muted-foreground font-mono">{comp.code || 'N/A'}</span>
+                                  </td>
+                                  <td className="p-3 text-right font-bold">{comp.qty}</td>
+                                  <td className="p-3 uppercase text-[10px] font-bold text-muted-foreground">{comp.unit}</td>
                                   <td className="p-3 text-right text-muted-foreground">{comp.loss}%</td>
                                   <td className="p-3">
                                     <Button 
@@ -378,55 +404,98 @@ export default function BOMManagementPage() {
                       </div>
                     </TabsContent>
                     <TabsContent value="simulation" className="space-y-6">
-                       <div className="bg-accent/10 rounded-xl p-6 border border-primary/20">
-                         <h4 className="font-headline font-bold mb-4 flex items-center gap-2 text-secondary">
-                           <Calculator className="h-4 w-4" />
-                           Dynamic Unit Cost Simulation
-                         </h4>
-                         <p className="text-xs text-muted-foreground mb-6">
-                           Enter market prices (MMK) for each raw material to estimate the total production cost per unit.
-                         </p>
-
-                         <div className="space-y-4">
-                           {selectedBOM.components?.map((comp: any, i: number) => (
-                             <div key={i} className="flex items-center gap-4 p-3 bg-white rounded-lg border shadow-sm">
-                               <div className="flex-1">
-                                 <span className="text-sm font-bold block">{comp.name}</span>
-                                 <span className="text-[10px] text-muted-foreground">[{comp.code}] Qty: {comp.qty} {comp.unit} (incl. {comp.loss}% loss)</span>
-                               </div>
-                               <div className="flex items-center gap-2 w-48">
-                                 <span className="text-xs font-bold text-muted-foreground">MMK</span>
-                                 <Input 
-                                   type="number"
-                                   placeholder="Price/Unit"
-                                   className="h-8 text-right font-mono"
-                                   value={simulatedPrices[comp.name] || ""}
-                                   onChange={(e) => setSimulatedPrices({
-                                     ...simulatedPrices,
-                                     [comp.name]: Number(e.target.value)
-                                   })}
-                                 />
-                               </div>
-                               <div className="w-32 text-right">
-                                 <span className="text-xs font-bold text-secondary">
-                                   MMK {((simulatedPrices[comp.name] || 0) * comp.qty * (1 + comp.loss / 100)).toLocaleString()}
-                                 </span>
-                               </div>
-                             </div>
-                           ))}
+                       <div className="bg-accent/10 rounded-2xl p-8 border border-primary/20">
+                         <div className="flex justify-between items-start mb-8">
+                            <div className="space-y-1">
+                              <h4 className="font-headline text-2xl font-bold flex items-center gap-3 text-secondary">
+                                <Calculator className="h-6 w-6" />
+                                Standard Cost Synthesis
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Full landing cost breakdown for <strong>1 unit</strong> of {selectedProduct?.name}.
+                              </p>
+                            </div>
+                            <div className="text-right">
+                               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Selling Price</span>
+                               <span className="text-xl font-black text-primary">MMK {(selectedProduct?.price || 0).toLocaleString()}</span>
+                            </div>
                          </div>
 
-                         <div className="mt-8 pt-6 border-t border-primary/20 flex items-center justify-between">
-                           <div className="flex flex-col">
-                             <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Projected BOM Unit Cost</span>
-                             <span className="text-[10px] text-muted-foreground">Standardized for 1 Production Unit</span>
-                           </div>
-                           <div className="flex items-center gap-2">
-                             <Badge className="bg-secondary text-lg h-10 px-4 font-bold font-mono">
-                               MMK {simulationResults.total.toLocaleString()}
-                             </Badge>
-                             <TrendingUp className="h-5 w-5 text-secondary" />
-                           </div>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                            <div className="space-y-4">
+                               <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                  <span>Material Cost Analysis</span>
+                                  <span>Price Input</span>
+                               </div>
+                               <div className="space-y-3">
+                                {selectedBOM.components?.map((comp: any, i: number) => (
+                                  <div key={i} className="flex items-center gap-3 p-3 bg-white rounded-xl border shadow-sm group hover:border-primary/50 transition-colors">
+                                    <div className="flex-1">
+                                      <span className="text-xs font-bold block">{comp.name}</span>
+                                      <span className="text-[9px] text-muted-foreground font-mono">[{comp.code}] Qty: {comp.qty} {comp.unit}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 w-32">
+                                      <Input 
+                                        type="number"
+                                        placeholder="Price/U"
+                                        className="h-8 text-right font-mono text-xs border-none bg-muted/30 focus:bg-white"
+                                        value={simulatedPrices[comp.name] || ""}
+                                        onChange={(e) => setSimulatedPrices({
+                                          ...simulatedPrices,
+                                          [comp.name]: Number(e.target.value)
+                                        })}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                               </div>
+                            </div>
+
+                            <div className="space-y-6">
+                               <div className="grid grid-cols-2 gap-4">
+                                  <Card className="bg-white border-none shadow-sm p-4">
+                                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 mb-2">
+                                        <Package className="h-3 w-3" /> Raw Material
+                                     </div>
+                                     <div className="text-lg font-black font-mono">MMK {simulationResults.materialTotal.toLocaleString()}</div>
+                                  </Card>
+                                  <Card className="bg-white border-none shadow-sm p-4">
+                                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-600 mb-2">
+                                        <Boxes className="h-3 w-3" /> Packaging
+                                     </div>
+                                     <div className="text-lg font-black font-mono">MMK {simulationResults.packagingTotal.toLocaleString()}</div>
+                                  </Card>
+                                  <Card className="bg-white border-none shadow-sm p-4">
+                                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-600 mb-2">
+                                        <User className="h-3 w-3" /> Labor Cost
+                                     </div>
+                                     <div className="text-lg font-black font-mono">MMK {(selectedProduct?.laborCost || 0).toLocaleString()}</div>
+                                  </Card>
+                                  <Card className="bg-white border-none shadow-sm p-4">
+                                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-rose-600 mb-2">
+                                        <Zap className="h-3 w-3" /> Overhead
+                                     </div>
+                                     <div className="text-lg font-black font-mono">MMK {(selectedProduct?.overhead || 0).toLocaleString()}</div>
+                                  </Card>
+                               </div>
+
+                               <div className="pt-8 border-t-2 border-primary/20 space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-black uppercase text-secondary tracking-[0.2em]">{t("productionCost")}</span>
+                                      <span className="text-[10px] text-muted-foreground uppercase font-bold">Standard Recipe Aggregate</span>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                       <span className="text-4xl font-black font-headline text-secondary tracking-tighter">
+                                         MMK {simulationResults.total.toLocaleString()}
+                                       </span>
+                                       <Badge className="bg-primary/20 text-primary text-[10px] font-black mt-1">
+                                          {selectedProduct?.price > 0 ? `${((simulationResults.total / selectedProduct.price) * 100).toFixed(1)}% of SRP` : '0%'}
+                                       </Badge>
+                                    </div>
+                                  </div>
+                               </div>
+                            </div>
                          </div>
                        </div>
                     </TabsContent>
