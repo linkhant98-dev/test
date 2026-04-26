@@ -116,6 +116,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] p-4">
       <div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden border">
+        {/* Desktop Branding Column */}
         <div className="hidden lg:flex flex-col justify-between p-12 bg-secondary text-secondary-foreground relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <Image 
@@ -130,59 +131,73 @@ export default function LoginPage() {
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-12">
               <div 
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg overflow-hidden p-1"
+                className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl overflow-hidden p-1 border-4 border-white/20"
               >
                 {settings?.companyLogoUrl ? (
-                   <img src={settings.companyLogoUrl} alt="Logo" className="rounded-lg object-contain h-10 w-10" data-ai-hint="cheese logo" />
+                   <img 
+                    src={settings.companyLogoUrl} 
+                    alt="Cheesy Bites Logo" 
+                    className="rounded-xl object-contain h-full w-full" 
+                    data-ai-hint="cheese logo" 
+                   />
                 ) : (
                   <Image 
-                    src="https://picsum.photos/seed/cheesy-official/200/200"
-                    alt="Logo"
-                    width={48}
-                    height={48}
-                    className="rounded-lg object-contain"
+                    src="https://picsum.photos/seed/cheesy-official/400/400"
+                    alt="Cheesy Bites Logo"
+                    width={64}
+                    height={64}
+                    className="rounded-xl object-contain"
                     data-ai-hint="cheese logo"
                   />
                 )}
               </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-black leading-none font-headline tracking-tighter">CHEESY</span>
-                <span className="text-sm font-bold text-primary -mt-1">BITES</span>
+                <span className="text-3xl font-black leading-none font-headline tracking-tighter uppercase">Cheesy</span>
+                <span className="text-sm font-bold text-primary -mt-1 tracking-[0.2em] uppercase">Bites</span>
               </div>
             </div>
             
             <h1 className="text-4xl font-bold font-headline leading-tight mb-6">
               Precision Inventory & Production Control
             </h1>
-            <p className="text-secondary-foreground/80 max-w-sm">
+            <p className="text-secondary-foreground/80 max-w-sm text-lg leading-relaxed">
               Streamline your snack manufacturing operations with real-time tracking, variance analysis, and automated reporting.
             </p>
           </div>
 
-          <div className="relative z-10 flex gap-6 text-xs font-medium opacity-60">
+          <div className="relative z-10 flex gap-6 text-xs font-bold uppercase tracking-widest opacity-40">
             <span>© 2024 Cheesy Bites Co.</span>
-            <span>Privacy Policy</span>
-            <span>Support</span>
+            <span>Enterprise Edition</span>
           </div>
         </div>
 
+        {/* Login Form Column */}
         <div className="p-8 md:p-16 flex flex-col justify-center bg-white">
-          <div className="mb-8 lg:hidden flex justify-center">
+          <div className="mb-10 lg:hidden flex flex-col items-center gap-4">
              <div 
-                className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl overflow-hidden p-1"
+                className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary shadow-2xl overflow-hidden p-1.5 border-4 border-white"
               >
                 {settings?.companyLogoUrl ? (
-                   <img src={settings.companyLogoUrl} alt="Logo" className="rounded-lg object-contain h-14 w-14" data-ai-hint="cheese logo" />
+                   <img 
+                    src={settings.companyLogoUrl} 
+                    alt="Cheesy Bites Logo" 
+                    className="rounded-xl object-contain h-full w-full" 
+                    data-ai-hint="cheese logo" 
+                   />
                 ) : (
                   <Image 
-                    src="https://picsum.photos/seed/cheesy-official/200/200"
-                    alt="Logo"
-                    width={64}
-                    height={64}
-                    className="rounded-lg object-contain"
+                    src="https://picsum.photos/seed/cheesy-official/400/400"
+                    alt="Cheesy Bites Logo"
+                    width={80}
+                    height={80}
+                    className="rounded-xl object-contain"
                     data-ai-hint="cheese logo"
                   />
                 )}
+              </div>
+              <div className="text-center">
+                <span className="text-2xl font-black font-headline tracking-tighter uppercase block">Cheesy Bites</span>
+                <span className="text-[10px] font-bold text-muted-foreground tracking-[0.3em] uppercase">Control System</span>
               </div>
           </div>
 
@@ -197,14 +212,14 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                   id="email" 
                   type="email" 
                   placeholder="admin@cheesybites.com" 
-                  className="pl-10 h-12" 
+                  className="pl-10 h-12 rounded-xl border-muted focus-visible:ring-primary" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -214,9 +229,9 @@ export default function LoginPage() {
             
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
                 {mode === 'login' && (
-                  <Button variant="link" type="button" className="px-0 h-auto text-xs text-primary">Forgot password?</Button>
+                  <Button variant="link" type="button" className="px-0 h-auto text-xs text-primary font-bold">Forgot password?</Button>
                 )}
               </div>
               <div className="relative">
@@ -225,7 +240,7 @@ export default function LoginPage() {
                   id="password" 
                   type="password" 
                   placeholder="••••••••" 
-                  className="pl-10 h-12" 
+                  className="pl-10 h-12 rounded-xl border-muted focus-visible:ring-primary" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -233,7 +248,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-md font-bold" disabled={isLoggingIn}>
+            <Button type="submit" className="w-full h-12 text-md font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20" disabled={isLoggingIn}>
               {isLoggingIn ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : mode === 'login' ? (
@@ -248,7 +263,7 @@ export default function LoginPage() {
               <Button 
                 variant="link" 
                 type="button"
-                className="text-sm font-medium"
+                className="text-sm font-bold text-muted-foreground"
                 onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
               >
                 {mode === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
@@ -259,31 +274,31 @@ export default function LoginPage() {
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-muted" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground font-black tracking-widest">System Access Utilities</span>
+              <div className="relative flex justify-center text-[10px] uppercase">
+                <span className="bg-white px-4 text-muted-foreground font-black tracking-[0.3em]">System Utilities</span>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="border-primary/20 bg-primary/5 shadow-none group hover:bg-primary/10 transition-colors cursor-pointer" onClick={handleInitializeAdmin}>
+              <Card className="border-primary/20 bg-primary/5 shadow-none group hover:bg-primary/10 transition-colors cursor-pointer rounded-2xl" onClick={handleInitializeAdmin}>
                 <CardContent className="p-4 flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Key className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-black uppercase text-primary">Initialize Admin</span>
+                    <span className="text-[10px] font-black uppercase text-primary tracking-widest">Init Admin</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground leading-tight">
+                  <p className="text-[10px] text-muted-foreground leading-tight font-medium">
                     Create <strong>admin@gmail.com</strong> with full role permissions.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-secondary/20 bg-secondary/5 shadow-none group hover:bg-secondary/10 transition-colors cursor-pointer" onClick={handleDemoLogin}>
+              <Card className="border-secondary/20 bg-secondary/5 shadow-none group hover:bg-secondary/10 transition-colors cursor-pointer rounded-2xl" onClick={handleDemoLogin}>
                 <CardContent className="p-4 flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-secondary" />
-                    <span className="text-xs font-black uppercase text-secondary">Demo Mode</span>
+                    <span className="text-[10px] font-black uppercase text-secondary tracking-widest">Demo Mode</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground leading-tight">
+                  <p className="text-[10px] text-muted-foreground leading-tight font-medium">
                     Launch anonymous session for instant exploration.
                   </p>
                 </CardContent>
