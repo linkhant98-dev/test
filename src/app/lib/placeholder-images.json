@@ -18,6 +18,12 @@
       "description": "Cheesy Bites Official Logo",
       "imageUrl": "https://picsum.photos/seed/cheesy-official/400/400",
       "imageHint": "cheese logo"
+    },
+    {
+      "id": "login-hero",
+      "description": "Fresh gourmet cheese sticks presentation",
+      "imageUrl": "https://picsum.photos/seed/gourmet-cheese/1200/1600",
+      "imageHint": "cheese snacks"
     }
   ]
 }
