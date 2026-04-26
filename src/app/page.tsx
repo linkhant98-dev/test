@@ -19,7 +19,8 @@ import {
   Truck,
   TrendingUp,
   ChevronRight,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  BarChart3
 } from "lucide-react"
 import { 
   XAxis, 
@@ -132,7 +133,7 @@ export default function Dashboard() {
         value: `MMK ${(totalSales / 1000000).toFixed(1)}M`, 
         description: `${invoices?.length || 0} Invoices issued`, 
         icon: ShoppingCart, 
-        trend: "+12.5%", 
+        trend: "+0%", 
         trendType: "up",
         href: "/sales/invoices"
       },
@@ -141,7 +142,7 @@ export default function Dashboard() {
         value: `MMK ${(outletSalesTotal / 1000000).toFixed(1)}M`, 
         description: `Retail branch revenue`, 
         icon: DollarSign, 
-        trend: "+8.2%", 
+        trend: "+0%", 
         trendType: "up",
         href: "/sales/outlet-sales"
       },
@@ -150,7 +151,7 @@ export default function Dashboard() {
         value: `${avgYield}%`, 
         description: "Production Efficiency", 
         icon: TrendingUp, 
-        trend: "Healthy", 
+        trend: "Steady", 
         trendType: "up",
         href: "/production"
       },
@@ -186,7 +187,7 @@ export default function Dashboard() {
         value: customerCount.toString(), 
         description: "Business partners", 
         icon: Users, 
-        trend: "+2 new", 
+        trend: "Active", 
         trendType: "up",
         href: "/master-data/customers"
       },
@@ -195,7 +196,7 @@ export default function Dashboard() {
         value: outletCount.toString(), 
         description: "Active Locations", 
         icon: Store, 
-        trend: "Global", 
+        trend: "Operational", 
         trendType: "up",
         href: "/master-data/outlets"
       }
@@ -203,7 +204,7 @@ export default function Dashboard() {
   }, [invoices, customers, outlets, outletSales, orders, materials, transfers]);
 
   const outletPerformanceData = useMemo(() => {
-    if (!outletSales) return [];
+    if (!outletSales || outletSales.length === 0) return [];
     const agg: Record<string, number> = {};
     outletSales.forEach(s => {
       agg[s.outletName] = (agg[s.outletName] || 0) + (s.amount || 0);
@@ -363,20 +364,23 @@ export default function Dashboard() {
             {isDemoUser ? "Welcome to the Demo Sandbox. Populating this environment with training data will enable all charts and reports." : "Operational summary for Cheesy Bites Production Console."}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <Button 
-            variant="outline" 
-            className={`h-14 px-6 gap-3 rounded-2xl transition-all shadow-lg font-bold border-2 ${isDemoUser ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20' : 'border-muted bg-muted/20 text-muted-foreground hover:bg-muted/30'}`}
-            onClick={seedDemoData}
-            disabled={isSeeding}
-          >
-            {isSeeding ? <RefreshCcw className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-            {isDemoUser ? "Populate Demo Environment" : "System Data Utility"}
-          </Button>
-          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-2 opacity-60">
-            {isDemoUser ? "Sandbox Mode Enabled" : "Authorized Production User"}
-          </span>
-        </div>
+        
+        {isDemoUser && (
+          <div className="flex flex-col items-end gap-2">
+            <Button 
+              variant="outline" 
+              className="h-14 px-6 gap-3 rounded-2xl transition-all shadow-lg font-bold border-2 border-primary bg-primary/10 text-primary hover:bg-primary/20"
+              onClick={seedDemoData}
+              disabled={isSeeding}
+            >
+              {isSeeding ? <RefreshCcw className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+              Populate Demo Environment
+            </Button>
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-2 opacity-60">
+              Sandbox Mode Enabled
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -423,32 +427,44 @@ export default function Dashboard() {
              <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px] uppercase font-black tracking-widest py-1 px-3">Live Feed</Badge>
           </CardHeader>
           <CardContent className="pt-8 pl-2 h-[450px]">
-             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={outletPerformanceData}>
-                  <defs>
-                    <linearGradient id="barGradient" x1="0" x2="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={1} />
-                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11, fontWeight: 600}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11, fontWeight: 600}} />
-                  <Tooltip 
-                    cursor={{fill: '#F9FAFB'}}
-                    formatter={(val: number) => [`MMK ${val.toLocaleString()}`, "Revenue"]}
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', padding: '12px' }} 
-                  />
-                  <Bar 
-                    dataKey="amount" 
-                    fill="url(#barGradient)" 
-                    radius={[8, 8, 0, 0]} 
-                    barSize={45}
-                    className="cursor-pointer transition-all hover:opacity-80"
-                    onClick={() => router.push('/sales/outlet-sales')}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+             {outletPerformanceData.length > 0 ? (
+               <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={outletPerformanceData}>
+                    <defs>
+                      <linearGradient id="barGradient" x1="0" x2="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={1} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11, fontWeight: 600}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11, fontWeight: 600}} />
+                    <Tooltip 
+                      cursor={{fill: '#F9FAFB'}}
+                      formatter={(val: number) => [`MMK ${val.toLocaleString()}`, "Revenue"]}
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', padding: '12px' }} 
+                    />
+                    <Bar 
+                      dataKey="amount" 
+                      fill="url(#barGradient)" 
+                      radius={[8, 8, 0, 0]} 
+                      barSize={45}
+                      className="cursor-pointer transition-all hover:opacity-80"
+                      onClick={() => router.push('/sales/outlet-sales')}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+             ) : (
+               <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground gap-4 bg-muted/5 rounded-2xl border-2 border-dashed">
+                 <BarChart3 className="h-12 w-12 opacity-20" />
+                 <p className="text-sm font-medium">No sales data recorded yet.</p>
+                 {!isDemoUser && (
+                   <Button variant="outline" size="sm" onClick={() => router.push('/sales/outlet-sales')}>
+                     Record First Sale
+                   </Button>
+                 )}
+               </div>
+             )}
           </CardContent>
         </Card>
 
@@ -463,46 +479,55 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col items-center justify-center py-10">
-            <div className="relative w-full h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie 
-                    data={topProducts} 
-                    innerRadius={75} 
-                    outerRadius={105} 
-                    paddingAngle={8} 
-                    dataKey="share"
-                    stroke="none"
-                    className="cursor-pointer"
-                    onClick={() => router.push('/production')}
-                  >
-                    {topProducts.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} style={{ outline: 'none' }} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomPieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Total</span>
-                <span className="text-3xl font-black font-headline tracking-tighter">100%</span>
-                <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">Output</span>
-              </div>
-            </div>
-
-            <div className="w-full mt-6 space-y-3 px-4">
-              {topProducts.map((item) => (
-                <div key={item.name} className="flex items-center justify-between group cursor-default">
-                  <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 rounded-full shadow-sm transition-transform group-hover:scale-125" style={{ backgroundColor: item.color }} />
-                    <span className="text-xs font-bold text-slate-600 group-hover:text-foreground transition-colors">{item.name}</span>
+            {orders && orders.length > 0 ? (
+              <>
+                <div className="relative w-full h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie 
+                        data={topProducts} 
+                        innerRadius={75} 
+                        outerRadius={105} 
+                        paddingAngle={8} 
+                        dataKey="share"
+                        stroke="none"
+                        className="cursor-pointer"
+                        onClick={() => router.push('/production')}
+                      >
+                        {topProducts.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} style={{ outline: 'none' }} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomPieTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Total</span>
+                    <span className="text-3xl font-black font-headline tracking-tighter">100%</span>
+                    <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">Output</span>
                   </div>
-                  <Badge variant="outline" className="text-[10px] font-black border-muted-foreground/10 px-2 py-0">
-                    {item.share}%
-                  </Badge>
                 </div>
-              ))}
-            </div>
+
+                <div className="w-full mt-6 space-y-3 px-4">
+                  {topProducts.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between group cursor-default">
+                      <div className="flex items-center gap-3">
+                        <div className="h-3 w-3 rounded-full shadow-sm transition-transform group-hover:scale-125" style={{ backgroundColor: item.color }} />
+                        <span className="text-xs font-bold text-slate-600 group-hover:text-foreground transition-colors">{item.name}</span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-black border-muted-foreground/10 px-2 py-0">
+                        {item.share}%
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-muted-foreground gap-4 py-20">
+                <PieChartIcon className="h-16 w-16 opacity-10" />
+                <p className="text-xs text-center px-10">Production analysis will appear once orders are completed.</p>
+              </div>
+            )}
           </CardContent>
           <div className="p-6 mt-auto border-t border-muted/50 bg-muted/10">
              <Button 
@@ -518,3 +543,4 @@ export default function Dashboard() {
     </div>
   )
 }
+

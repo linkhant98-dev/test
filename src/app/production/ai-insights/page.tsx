@@ -7,32 +7,57 @@ import {
   AlertCircle, 
   History,
   CheckCircle2,
-  FileText
+  FileText,
+  SearchX
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-
-const MOCK_ORDER_DATA = {
-  id: "PO-2024-006",
-  product: "Brie Appetizers",
-  planned: 1200,
-  actual: 1060,
-  yield: 88.3,
-  materials: [
-    { name: "Creamy Brie Base", planned: 1000, actual: 1150, variance: 150, costVar: 450 },
-    { name: "Crackers (Salted)", planned: 500, actual: 480, variance: -20, costVar: -10 },
-    { name: "Honey Glaze", planned: 50, actual: 85, variance: 35, costVar: 105 },
-  ],
-  waste: [
-    { reason: "Over-baking", qty: 45 },
-    { reason: "Dropped items", qty: 25 },
-    { reason: "Quality Reject", qty: 70 },
-  ]
-}
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
+import { collection, query, where, limit } from "firebase/firestore"
+import { Loader2 } from "lucide-react"
 
 export default function OrderDiagnosticPage() {
+  const db = useFirestore()
+  const { user } = useUser()
+
+  // Fetch the most recent completed order to analyze
+  const ordersRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(db, "production_orders"), 
+      where("status", "==", "Complete"),
+      limit(1)
+    );
+  }, [db, user]);
+
+  const { data: orders, isLoading } = useCollection(ordersRef)
+  const order = orders?.[0]
+
+  if (isLoading) {
+    return <div className="p-20 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+  }
+
+  if (!order) {
+    return (
+      <div className="max-w-4xl mx-auto py-20 flex flex-col items-center justify-center text-center space-y-6">
+        <div className="h-24 w-24 rounded-full bg-muted/20 flex items-center justify-center">
+          <SearchX className="h-12 w-12 text-muted-foreground/30" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold font-headline">No Completed Orders Found</h2>
+          <p className="text-muted-foreground max-w-xs mx-auto text-sm">
+            AI analysis requires at least one completed production order with consumption records.
+          </p>
+        </div>
+        <Link href="/production">
+          <Button className="bg-primary text-primary-foreground font-bold">Go to Production Orders</Button>
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
@@ -40,7 +65,7 @@ export default function OrderDiagnosticPage() {
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Orders
         </Link>
         <Badge variant="outline" className="px-3 py-1 bg-accent text-secondary border-secondary/20 font-bold">
-          Manual Diagnostic View
+          Order Analysis View
         </Badge>
       </div>
 
@@ -54,15 +79,15 @@ export default function OrderDiagnosticPage() {
             <CardContent className="pt-6 space-y-4">
               <div className="flex justify-between items-center pb-2 border-b">
                 <span className="text-xs text-muted-foreground">Order ID</span>
-                <span className="text-sm font-bold">{MOCK_ORDER_DATA.id}</span>
+                <span className="text-sm font-bold uppercase">{order.id.slice(-8)}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b">
                 <span className="text-xs text-muted-foreground">Product</span>
-                <span className="text-sm font-bold">{MOCK_ORDER_DATA.product}</span>
+                <span className="text-sm font-bold">{order.product}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b">
                 <span className="text-xs text-muted-foreground">Actual Yield</span>
-                <span className="text-sm font-bold text-destructive">{MOCK_ORDER_DATA.yield}%</span>
+                <span className={`text-sm font-bold ${order.yield < 90 ? 'text-destructive' : 'text-secondary'}`}>{order.yield}%</span>
               </div>
             </CardContent>
           </Card>
@@ -76,13 +101,13 @@ export default function OrderDiagnosticPage() {
                 <div className="flex items-start gap-3">
                   <History className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-xs font-medium">Yield is 7% lower than the 30-day average.</p>
+                    <p className="text-xs font-medium">Order completed on {new Date(order.completedAt || order.createdAt).toLocaleDateString()}.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-4 w-4 text-secondary mt-0.5" />
                   <div>
-                    <p className="text-xs font-medium">Previous batch logs were optimal.</p>
+                    <p className="text-xs font-medium">Recorded with {order.variance}% deviation.</p>
                   </div>
                 </div>
               </div>
@@ -94,7 +119,7 @@ export default function OrderDiagnosticPage() {
           <Card className="border-none shadow-lg">
             <CardHeader className="border-b bg-muted/30">
               <CardTitle className="font-headline text-xl">Detailed Variance Report</CardTitle>
-              <CardDescription>Manual review of material consumption and waste</CardDescription>
+              <CardDescription>Comprehensive review of material consumption and waste factors.</CardDescription>
             </CardHeader>
             <CardContent className="pt-8">
               <div className="space-y-8">
@@ -102,34 +127,24 @@ export default function OrderDiagnosticPage() {
                   <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
                     <div>
-                      <h5 className="text-sm font-bold text-destructive">Material Alert</h5>
-                      <p className="text-xs mt-1">High over-consumption of 'Creamy Brie Base' noted.</p>
+                      <h5 className="text-sm font-bold text-destructive">Observation</h5>
+                      <p className="text-xs mt-1">Variance of {order.variance}% detected compared to standard BOM.</p>
                     </div>
                   </div>
                   <div className="p-4 rounded-xl border border-secondary/20 bg-secondary/5 flex items-start gap-3">
                     <TrendingDown className="h-5 w-5 text-secondary mt-0.5" />
                     <div>
                       <h5 className="text-sm font-bold text-secondary">Efficiency Note</h5>
-                      <p className="text-xs mt-1">Monitor glaze temperature to minimize runoff waste.</p>
+                      <p className="text-xs mt-1">Production output yield finalized at {order.yield}%.</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-muted/10 rounded-xl p-4 border border-dashed">
-                  <div className="flex items-center gap-2 mb-4 font-bold text-sm text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    <span>Audit Breakdown</span>
-                  </div>
-                  <div className="space-y-3">
-                    {MOCK_ORDER_DATA.materials.map(m => (
-                      <div key={m.name} className="flex justify-between items-center text-sm">
-                        <span>{m.name}</span>
-                        <span className={m.variance > 0 ? 'text-destructive font-bold' : 'text-secondary font-bold'}>
-                          {m.variance > 0 ? '+' : ''}{m.variance} kg
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="bg-muted/10 rounded-xl p-8 border border-dashed text-center">
+                  <FileText className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
+                    Detailed consumption ledger analysis is available in the individual Order Logs.
+                  </p>
                 </div>
               </div>
             </CardContent>
