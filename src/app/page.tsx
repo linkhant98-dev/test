@@ -41,10 +41,10 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBl
 import { collection, setDoc, doc } from "firebase/firestore"
 
 const topProducts = [
-  { name: 'Original Cheese Stick', share: 45, color: '#FFD700' }, // Gold
-  { name: 'Long Potato', share: 25, color: '#4F7736' },          // Olive
-  { name: 'Chicken PopCorn', share: 20, color: '#FFB800' },       // Amber
-  { name: 'Sausage Cheese Stick', share: 10, color: '#E5E7EB' },  // Gray/Sand
+  { name: 'Original Cheese Stick', share: 45, color: '#FFD700' }, 
+  { name: 'Long Potato', share: 25, color: '#4F7736' },          
+  { name: 'Chicken PopCorn', share: 20, color: '#FFB800' },       
+  { name: 'Sausage Cheese Stick', share: 10, color: '#E5E7EB' },  
 ]
 
 const CustomPieTooltip = ({ active, payload }: any) => {
@@ -226,7 +226,6 @@ export default function Dashboard() {
     const userCtx = { email: user.email, uid: user.uid };
     
     try {
-      // 1. App Settings
       await setDoc(doc(db, "appSettings", "global"), {
         id: "global",
         companyLogoUrl: "https://picsum.photos/seed/cheesy-official/400/400",
@@ -235,7 +234,6 @@ export default function Dashboard() {
         accentColor: "#4F7736"
       });
 
-      // 2. Roles
       const roles = [
         { name: "Administrator", description: "Full system control", permissions: ["master_data", "sales", "inventory", "production", "reports", "admin", "audit"] },
         { name: "Production Manager", description: "Manage factory floor", permissions: ["production", "inventory", "master_data"] },
@@ -246,7 +244,6 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "system_roles"), { ...r, createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 3. Raw Materials (Master Data)
       const rawMaterials = [
         { code: "MAT-MOZ-01", name: "Mozzarella Cheese", category: "Raw Material", unit: "kg", stock: 250, cost: 15000 },
         { code: "MAT-POT-02", name: "Potato Starch", category: "Raw Material", unit: "kg", stock: 1200, cost: 4500 },
@@ -259,7 +256,6 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 4. Finished Goods
       const goods = [
         { code: "FG-STICK-01", name: "Original Cheese Stick", category: "Finished Good", price: 3500, stock: 450 },
         { code: "FG-POT-02", name: "Long Potato", category: "Finished Good", price: 2500, stock: 800 },
@@ -270,7 +266,6 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "finished_goods"), { ...g, createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 5. Customers
       const customersList = [
         { code: "CUST-CITY-01", name: "City Mart Supermarket", email: "procurement@citymart.com.mm", customerType: "Wholesaler", customerClass: "VIP", creditLimit: 5000000, address: "Yangon, Myanmar", paymentTerms: "Net 30" },
         { code: "CUST-SNACK-02", name: "Neighborhood Snack Hub", email: "hello@snackhub.com", customerType: "Retailer", customerClass: "Grade A", creditLimit: 1000000, address: "Mandalay, Myanmar", paymentTerms: "Net 15" },
@@ -280,7 +275,6 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "customers"), { ...c, createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 6. Outlets
       const outletsList = [
         { name: "Junction City Outlet", location: "Yangon Downtown", manager: "U Kyaw", phone: "091234567" },
         { name: "Airport Shop", location: "Yangon Int'l Arrival", manager: "U Tun", phone: "094455667" },
@@ -290,7 +284,6 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "outlets"), { ...o, status: "Active", createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 7. Warehouses
       const warehousesList = [
         { name: "Main Factory Warehouse", location: "Hlaing Tharyar", capacity: "85%" },
         { name: "Cold Storage B", location: "Shwe Pyi Thar", capacity: "40%" }
@@ -299,7 +292,6 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "warehouses"), { ...w, status: "Active", createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 8. Waste Reasons
       const wasteList = [
         { code: "SPOIL", description: "Ingredient Expiration", category: "Inventory", severity: "High" },
         { code: "REJECT", description: "Quality Control Reject", category: "Production", severity: "Medium" },
@@ -309,7 +301,6 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "waste_reasons"), { ...wr, createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 9. Transaction: Invoices
       await addDocumentNonBlocking(collection(db, "invoices"), {
         invoiceNumber: "INV-DEMO-001",
         customerName: "City Mart Supermarket",
@@ -325,7 +316,6 @@ export default function Dashboard() {
         ]
       }, userCtx);
 
-      // 10. Transaction: Outlet Sales
       const mockSales = [
         { outletName: "Junction City Outlet", amount: 245000, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], transactionsCount: 42 },
         { outletName: "Airport Shop", amount: 580000, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], transactionsCount: 88 }
@@ -334,7 +324,6 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "outlet_sales"), { ...s, recordedBy: user.email, createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 11. Transaction: Production Orders
       const mockOrders = [
         { product: "Original Cheese Stick", date: new Date().toISOString().split('T')[0], quantity: 500, status: "In Progress", yield: 0, variance: 0 },
         { product: "Long Potato", date: new Date(Date.now() - 172800000).toISOString().split('T')[0], quantity: 1000, status: "Complete", yield: 98.2, variance: -1.8 }
@@ -343,7 +332,6 @@ export default function Dashboard() {
         await addDocumentNonBlocking(collection(db, "production_orders"), { ...o, createdAt: new Date().toISOString() }, userCtx);
       }
 
-      // 12. Transaction: Stock Transfers
       await addDocumentNonBlocking(collection(db, "stock_transfers"), {
         sourceName: "Main Factory Warehouse",
         destinationName: "Junction City Outlet",
@@ -364,24 +352,31 @@ export default function Dashboard() {
     return <div className="h-full w-full flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
+  const isDemoUser = user.isAnonymous;
+
   return (
     <div className="space-y-10 pb-12 animate-in fade-in duration-1000">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter font-headline text-foreground leading-tight">Operational Intelligence</h1>
           <p className="text-muted-foreground text-lg max-w-2xl leading-relaxed">
-            Synthesized insights for Sales, Inventory, and Quality Control across the Cheesy Bites enterprise.
+            {isDemoUser ? "Welcome to the Demo Sandbox. Populating this environment with training data will enable all charts and reports." : "Operational summary for Cheesy Bites Production Console."}
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          className="border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-bold h-14 px-6 gap-3 rounded-2xl transition-all shadow-lg hover:shadow-primary/10"
-          onClick={seedDemoData}
-          disabled={isSeeding}
-        >
-          {isSeeding ? <RefreshCcw className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-          Rebuild Enterprise Data
-        </Button>
+        <div className="flex flex-col items-end gap-2">
+          <Button 
+            variant="outline" 
+            className={`h-14 px-6 gap-3 rounded-2xl transition-all shadow-lg font-bold border-2 ${isDemoUser ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20' : 'border-muted bg-muted/20 text-muted-foreground hover:bg-muted/30'}`}
+            onClick={seedDemoData}
+            disabled={isSeeding}
+          >
+            {isSeeding ? <RefreshCcw className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+            {isDemoUser ? "Populate Demo Environment" : "System Data Utility"}
+          </Button>
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-2 opacity-60">
+            {isDemoUser ? "Sandbox Mode Enabled" : "Authorized Production User"}
+          </span>
+        </div>
       </div>
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
