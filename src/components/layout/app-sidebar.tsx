@@ -20,7 +20,8 @@ import {
   Store,
   Receipt,
   ArrowRightLeft,
-  User as UserIcon
+  User as UserIcon,
+  CircleUser
 } from "lucide-react"
 
 import {
@@ -35,6 +36,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarGroup,
+  SidebarGroupLabel,
 } from "@/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useTranslation } from "@/context/language-context"
@@ -194,6 +196,20 @@ export function AppSidebar() {
                 )}
               </SidebarMenuItem>
             ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupLabel>{t("userProfile")}</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/profile"} tooltip={t("profile")}>
+                <Link href="/profile">
+                  <CircleUser className="h-4 w-4" />
+                  <span className="font-medium">{t("profile")}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
