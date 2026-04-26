@@ -1,9 +1,8 @@
-
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { 
   ShoppingCart, 
   ArrowUpRight,
@@ -380,7 +379,7 @@ export default function Dashboard() {
              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={outletPerformanceData}>
                   <defs>
-                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="barGradient" x1="0" x2="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={1} />
                       <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
                     </linearGradient>
