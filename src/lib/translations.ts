@@ -19,6 +19,7 @@ export const translations = {
     outletSales: "Outlet Sales",
     inventory: "Inventory",
     stockOverview: "Stock Overview",
+    inventoryLedger: "Inventory Ledger",
     goodsReceipt: "Goods Receipt",
     productionIssues: "Production Issues",
     adjustments: "Adjustments",
@@ -66,6 +67,18 @@ export const translations = {
     liveFeed: "Live Feed",
     productMix: "Product Mix",
     totalOutput: "Total Output",
+    
+    // Ledger Formula
+    openingStock: "Opening Stock",
+    closingStock: "Closing Stock",
+    purchases: "Purchases / Receipt",
+    productionOutput: "Production Output",
+    transferIn: "Transfer In",
+    productionConsumption: "Production Consumption",
+    salesInvoice: "Sales / Invoice",
+    transferOut: "Transfer Out",
+    waste: "Waste",
+    stockBalanceEngine: "Stock Balance Engine",
     
     // Fields
     name: "Name",
@@ -135,6 +148,7 @@ export const translations = {
     outletSales: "ဆိုင်အရောင်းမှတ်တမ်း",
     inventory: "စာရင်းအင်း",
     stockOverview: "လက်ကျန်ခြုံငုံသုံးသပ်ချက်",
+    inventoryLedger: "လက်ကျန်စာရင်းချုပ်",
     goodsReceipt: "ကုန်ပစ္စည်းလက်ခံခြင်း",
     productionIssues: "ထုတ်လုပ်မှုထုတ်ပေးချက်",
     adjustments: "ညှိနှိုင်းမှုများ",
@@ -182,6 +196,18 @@ export const translations = {
     liveFeed: "တိုက်ရိုက်ဒေတာ",
     productMix: "ထုတ်ကုန်အချိုးအစား",
     totalOutput: "စုစုပေါင်းအထွက်",
+
+    // Ledger Formula
+    openingStock: "အဖွင့်လက်ကျန်",
+    closingStock: "အပိတ်လက်ကျန်",
+    purchases: "ဝယ်ယူမှု / လက်ခံမှု",
+    productionOutput: "ထုတ်လုပ်မှုအထွက်",
+    transferIn: "အဝင်လွှဲပြောင်းမှု",
+    productionConsumption: "ထုတ်လုပ်မှုသုံးစွဲမှု",
+    salesInvoice: "အရောင်း / အင်ဗွိုက်",
+    transferOut: "အထွက်လွှဲပြောင်းမှု",
+    waste: "အလေအလွင့်",
+    stockBalanceEngine: "လက်ကျန်တွက်ချက်မှုစနစ်",
     
     // Fields
     name: "အမည်",

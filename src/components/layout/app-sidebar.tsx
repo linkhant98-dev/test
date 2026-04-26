@@ -22,7 +22,8 @@ import {
   ArrowRightLeft,
   User as UserIcon,
   CircleUser,
-  Loader2
+  Loader2,
+  BookOpen
 } from "lucide-react"
 
 import {
@@ -102,6 +103,7 @@ export function AppSidebar() {
       icon: Package,
       items: [
         { title: t("stockOverview"), url: "/inventory" },
+        { title: t("inventoryLedger"), url: "/inventory/ledger" },
         { title: t("goodsReceipt"), url: "/inventory/receipt" },
         { title: t("productionIssues"), url: "/inventory/issue" },
         { title: t("adjustments"), url: "/inventory/adjust" },
