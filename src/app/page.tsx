@@ -223,7 +223,10 @@ export default function Dashboard() {
   const seedDemoData = async () => {
     if (!db || !user) return;
     setIsSeeding(true);
+    const userCtx = { email: user.email, uid: user.uid };
+    
     try {
+      // 1. App Settings
       await setDoc(doc(db, "appSettings", "global"), {
         id: "global",
         companyLogoUrl: "https://picsum.photos/seed/cheesy-official/400/400",
@@ -232,84 +235,123 @@ export default function Dashboard() {
         accentColor: "#4F7736"
       });
 
-      // Seed Demo Users
-      const demoUsers = [
-        { name: "Kyaw Zayar", email: "kyaw@cheesybites.com", role: "Production Manager", status: "Active" },
-        { name: "Su Myat", email: "su@cheesybites.com", role: "Inventory Manager", status: "Active" }
+      // 2. Roles
+      const roles = [
+        { name: "Administrator", description: "Full system control", permissions: ["master_data", "sales", "inventory", "production", "reports", "admin", "audit"] },
+        { name: "Production Manager", description: "Manage factory floor", permissions: ["production", "inventory", "master_data"] },
+        { name: "Inventory Manager", description: "Warehouse & stock control", permissions: ["inventory", "master_data"] },
+        { name: "Sales Executive", description: "Billing and outlets", permissions: ["sales", "reports"] }
       ];
-      for (const u of demoUsers) {
-        await addDocumentNonBlocking(collection(db, "users"), { ...u, createdAt: new Date().toISOString() });
+      for (const r of roles) {
+        await addDocumentNonBlocking(collection(db, "system_roles"), { ...r, createdAt: new Date().toISOString() }, userCtx);
       }
 
+      // 3. Raw Materials
       const rawMaterials = [
         { code: "MAT-MOZ-01", name: "Mozzarella Cheese", category: "Raw Material", unit: "kg", stock: 250, cost: 15000 },
         { code: "MAT-POT-02", name: "Potato Starch", category: "Raw Material", unit: "kg", stock: 1200, cost: 4500 },
         { code: "MAT-CHK-03", name: "Chicken Breast (Minced)", category: "Ingredient", unit: "kg", stock: 150, cost: 8500 },
         { code: "MAT-SAU-04", name: "Premium Sausage", category: "Ingredient", unit: "units", stock: 500, cost: 1200 },
-        { code: "MAT-OIL-05", name: "Frying Oil", category: "Ingredient", unit: "L", stock: 200, cost: 3800 }
+        { code: "MAT-OIL-05", name: "Frying Oil", category: "Ingredient", unit: "L", stock: 200, cost: 3800 },
+        { code: "MAT-BAT-06", name: "Batter Mix", category: "Ingredient", unit: "kg", stock: 100, cost: 2500 }
       ];
       for (const m of rawMaterials) {
-        await addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() });
+        await addDocumentNonBlocking(collection(db, "raw_materials"), { ...m, createdAt: new Date().toISOString() }, userCtx);
       }
 
+      // 4. Finished Goods
       const goods = [
         { code: "FG-STICK-01", name: "Original Cheese Stick", category: "Finished Good", price: 3500, stock: 450 },
         { code: "FG-POT-02", name: "Long Potato", category: "Finished Good", price: 2500, stock: 800 },
-        { code: "FG-POPC-03", name: "Chicken PopCorn", category: "Finished Good", price: 4000, stock: 320 }
+        { code: "FG-POPC-03", name: "Chicken PopCorn", category: "Finished Good", price: 4000, stock: 320 },
+        { code: "FG-SAU-04", name: "Sausage Cheese Stick", category: "Finished Good", price: 3800, stock: 210 }
       ];
       for (const g of goods) {
-        await addDocumentNonBlocking(collection(db, "finished_goods"), { ...g, createdAt: new Date().toISOString() });
+        await addDocumentNonBlocking(collection(db, "finished_goods"), { ...g, createdAt: new Date().toISOString() }, userCtx);
       }
 
+      // 5. Customers
       const customersList = [
-        { code: "CUST-CITY-01", name: "City Mart Supermarket", email: "procurement@citymart.com.mm", customerType: "Wholesaler", customerClass: "VIP", creditLimit: 5000000, address: "Yangon, Myanmar" },
-        { code: "CUST-SNACK-02", name: "Neighborhood Snack Hub", email: "hello@snackhub.com", customerType: "Retailer", customerClass: "Grade A", creditLimit: 1000000, address: "Mandalay, Myanmar" }
+        { code: "CUST-CITY-01", name: "City Mart Supermarket", email: "procurement@citymart.com.mm", customerType: "Wholesaler", customerClass: "VIP", creditLimit: 5000000, address: "Yangon, Myanmar", paymentTerms: "Net 30" },
+        { code: "CUST-SNACK-02", name: "Neighborhood Snack Hub", email: "hello@snackhub.com", customerType: "Retailer", customerClass: "Grade A", creditLimit: 1000000, address: "Mandalay, Myanmar", paymentTerms: "Net 15" },
+        { code: "CUST-HOTEL-03", name: "Lotte Hotel Catering", email: "fnb@lotteyangon.com", customerType: "Corporate", customerClass: "VIP", creditLimit: 10000000, address: "Yangon", paymentTerms: "Net 7" }
       ];
       for (const c of customersList) {
-        await addDocumentNonBlocking(collection(db, "customers"), { ...c, createdAt: new Date().toISOString() });
+        await addDocumentNonBlocking(collection(db, "customers"), { ...c, createdAt: new Date().toISOString() }, userCtx);
       }
 
+      // 6. Outlets
       const outletsList = [
-        { name: "Junction City Outlet", location: "Yangon", manager: "U Kyaw", phone: "091234567" },
-        { name: "Airport Shop", location: "Yangon Int'l", manager: "U Tun", phone: "094455667" }
+        { name: "Junction City Outlet", location: "Yangon Downtown", manager: "U Kyaw", phone: "091234567" },
+        { name: "Airport Shop", location: "Yangon Int'l Arrival", manager: "U Tun", phone: "094455667" },
+        { name: "Ocean Supercenter", location: "North Okkalapa", manager: "Daw Su", phone: "095566778" }
       ];
       for (const o of outletsList) {
-        await addDocumentNonBlocking(collection(db, "outlets"), { ...o, status: "Active", createdAt: new Date().toISOString() });
+        await addDocumentNonBlocking(collection(db, "outlets"), { ...o, status: "Active", createdAt: new Date().toISOString() }, userCtx);
       }
 
+      // 7. Warehouses
+      const warehousesList = [
+        { name: "Main Factory Warehouse", location: "Hlaing Tharyar", capacity: "85%" },
+        { name: "Cold Storage B", location: "Shwe Pyi Thar", capacity: "40%" }
+      ];
+      for (const w of warehousesList) {
+        await addDocumentNonBlocking(collection(db, "warehouses"), { ...w, status: "Active", createdAt: new Date().toISOString() }, userCtx);
+      }
+
+      // 8. Waste Reasons
+      const wasteList = [
+        { code: "SPOIL", description: "Ingredient Expiration", category: "Inventory", severity: "High" },
+        { code: "REJECT", description: "Quality Control Reject", category: "Production", severity: "Medium" },
+        { code: "DAMAGE", description: "Transit Damage", category: "Operations", severity: "Low" }
+      ];
+      for (const wr of wasteList) {
+        await addDocumentNonBlocking(collection(db, "waste_reasons"), { ...wr, createdAt: new Date().toISOString() }, userCtx);
+      }
+
+      // 9. Transaction: Invoices
       await addDocumentNonBlocking(collection(db, "invoices"), {
-        invoiceNumber: "INV-Demo-01",
+        invoiceNumber: "INV-DEMO-001",
         customerName: "City Mart Supermarket",
         customerCode: "CUST-CITY-01",
         totalAmount: 1575000,
         status: "Paid",
         paymentMethod: "Bank",
-        createdAt: new Date().toISOString(),
-        dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+        createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+        dueDate: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
         items: [
           { productName: "Original Cheese Stick", productCode: "FG-STICK-01", quantity: 300, price: 3500, total: 1050000, unit: "Units" },
           { productName: "Long Potato", productCode: "FG-POT-02", quantity: 210, price: 2500, total: 525000, unit: "Units" }
         ]
-      });
+      }, userCtx);
 
-      await addDocumentNonBlocking(collection(db, "outlet_sales"), {
-        outletName: "Junction City Outlet",
-        amount: 245000,
-        date: new Date().toISOString().split('T')[0],
-        transactionsCount: 42,
-        recordedBy: "Demo Admin",
-        createdAt: new Date().toISOString()
-      });
+      // 10. Transaction: Outlet Sales
+      const mockSales = [
+        { outletName: "Junction City Outlet", amount: 245000, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], transactionsCount: 42 },
+        { outletName: "Airport Shop", amount: 580000, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], transactionsCount: 88 }
+      ];
+      for (const s of mockSales) {
+        await addDocumentNonBlocking(collection(db, "outlet_sales"), { ...s, recordedBy: user.email, createdAt: new Date().toISOString() }, userCtx);
+      }
 
-      await addDocumentNonBlocking(collection(db, "production_orders"), {
-        product: "Original Cheese Stick",
-        date: new Date().toISOString().split('T')[0],
-        quantity: 500,
-        status: "Complete",
-        yield: 98.5,
-        variance: -1.5,
-        createdAt: new Date().toISOString()
-      });
+      // 11. Transaction: Production Orders
+      const mockOrders = [
+        { product: "Original Cheese Stick", date: new Date().toISOString().split('T')[0], quantity: 500, status: "In Progress", yield: 0, variance: 0 },
+        { product: "Long Potato", date: new Date(Date.now() - 172800000).toISOString().split('T')[0], quantity: 1000, status: "Complete", yield: 98.2, variance: -1.8 }
+      ];
+      for (const o of mockOrders) {
+        await addDocumentNonBlocking(collection(db, "production_orders"), { ...o, createdAt: new Date().toISOString() }, userCtx);
+      }
+
+      // 12. Transaction: Stock Transfers
+      await addDocumentNonBlocking(collection(db, "stock_transfers"), {
+        sourceName: "Main Factory Warehouse",
+        destinationName: "Junction City Outlet",
+        status: "Completed",
+        recordedBy: user.email,
+        timestamp: new Date(Date.now() - 43200000).toISOString(),
+        items: [{ productName: "Original Cheese Stick", quantity: 100 }]
+      }, userCtx);
 
     } catch (e) {
       console.error(e);
@@ -338,7 +380,7 @@ export default function Dashboard() {
           disabled={isSeeding}
         >
           {isSeeding ? <RefreshCcw className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-          Seed Enterprise Data
+          Rebuild Enterprise Data
         </Button>
       </div>
 
