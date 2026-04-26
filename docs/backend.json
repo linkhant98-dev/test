@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "AppSettings": {
@@ -35,6 +36,36 @@
         "backgroundColor",
         "accentColor"
       ]
+    },
+    "SystemLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SystemLog",
+      "type": "object",
+      "description": "An audit trail entry representing a single system or user action.",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The exact date and time the action occurred."
+        },
+        "user": {
+          "type": "string",
+          "description": "The email or identifier of the user who performed the action."
+        },
+        "action": {
+          "type": "string",
+          "enum": ["CREATE", "UPDATE", "DELETE", "SET", "AI_ANALYSIS"],
+          "description": "The type of operation performed."
+        },
+        "target": {
+          "type": "string",
+          "description": "The collection or document ID affected by the action."
+        },
+        "details": {
+          "type": "string",
+          "description": "Human-readable details about the change."
+        }
+      }
     }
   },
   "auth": {
@@ -52,26 +83,19 @@
           "schema": {
             "$ref": "#/backend/entities/AppSettings"
           },
-          "description": "A single document containing global application settings, such as the company logo URL and theme colors. This document is intended to be universally readable by all users and writable only by administrators."
+          "description": "Global application settings."
         }
       },
       {
-        "path": "/roles_admin/{uid}",
+        "path": "/system_logs/{logId}",
         "definition": {
-          "entityName": "adminRole",
+          "entityName": "SystemLog",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/backend/entities/SystemLog"
           },
-          "description": "Collection for explicit administrator roles. The existence of a document at `/roles_admin/{uid}` signifies that the corresponding user is an administrator. Used for DBAC (Database-Backed Access Control) to grant write permissions to global settings and other admin-only functions.",
-          "params": [
-            {
-              "name": "uid",
-              "description": "The unique user ID of an administrator."
-            }
-          ]
+          "description": "Central audit trail collection."
         }
       }
-    ],
-    "reasoning": "The application global settings, including the company logo URL and theme colors, will be stored in a single document at `/appSettings/global`. This top-level collection with a singular document adheres to the **Structural Segregation** principle by dedicating a distinct location for application-wide configurations with a homogeneous security posture.\n\n**Authorization Independence** is naturally achieved for this global settings document because its access permissions are entirely self-contained. Read access will be granted broadly to all users (and potentially unauthenticated users if the login screen requires it), as these settings dictate the application's overall look and feel. Write access will be strictly limited to administrators. This is implemented without hierarchical dependencies; instead, write authorization leverages the **Global Roles (DBAC) - Existence over Content** strategy by checking for the existence of the `request.auth.uid` in a dedicated admin roles collection (e.g., `/roles_admin/{uid}`). This approach eliminates the need for `get()` calls in security rules for authorization, enabling robust atomic operations and simplifying debugging.\n\n**QAPs (Rules are not Filters)** are inherently supported. Since there is only one global settings document, clients will directly fetch `/appSettings/global`. There are no 'list' operations on this collection that would require server-side filtering by security rules; the document is either accessible or not, ensuring that all retrieved data is explicitly authorized."
+    ]
   }
 }

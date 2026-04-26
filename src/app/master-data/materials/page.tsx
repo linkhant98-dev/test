@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -73,19 +74,19 @@ export default function MaterialsPage() {
   }, [user, isAuthLoading, router]);
 
   const handleAddMaterial = () => {
-    if (!newMaterial.name || !materialsRef) return
+    if (!newMaterial.name || !materialsRef || !user) return
     addDocumentNonBlocking(materialsRef, {
       ...newMaterial,
       code: newMaterial.code.toUpperCase(),
       stock: Number(newMaterial.stock),
       createdAt: new Date().toISOString()
-    })
+    }, { email: user.email, uid: user.uid })
     setIsAddOpen(false)
     setNewMaterial({ code: "", name: "", unit: "kg", category: "Raw Material", stock: 0 })
   }
 
   const handleUpdateMaterial = () => {
-    if (!editingMaterial || !db) return
+    if (!editingMaterial || !db || !user) return
     const docRef = doc(db, "raw_materials", editingMaterial.id)
     updateDocumentNonBlocking(docRef, {
       code: editingMaterial.code.toUpperCase(),
@@ -93,14 +94,15 @@ export default function MaterialsPage() {
       unit: editingMaterial.unit,
       category: editingMaterial.category,
       stock: Number(editingMaterial.stock)
-    })
+    }, { email: user.email, uid: user.uid })
     setIsEditOpen(false)
     setEditingMaterial(null)
   }
 
   const handleDeleteMaterial = (id: string) => {
+    if (!user) return
     const docRef = doc(db, "raw_materials", id)
-    deleteDocumentNonBlocking(docRef)
+    deleteDocumentNonBlocking(docRef, { email: user.email, uid: user.uid })
   }
 
   const filteredMaterials = materials?.filter(m => 

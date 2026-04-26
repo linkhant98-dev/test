@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -16,6 +17,11 @@ service cloud.firestore {
       allow list: if isSignedIn();
     }
 
+    match /system_logs/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+    }
+
     // Master Data Collections
     match /raw_materials/{id} {
       allow read, write: if isSignedIn();
@@ -23,7 +29,6 @@ service cloud.firestore {
     match /finished_goods/{id} {
       allow read, write: if isSignedIn();
       
-      // Nested sub-collections for versioning and pricing
       match /price_rules/{ruleId} {
         allow read, write: if isSignedIn();
       }
@@ -41,13 +46,11 @@ service cloud.firestore {
     match /warehouses/{id} {
       allow read, write: if isSignedIn();
       
-      // Stock transactions inside warehouses
       match /stock_transactions/{txnId} {
         allow read, write: if isSignedIn();
       }
     }
 
-    // Operational Collections
     match /invoices/{id} {
       allow read, write: if isSignedIn();
     }
