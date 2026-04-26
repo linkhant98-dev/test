@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -230,6 +231,15 @@ export default function Dashboard() {
         backgroundColor: "#F7F4F0",
         accentColor: "#4F7736"
       });
+
+      // Seed Demo Users
+      const demoUsers = [
+        { name: "Kyaw Zayar", email: "kyaw@cheesybites.com", role: "Production Manager", status: "Active" },
+        { name: "Su Myat", email: "su@cheesybites.com", role: "Inventory Manager", status: "Active" }
+      ];
+      for (const u of demoUsers) {
+        await addDocumentNonBlocking(collection(db, "users"), { ...u, createdAt: new Date().toISOString() });
+      }
 
       const rawMaterials = [
         { code: "MAT-MOZ-01", name: "Mozzarella Cheese", category: "Raw Material", unit: "kg", stock: 250, cost: 15000 },

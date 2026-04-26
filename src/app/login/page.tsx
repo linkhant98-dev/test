@@ -52,7 +52,15 @@ export default function LoginPage() {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email, password)
       } else {
-        await createUserWithEmailAndPassword(auth, email, password)
+        const cred = await createUserWithEmailAndPassword(auth, email, password)
+        // Register user in the directory on signup
+        await setDoc(doc(db, "users", cred.user.uid), {
+          name: email.split('@')[0],
+          email: email,
+          role: "Viewer",
+          status: "Active",
+          createdAt: new Date().toISOString()
+        })
       }
       router.push("/")
     } catch (err: any) {
@@ -78,10 +86,20 @@ export default function LoginPage() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, "admin@gmail.com", "admin123")
       
+      // 1. Set Role
       await setDoc(doc(db, "roles_admin", cred.user.uid), {
         email: "admin@gmail.com",
         role: "Administrator",
         initializedAt: new Date().toISOString()
+      })
+
+      // 2. Set User Directory Record
+      await setDoc(doc(db, "users", cred.user.uid), {
+        name: "Main Administrator",
+        email: "admin@gmail.com",
+        role: "Administrator",
+        status: "Active",
+        createdAt: new Date().toISOString()
       })
       
       toast({

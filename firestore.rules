@@ -3,27 +3,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper: Check if user is authenticated
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Global settings: Read by anyone, written by admins
     match /appSettings/global {
       allow read: if true;
       allow write: if isSignedIn();
     }
 
+    // Admin role verification
     match /roles_admin/{uid} {
       allow get: if isSignedIn() && (request.auth.uid == uid);
       allow list: if isSignedIn();
     }
 
-    match /users/{id} {
-      allow read, write: if isSignedIn();
+    // User directory: Full access for authenticated staff
+    match /users/{userId} {
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
+    // Audit logs: Read and create allowed for staff
     match /system_logs/{id} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow read, create: if isSignedIn();
     }
 
     // Master Data Collections
@@ -55,6 +59,7 @@ service cloud.firestore {
       }
     }
 
+    // Operational Collections
     match /invoices/{id} {
       allow read, write: if isSignedIn();
     }
