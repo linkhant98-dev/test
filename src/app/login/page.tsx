@@ -14,14 +14,12 @@ import { useAuth, useUser, useFirestore } from "@/firebase"
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login"
 import { useTranslation } from "@/context/language-context"
 import { useAppSettings } from "@/components/theme-provider"
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth"
-import { doc, setDoc } from "firebase/firestore"
+import { signInWithEmailAndPassword } from "firebase/auth"
 import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
   const router = useRouter()
   const auth = useAuth()
-  const db = useFirestore()
   const { user, isUserLoading } = useUser()
   const { t } = useTranslation()
   const settings = useAppSettings()
@@ -66,40 +64,6 @@ export default function LoginPage() {
     if (!auth) return
     setIsLoggingIn(true)
     initiateAnonymousSignIn(auth)
-  }
-
-  const handleInitializeAdmin = async () => {
-    if (!auth || !db) return
-    setIsLoggingIn(true)
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, "admin@gmail.com", "admin123")
-      await setDoc(doc(db, "roles_admin", cred.user.uid), {
-        email: "admin@gmail.com",
-        role: "Administrator",
-        initializedAt: new Date().toISOString()
-      })
-      await setDoc(doc(db, "users", cred.user.uid), {
-        name: "Main Administrator",
-        email: "admin@gmail.com",
-        role: "Administrator",
-        status: "Active",
-        createdAt: new Date().toISOString()
-      })
-      router.push("/")
-    } catch (e: any) {
-      if (e.code === 'auth/email-already-in-use') {
-        try {
-          await signInWithEmailAndPassword(auth, "admin@gmail.com", "admin123")
-          router.push("/")
-        } catch (loginErr: any) {
-          toast({ variant: "destructive", title: "Login Failed", description: loginErr.message })
-        }
-      } else {
-        toast({ variant: "destructive", title: "Setup Failed", description: e.message })
-      }
-    } finally {
-      setIsLoggingIn(false)
-    }
   }
 
   if (isUserLoading || !mounted) {
@@ -240,14 +204,6 @@ export default function LoginPage() {
                       {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <LogIn className="h-5 w-5 mr-2" />}
                       Authenticate
                     </Button>
-                    
-                    <div className="flex items-center gap-4 pt-8">
-                      <div className="h-px flex-1 bg-slate-100" />
-                      <Button variant="ghost" type="button" onClick={handleInitializeAdmin} className="text-[9px] text-slate-400 uppercase font-black tracking-widest hover:text-primary hover:bg-transparent">
-                        <Key className="h-3 w-3 mr-2" /> Initial Setup Mode
-                      </Button>
-                      <div className="h-px flex-1 bg-slate-100" />
-                    </div>
                   </form>
                 </div>
               </TabsContent>
