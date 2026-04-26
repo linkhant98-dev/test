@@ -45,7 +45,17 @@ export const translations = {
     language: "Language",
     english: "English",
     myanmar: "Myanmar",
-    dailyOutletSales: "Daily Outlet Sales"
+    dailyOutletSales: "Daily Outlet Sales",
+    userProfile: "User Profile",
+    profile: "Profile",
+    displayName: "Display Name",
+    emailAddress: "Email Address",
+    accountRole: "Access Role",
+    memberSince: "Member Since",
+    saveProfile: "Save Profile Changes",
+    backToHome: "Back to Dashboard",
+    profileUpdated: "Profile Updated",
+    profileUpdateDesc: "Your account information has been updated."
   },
   my: {
     dashboard: "ဒက်ရှ်ဘုတ်",
@@ -90,6 +100,16 @@ export const translations = {
     language: "ဘာသာစကား",
     english: "အင်္ဂလိပ်",
     myanmar: "မြန်မာ",
-    dailyOutletSales: "နေ့စဉ်ဆိုင်အရောင်းမှတ်တမ်း"
+    dailyOutletSales: "နေ့စဉ်ဆိုင်အရောင်းမှတ်တမ်း",
+    userProfile: "အသုံးပြုသူ ပရိုဖိုင်",
+    profile: "ပရိုဖိုင်",
+    displayName: "အမည်",
+    emailAddress: "အီးမေးလ် လိပ်စာ",
+    accountRole: "လုပ်ပိုင်ခွင့်",
+    memberSince: "အဖွဲ့ဝင်ဖြစ်ခဲ့သည့်နေ့",
+    saveProfile: "ပရိုဖိုင် သိမ်းဆည်းရန်",
+    backToHome: "ဒက်ရှ်ဘုတ်သို့",
+    profileUpdated: "ပရိုဖိုင် ပြင်ဆင်ပြီးပါပြီ",
+    profileUpdateDesc: "သင့်အကောင့် အချက်အလက်များကို ပြင်ဆင်ပြီးပါပြီ။"
   }
 };

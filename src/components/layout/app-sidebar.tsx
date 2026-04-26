@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -18,7 +19,8 @@ import {
   Settings,
   Store,
   Receipt,
-  ArrowRightLeft
+  ArrowRightLeft,
+  User as UserIcon
 } from "lucide-react"
 
 import {
@@ -198,7 +200,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 space-y-4">
         {mounted && !isUserLoading && user && (
           <div className="flex flex-col gap-2 p-2 rounded-xl bg-muted/40 border">
-            <div className="flex items-center gap-3">
+            <Link href="/profile" className="flex items-center gap-3 p-1 rounded-lg hover:bg-muted/60 transition-colors">
               <Avatar className="h-8 w-8 border-2 border-primary">
                 <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
                   {user.isAnonymous ? "DA" : (user.email?.[0].toUpperCase() || "U")}
@@ -209,10 +211,10 @@ export function AppSidebar() {
                   {user.isAnonymous ? "Demo Admin" : (user.displayName || "Standard User")}
                 </span>
                 <span className="text-[10px] text-muted-foreground truncate opacity-70">
-                  Administrator
+                  {t("profile")}
                 </span>
               </div>
-            </div>
+            </Link>
             <Button 
               variant="ghost" 
               size="sm" 
