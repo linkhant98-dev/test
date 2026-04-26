@@ -21,7 +21,8 @@ import {
   Receipt,
   Zap,
   Table as TableIcon,
-  ArrowRightLeft
+  ArrowRightLeft,
+  MapPin
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -49,6 +50,7 @@ import {
 } from "recharts"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
+import { useAppSettings } from "@/components/theme-provider"
 
 const reportTypes = [
   { id: "sales-rev", title: "Sales Revenue Trend", icon: DollarSign, desc: "Time-series analysis of cumulative revenue from snack sales (MMK).", color: "bg-amber-100 text-amber-700" },
@@ -64,6 +66,7 @@ const reportTypes = [
 export default function ReportsPage() {
   const router = useRouter();
   const db = useFirestore()
+  const settings = useAppSettings()
   const { user, isUserLoading: isAuthLoading } = useUser()
   
   // Guarded Data Sources
@@ -306,8 +309,8 @@ export default function ReportsPage() {
     const data = currentData;
 
     return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 bg-white min-h-screen p-0 md:p-4 rounded-3xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden px-4 pt-4">
           <Button variant="ghost" onClick={() => setSelectedReportId(null)} className="gap-2 w-fit">
             <ArrowLeft className="h-4 w-4" /> Back to Catalog
           </Button>
@@ -321,10 +324,35 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* PRINT BRANDING HEADER */}
+        <div className="hidden print:flex justify-between items-end border-b-4 border-primary pb-8 mb-8">
+           <div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center overflow-hidden p-1 shadow-lg">
+                   {settings?.companyLogoUrl ? (
+                     <img src={settings.companyLogoUrl} alt="Logo" className="object-contain h-full w-full" />
+                   ) : <span className="font-black text-2xl text-primary-foreground">CB</span>}
+                </div>
+                <div>
+                   <h1 className="text-4xl font-black font-headline tracking-tighter uppercase leading-none">Cheesy Bites Co.</h1>
+                   <p className="text-xs font-bold text-muted-foreground tracking-[0.2em] uppercase mt-1">Operational Intelligence Unit</p>
+                </div>
+              </div>
+              <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest space-y-1">
+                <p className="flex items-center gap-2"><MapPin className="h-2.5 w-2.5" /> Industrial Zone 4, Yangon, Myanmar</p>
+                <p>System Audit Document - {new Date().toLocaleDateString()}</p>
+              </div>
+           </div>
+           <div className="text-right">
+              <h2 className="text-4xl font-black font-headline text-secondary uppercase tracking-tight">{report?.title}</h2>
+              <Badge variant="outline" className="mt-2 font-mono text-[10px] border-primary text-primary">REF: {selectedReportId?.toUpperCase()}</Badge>
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 px-4 pb-8">
           <div className="lg:col-span-8 space-y-6">
-            <Card className="border-none shadow-sm overflow-hidden">
-              <CardHeader className="border-b bg-muted/20 pb-6">
+            <Card className="border-none shadow-sm overflow-hidden print:shadow-none print:border-none">
+              <CardHeader className="border-b bg-muted/20 pb-6 print:hidden">
                 <div className="flex items-center gap-4">
                   <div className={`p-4 rounded-2xl ${report?.color} shadow-sm`}>
                     {report && <report.icon className="h-8 w-8" />}
@@ -338,8 +366,8 @@ export default function ReportsPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-8">
-                <div className="h-[400px] w-full mb-8 print:hidden">
+              <CardContent className="pt-8 print:pt-0">
+                <div className="h-[400px] w-full mb-8 print:h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     {selectedReportId === 'sales-rev' ? (
                       <AreaChart data={data}>
@@ -372,14 +400,14 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 px-2 py-1">
+                  <div className="flex items-center gap-2 px-2 py-1 print:mb-4">
                     <TableIcon className="h-4 w-4 text-muted-foreground" />
                     <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Detailed Breakdown</h3>
                   </div>
-                  <div className="rounded-xl border overflow-hidden">
+                  <div className="rounded-xl border overflow-hidden print:border-slate-200">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-muted/40">
+                        <TableRow className="bg-muted/40 print:bg-slate-50">
                           <TableHead className="font-bold">Entry</TableHead>
                           <TableHead className="text-right font-bold">Target/Baseline</TableHead>
                           <TableHead className="text-right font-bold">Actual Value</TableHead>
@@ -389,7 +417,7 @@ export default function ReportsPage() {
                       </TableHeader>
                       <TableBody>
                         {data.map((row, idx) => (
-                          <TableRow key={idx}>
+                          <TableRow key={idx} className="print:border-b print:border-slate-100">
                             <TableCell className="font-bold text-sm">{row.name}</TableCell>
                             <TableCell className="text-right font-mono text-muted-foreground">{row.standard?.toLocaleString()}</TableCell>
                             <TableCell className="text-right font-mono font-bold">{row.actual?.toLocaleString()}</TableCell>
@@ -408,6 +436,10 @@ export default function ReportsPage() {
                       </TableBody>
                     </Table>
                   </div>
+                </div>
+
+                <div className="hidden print:block mt-20 pt-12 border-t text-[9px] text-muted-foreground text-center font-bold uppercase tracking-[0.3em]">
+                   <p>Authorized operational summary - Cheesy Bites Enterprise Control</p>
                 </div>
               </CardContent>
             </Card>

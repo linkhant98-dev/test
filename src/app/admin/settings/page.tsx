@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -6,12 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, useUser } from "@/firebase"
 import { doc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AppSettingsPage() {
   const db = useFirestore()
+  const { user } = useUser()
   const { toast } = useToast()
   
   const settingsRef = useMemoFirebase(() => doc(db, "appSettings", "global"), [db])
@@ -36,8 +38,8 @@ export default function AppSettingsPage() {
   }, [settings])
 
   const handleSave = () => {
-    if (!db) return
-    setDocumentNonBlocking(settingsRef, formData, { merge: true })
+    if (!db || !user) return
+    setDocumentNonBlocking(settingsRef, formData, { merge: true }, { email: user.email, uid: user.uid })
     toast({
       title: "Settings Updated",
       description: "Global branding and theme have been applied."
