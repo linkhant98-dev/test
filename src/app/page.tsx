@@ -13,7 +13,11 @@ import {
   RefreshCcw,
   Users,
   Store,
-  DollarSign
+  DollarSign,
+  Factory,
+  AlertTriangle,
+  Truck,
+  TrendingUp
 } from "lucide-react"
 import { 
   XAxis, 
@@ -69,10 +73,28 @@ export default function Dashboard() {
     return collection(db, "outlet_sales");
   }, [db, user]);
 
+  const ordersRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "production_orders");
+  }, [db, user]);
+
+  const materialsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "raw_materials");
+  }, [db, user]);
+
+  const transfersRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, "stock_transfers");
+  }, [db, user]);
+
   const { data: invoices } = useCollection(invoicesRef);
   const { data: customers } = useCollection(customersRef);
   const { data: outlets } = useCollection(outletsRef);
   const { data: outletSales } = useCollection(outletSalesRef);
+  const { data: orders } = useCollection(ordersRef);
+  const { data: materials } = useCollection(materialsRef);
+  const { data: transfers } = useCollection(transfersRef);
 
   const stats = useMemo(() => {
     const totalSales = invoices?.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0) || 0;
@@ -80,9 +102,20 @@ export default function Dashboard() {
     const customerCount = customers?.length || 0;
     const outletCount = outlets?.length || 0;
     
+    // Efficiency Calculation
+    const completedOrders = orders?.filter(o => o.status === 'Complete') || [];
+    const avgYield = completedOrders.length > 0 
+      ? (completedOrders.reduce((acc, curr) => acc + (curr.yield || 0), 0) / completedOrders.length).toFixed(1)
+      : "0";
+    
+    // Operations Tracking
+    const activeProduction = orders?.filter(o => o.status === 'In Progress').length || 0;
+    const lowStockCount = materials?.filter(m => (m.stock || 0) <= 50).length || 0;
+    const monthlyTransfers = transfers?.length || 0;
+
     return [
       { 
-        title: "B2B Sales", 
+        title: "B2B Revenue", 
         value: `MMK ${(totalSales / 1000000).toFixed(1)}M`, 
         description: `${invoices?.length || 0} Invoices issued`, 
         icon: ShoppingCart, 
@@ -91,34 +124,70 @@ export default function Dashboard() {
         href: "/sales/invoices"
       },
       { 
-        title: "Outlet Revenue", 
+        title: "Outlet Sales", 
         value: `MMK ${(outletSalesTotal / 1000000).toFixed(1)}M`, 
-        description: `Daily summaries recorded`, 
+        description: `Retail branch revenue`, 
         icon: DollarSign, 
         trend: "+8.2%", 
         trendType: "up",
         href: "/sales/outlet-sales"
       },
       { 
-        title: "Active Outlets", 
-        value: outletCount.toString(), 
-        description: "Retail locations", 
-        icon: Store, 
-        trend: "Stable", 
+        title: "Avg Yield %", 
+        value: `${avgYield}%`, 
+        description: "Production Efficiency", 
+        icon: TrendingUp, 
+        trend: "Healthy", 
         trendType: "up",
-        href: "/master-data/outlets"
+        href: "/production"
       },
       { 
-        title: "Customer Base", 
+        title: "Stock Alerts", 
+        value: lowStockCount.toString(), 
+        description: "Items below threshold", 
+        icon: AlertTriangle, 
+        trend: lowStockCount > 0 ? "Critical" : "Stable", 
+        trendType: lowStockCount > 0 ? "down" : "up",
+        href: "/inventory"
+      },
+      { 
+        title: "Active Runs", 
+        value: activeProduction.toString(), 
+        description: "In Progress Orders", 
+        icon: Factory, 
+        trend: "Steady", 
+        trendType: "up",
+        href: "/production"
+      },
+      { 
+        title: "Fleet Runs", 
+        value: monthlyTransfers.toString(), 
+        description: "Logistics Restocks", 
+        icon: Truck, 
+        trend: "On Schedule", 
+        trendType: "up",
+        href: "/inventory/transfer"
+      },
+      { 
+        title: "Customers", 
         value: customerCount.toString(), 
         description: "Business partners", 
         icon: Users, 
         trend: "+2 new", 
         trendType: "up",
         href: "/master-data/customers"
+      },
+      { 
+        title: "Retails", 
+        value: outletCount.toString(), 
+        description: "Active Locations", 
+        icon: Store, 
+        trend: "Global", 
+        trendType: "up",
+        href: "/master-data/outlets"
       }
     ];
-  }, [invoices, customers, outlets, outletSales]);
+  }, [invoices, customers, outlets, outletSales, orders, materials, transfers]);
 
   const outletPerformanceData = useMemo(() => {
     if (!outletSales) return [];
@@ -217,6 +286,17 @@ export default function Dashboard() {
         createdAt: new Date().toISOString()
       });
 
+      // 7. Production Order
+      await addDocumentNonBlocking(collection(db, "production_orders"), {
+        product: "Original Cheese Stick",
+        date: new Date().toISOString().split('T')[0],
+        quantity: 500,
+        status: "Complete",
+        yield: 98.5,
+        variance: -1.5,
+        createdAt: new Date().toISOString()
+      });
+
     } catch (e) {
       console.error(e);
     } finally {
@@ -233,7 +313,7 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
           <h1 className="text-4xl font-bold tracking-tight font-headline text-foreground">Operational Intelligence</h1>
-          <p className="text-muted-foreground">Live monitoring of Sales, Outlets, and Production metrics.</p>
+          <p className="text-muted-foreground">Strategic monitoring of Sales, Inventory, and Manufacturing health.</p>
         </div>
         <Button 
           variant="outline" 
@@ -246,7 +326,7 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card 
             key={stat.title} 
@@ -254,13 +334,13 @@ export default function Dashboard() {
             onClick={() => router.push(stat.href)}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">{stat.title}</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">{stat.title}</CardTitle>
               <stat.icon className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground truncate">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-              <div className="mt-3 flex items-center justify-between">
+              <div className="text-2xl font-black font-headline text-foreground truncate">{stat.value}</div>
+              <p className="text-[10px] font-medium text-muted-foreground mt-1 truncate">{stat.description}</p>
+              <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-1">
                   {stat.trendType === 'up' ? <ArrowUpRight className="h-3 w-3 text-secondary" /> : <ArrowDownRight className="h-3 w-3 text-destructive" />}
                   <span className={`text-[10px] font-bold ${stat.trendType === 'up' ? 'text-secondary' : 'text-destructive'}`}>{stat.trend}</span>
@@ -280,7 +360,7 @@ export default function Dashboard() {
                 <Badge variant="secondary" className="bg-secondary/10 text-secondary text-[10px]">Real-time Aggregate</Badge>
              </CardTitle>
           </CardHeader>
-          <CardContent className="pl-2 h-[300px]">
+          <CardContent className="pl-2 h-[350px]">
              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={outletPerformanceData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
@@ -288,7 +368,7 @@ export default function Dashboard() {
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 10}} />
                   <Tooltip 
                     formatter={(val: number) => [`MMK ${val.toLocaleString()}`, "Revenue"]}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
                   />
                   <Bar 
                     dataKey="amount" 
@@ -304,8 +384,8 @@ export default function Dashboard() {
 
         <Card className="md:col-span-3 border-none shadow-sm hover:shadow-md transition-shadow">
           <CardHeader><CardTitle className="font-headline">Production Mix</CardTitle></CardHeader>
-          <CardContent className="h-[300px] flex flex-col items-center justify-center">
-            <ResponsiveContainer width="100%" height={220}>
+          <CardContent className="h-[350px] flex flex-col items-center justify-center">
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie 
                   data={topProducts} 
@@ -319,7 +399,7 @@ export default function Dashboard() {
                   {topProducts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip />
-                <Legend verticalAlign="bottom" />
+                <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px' }} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
