@@ -6,6 +6,7 @@ import {LanguageProvider} from '@/context/language-context';
 import {FirebaseClientProvider} from '@/firebase/client-provider';
 import {Toaster} from '@/components/ui/toaster';
 import {ThemeProvider} from '@/components/theme-provider';
+import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: 'Cheesy Bites | Inventory Control',
@@ -32,8 +33,25 @@ export default function RootLayout({
                 <div className="flex min-h-screen w-full">
                   <AppSidebar />
                   <div className="flex flex-1 flex-col overflow-hidden">
-                    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-6">
-                      <SidebarTrigger />
+                    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-6 shadow-sm">
+                      <div className="flex items-center gap-4">
+                        <SidebarTrigger />
+                        <div className="flex items-center gap-2 md:hidden">
+                           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center p-1 shadow-sm overflow-hidden">
+                              <Image 
+                                src="https://picsum.photos/seed/cheese-logo/100/100"
+                                alt="Logo"
+                                width={32}
+                                height={32}
+                                className="object-contain"
+                              />
+                           </div>
+                           <span className="text-sm font-black font-headline tracking-tighter uppercase">Cheesy Bites</span>
+                        </div>
+                        <div className="hidden md:flex items-center gap-2 group cursor-default">
+                           <span className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] group-hover:text-primary transition-colors">Menu</span>
+                        </div>
+                      </div>
                       <div className="flex flex-1 items-center justify-end gap-4">
                         {/* Space for future header notifications/search */}
                       </div>
